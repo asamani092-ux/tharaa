@@ -83,20 +83,24 @@ export default function AdminUsers() {
   };
 
   const handleDelete = (id: number) => {
-    if (confirm("هل أنت متأكد من حذف هذا المستخدم؟")) {
-      deleteUser.mutate(
-        { id },
-        {
-          onSuccess: () => {
-            toast.success("تم الحذف بنجاح");
-            queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
-            queryClient.invalidateQueries({
-              queryKey: getGetAnalyticsOverviewQueryKey(),
-            });
-          },
+    const toastId = toast.loading("جاري حذف المستخدم...");
+    deleteUser.mutate(
+      { id },
+      {
+        onSuccess: () => {
+          toast.dismiss(toastId);
+          toast.success("تم حذف المستخدم بنجاح");
+          queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+          queryClient.invalidateQueries({
+            queryKey: getGetAnalyticsOverviewQueryKey(),
+          });
         },
-      );
-    }
+        onError: (err: any) => {
+          toast.dismiss(toastId);
+          toast.error(err?.error || "فشل حذف المستخدم");
+        },
+      },
+    );
   };
 
   const handleBulkSubmit = (e: React.FormEvent) => {

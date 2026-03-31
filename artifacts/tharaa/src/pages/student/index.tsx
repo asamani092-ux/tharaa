@@ -35,8 +35,11 @@ export default function StudentPortal() {
   const phaseBooks = books?.filter(b => b.phaseNumber === user?.phaseNumber) || [];
   const availableBooks = phaseBooks.filter(b => !completedBookIds.includes(b.id));
 
-  const currentBook = phaseBooks.find(b => b.id === user?.currentBookId)
-    || availableBooks[0];
+  // If currentBook is completed, use first available instead
+  const userCurrentBook = user?.currentBookId ? phaseBooks.find(b => b.id === user.currentBookId) : null;
+  const currentBook = (userCurrentBook && !completedBookIds.includes(userCurrentBook.id))
+    ? userCurrentBook
+    : availableBooks[0];
 
   const remainingInCurrentBook = currentBook
     ? Math.max(0, currentBook.totalPages - (user?.lastPage || 0))
@@ -103,10 +106,11 @@ export default function StudentPortal() {
       },
       {
         onSuccess: () => {
-          toast.success("تم تسجيل الورد بنجاح 🎉");
+          toast.success("تم تسجيل النصاب بنجاح 🎉");
           queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetMyLogsQueryKey() });
           setReflection("");
+          setBookId("");
         },
         onError: (err: any) => {
           toast.error(err?.error || "حدث خطأ أثناء تسجيل الورد");

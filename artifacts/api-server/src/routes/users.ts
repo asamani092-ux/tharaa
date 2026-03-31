@@ -128,7 +128,7 @@ router.post("/users/bulk", requireAdmin, async (req, res): Promise<void> => {
           phone: normalized,
           passwordHash,
           role: "student",
-          status: "pending",
+          status: "active",
           batchId,
           phaseNumber: phaseNumber ?? 1,
           levelType: levelType ?? "basic",
