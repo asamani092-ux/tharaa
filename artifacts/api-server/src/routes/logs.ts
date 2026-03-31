@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
-import { db, readingLogsTable, curriculumTable, systemSettingsTable } from "@workspace/db";
+import { db, readingLogsTable, curriculumTable, systemSettingsTable, usersTable } from "@workspace/db";
 import { requireAuth, requireAdmin } from "../lib/auth";
 
 const router: IRouter = Router();
@@ -102,22 +102,45 @@ router.post("/logs", requireAuth, async (req, res): Promise<void> => {
   const weekLabel = getWeekLabel();
   const pagesRead = endPage - startPage + 1;
 
-  const [log] = await db
-    .insert(readingLogsTable)
-    .values({
-      userId,
-      bookId,
-      startPage,
-      endPage,
-      pagesRead,
-      isCompleted,
-      submissionStatus,
-      reflection: reflection ?? null,
-      weekLabel,
-    })
-    .returning();
+  const [currentUser] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+  if (!currentUser) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
 
   const [book] = await db.select().from(curriculumTable).where(eq(curriculumTable.id, bookId));
+
+  const [log] = await db.transaction(async (tx) => {
+    const [inserted] = await tx
+      .insert(readingLogsTable)
+      .values({
+        userId,
+        bookId,
+        startPage,
+        endPage,
+        pagesRead,
+        isCompleted,
+        submissionStatus,
+        reflection: reflection ?? null,
+        weekLabel,
+      })
+      .returning();
+
+    const updatedCompletedBooks = isCompleted
+      ? [...new Set([...(currentUser.completedBooks ?? []), bookId])]
+      : (currentUser.completedBooks ?? []);
+
+    await tx
+      .update(usersTable)
+      .set({
+        lastPage: endPage,
+        completedBooks: updatedCompletedBooks,
+        ...(isCompleted ? { currentBookId: null } : {}),
+      })
+      .where(eq(usersTable.id, userId));
+
+    return [inserted];
+  });
 
   res.status(201).json({
     ...log,

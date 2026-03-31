@@ -51,6 +51,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
       lastPage: user.lastPage,
       phaseNumber: user.phaseNumber,
       levelType: user.levelType,
+      completedBooks: user.completedBooks ?? [],
     },
     role: user.role,
   });
@@ -92,6 +93,7 @@ router.get("/auth/me", async (req, res): Promise<void> => {
       lastPage: user.lastPage,
       phaseNumber: user.phaseNumber,
       levelType: user.levelType,
+      completedBooks: user.completedBooks ?? [],
     },
   });
 });
