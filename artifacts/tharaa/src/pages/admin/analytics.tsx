@@ -36,7 +36,7 @@ export default function AdminAnalytics() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold" style={{ fontFamily: 'Cairo, sans-serif' }}>التحليلات التفصيلية</h2>
+        <h2 className="text-2xl font-bold" style={{ fontFamily: 'Cairo, sans-serif' }}>الإحصائيات</h2>
 
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="rounded-xl w-full justify-start" style={{ backgroundColor: 'hsl(218,39%,12%)', border: '1px solid hsl(217,36%,20%)' }}>
