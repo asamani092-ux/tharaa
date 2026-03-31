@@ -17,6 +17,7 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AdminProfile,
   AnalyticsOverview,
   Batch,
   BatchAnalytics,
@@ -38,10 +39,13 @@ import type {
   ReadingLog,
   SessionResponse,
   SystemSettings,
+  UpdateAdminBody,
+  UpdateBatchBody,
   UpdateCurriculumBookBody,
   UpdateSettingsBody,
   UpdateUserBody,
   UpdateUserBookBody,
+  UpdateUserFullBody,
   User,
   UserAnalytics,
 } from "./api.schemas";
@@ -295,6 +299,92 @@ export const useLogout = <
   TContext
 > => {
   return useMutation(getLogoutMutationOptions(options));
+};
+
+/**
+ * @summary Update admin profile
+ */
+export const getUpdateAdminUrl = () => {
+  return `/api/auth/admin`;
+};
+
+export const updateAdmin = async (
+  updateAdminBody: UpdateAdminBody,
+  options?: RequestInit,
+): Promise<AdminProfile> => {
+  return customFetch<AdminProfile>(getUpdateAdminUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateAdminBody),
+  });
+};
+
+export const getUpdateAdminMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAdmin>>,
+    TError,
+    { data: BodyType<UpdateAdminBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAdmin>>,
+  TError,
+  { data: BodyType<UpdateAdminBody> },
+  TContext
+> => {
+  const mutationKey = ["updateAdmin"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAdmin>>,
+    { data: BodyType<UpdateAdminBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateAdmin(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAdminMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateAdmin>>
+>;
+export type UpdateAdminMutationBody = BodyType<UpdateAdminBody>;
+export type UpdateAdminMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update admin profile
+ */
+export const useUpdateAdmin = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAdmin>>,
+    TError,
+    { data: BodyType<UpdateAdminBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateAdmin>>,
+  TError,
+  { data: BodyType<UpdateAdminBody> },
+  TContext
+> => {
+  return useMutation(getUpdateAdminMutationOptions(options));
 };
 
 /**
@@ -704,6 +794,93 @@ export function useGetUser<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Full update of user
+ */
+export const getReplaceUserUrl = (id: number) => {
+  return `/api/users/${id}`;
+};
+
+export const replaceUser = async (
+  id: number,
+  updateUserFullBody: UpdateUserFullBody,
+  options?: RequestInit,
+): Promise<User> => {
+  return customFetch<User>(getReplaceUserUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateUserFullBody),
+  });
+};
+
+export const getReplaceUserMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof replaceUser>>,
+    TError,
+    { id: number; data: BodyType<UpdateUserFullBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof replaceUser>>,
+  TError,
+  { id: number; data: BodyType<UpdateUserFullBody> },
+  TContext
+> => {
+  const mutationKey = ["replaceUser"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof replaceUser>>,
+    { id: number; data: BodyType<UpdateUserFullBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return replaceUser(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReplaceUserMutationResult = NonNullable<
+  Awaited<ReturnType<typeof replaceUser>>
+>;
+export type ReplaceUserMutationBody = BodyType<UpdateUserFullBody>;
+export type ReplaceUserMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Full update of user
+ */
+export const useReplaceUser = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof replaceUser>>,
+    TError,
+    { id: number; data: BodyType<UpdateUserFullBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof replaceUser>>,
+  TError,
+  { id: number; data: BodyType<UpdateUserFullBody> },
+  TContext
+> => {
+  return useMutation(getReplaceUserMutationOptions(options));
+};
 
 /**
  * @summary Update user
@@ -1226,6 +1403,94 @@ export const useCreateCurriculumBook = <
   TContext
 > => {
   return useMutation(getCreateCurriculumBookMutationOptions(options));
+};
+
+/**
+ * @summary Full update of curriculum book
+ */
+export const getReplaceCurriculumBookUrl = (id: number) => {
+  return `/api/curriculum/${id}`;
+};
+
+export const replaceCurriculumBook = async (
+  id: number,
+  createCurriculumBookBody: CreateCurriculumBookBody,
+  options?: RequestInit,
+): Promise<CurriculumBook> => {
+  return customFetch<CurriculumBook>(getReplaceCurriculumBookUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createCurriculumBookBody),
+  });
+};
+
+export const getReplaceCurriculumBookMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof replaceCurriculumBook>>,
+    TError,
+    { id: number; data: BodyType<CreateCurriculumBookBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof replaceCurriculumBook>>,
+  TError,
+  { id: number; data: BodyType<CreateCurriculumBookBody> },
+  TContext
+> => {
+  const mutationKey = ["replaceCurriculumBook"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof replaceCurriculumBook>>,
+    { id: number; data: BodyType<CreateCurriculumBookBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return replaceCurriculumBook(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReplaceCurriculumBookMutationResult = NonNullable<
+  Awaited<ReturnType<typeof replaceCurriculumBook>>
+>;
+export type ReplaceCurriculumBookMutationBody =
+  BodyType<CreateCurriculumBookBody>;
+export type ReplaceCurriculumBookMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Full update of curriculum book
+ */
+export const useReplaceCurriculumBook = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof replaceCurriculumBook>>,
+    TError,
+    { id: number; data: BodyType<CreateCurriculumBookBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof replaceCurriculumBook>>,
+  TError,
+  { id: number; data: BodyType<CreateCurriculumBookBody> },
+  TContext
+> => {
+  return useMutation(getReplaceCurriculumBookMutationOptions(options));
 };
 
 /**
@@ -2290,4 +2555,175 @@ export const useCreateBatch = <
   TContext
 > => {
   return useMutation(getCreateBatchMutationOptions(options));
+};
+
+/**
+ * @summary Update batch name
+ */
+export const getUpdateBatchUrl = (id: number) => {
+  return `/api/batches/${id}`;
+};
+
+export const updateBatch = async (
+  id: number,
+  updateBatchBody: UpdateBatchBody,
+  options?: RequestInit,
+): Promise<Batch> => {
+  return customFetch<Batch>(getUpdateBatchUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateBatchBody),
+  });
+};
+
+export const getUpdateBatchMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateBatch>>,
+    TError,
+    { id: number; data: BodyType<UpdateBatchBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateBatch>>,
+  TError,
+  { id: number; data: BodyType<UpdateBatchBody> },
+  TContext
+> => {
+  const mutationKey = ["updateBatch"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateBatch>>,
+    { id: number; data: BodyType<UpdateBatchBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateBatch(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateBatchMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateBatch>>
+>;
+export type UpdateBatchMutationBody = BodyType<UpdateBatchBody>;
+export type UpdateBatchMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update batch name
+ */
+export const useUpdateBatch = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateBatch>>,
+    TError,
+    { id: number; data: BodyType<UpdateBatchBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateBatch>>,
+  TError,
+  { id: number; data: BodyType<UpdateBatchBody> },
+  TContext
+> => {
+  return useMutation(getUpdateBatchMutationOptions(options));
+};
+
+/**
+ * @summary Delete batch and all its users and logs
+ */
+export const getDeleteBatchUrl = (id: number) => {
+  return `/api/batches/${id}`;
+};
+
+export const deleteBatch = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteBatchUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteBatchMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteBatch>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteBatch>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteBatch"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteBatch>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteBatch(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteBatchMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteBatch>>
+>;
+
+export type DeleteBatchMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete batch and all its users and logs
+ */
+export const useDeleteBatch = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteBatch>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteBatch>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteBatchMutationOptions(options));
 };

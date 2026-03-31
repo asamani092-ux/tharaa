@@ -17,4 +17,5 @@ export interface UpdateSettingsBody {
   gradeThresholdExcellent?: number;
   gradeThresholdGood?: number;
   gradeThresholdAcceptable?: number;
+  allDaysActive?: boolean;
 }

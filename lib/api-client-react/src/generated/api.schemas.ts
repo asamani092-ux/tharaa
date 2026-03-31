@@ -79,6 +79,18 @@ export interface CreateUserBody {
   levelType?: string | null;
 }
 
+export interface UpdateUserFullBody {
+  name: string;
+  phone: string;
+  /** @nullable */
+  batchId?: number | null;
+  status: string;
+  /** @nullable */
+  phaseNumber?: number | null;
+  /** @nullable */
+  levelType?: string | null;
+}
+
 export interface UpdateUserBody {
   name?: string;
   phone?: string;
@@ -123,6 +135,25 @@ export interface Batch {
 
 export interface CreateBatchBody {
   name: string;
+}
+
+export interface UpdateBatchBody {
+  name: string;
+}
+
+export interface UpdateAdminBody {
+  name?: string;
+  phone?: string;
+  currentPassword: string;
+  newPassword?: string;
+}
+
+export interface AdminProfile {
+  id: number;
+  name: string;
+  phone: string;
+  role: string;
+  status: string;
 }
 
 export interface CurriculumBook {
@@ -212,6 +243,7 @@ export interface SystemSettings {
   gradeThresholdExcellent: number;
   gradeThresholdGood: number;
   gradeThresholdAcceptable: number;
+  allDaysActive: boolean;
 }
 
 export interface UpdateSettingsBody {
@@ -225,6 +257,7 @@ export interface UpdateSettingsBody {
   gradeThresholdExcellent?: number;
   gradeThresholdGood?: number;
   gradeThresholdAcceptable?: number;
+  allDaysActive?: boolean;
 }
 
 export interface BatchSummary {

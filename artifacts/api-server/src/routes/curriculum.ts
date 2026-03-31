@@ -64,6 +64,47 @@ router.post("/curriculum", requireAdmin, async (req, res): Promise<void> => {
   res.status(201).json(book);
 });
 
+router.put("/curriculum/:id", requireAdmin, async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+
+  const { phaseNumber, phaseName, levelType, bookCode, title, totalPages, pdfUrl, publisher, author, orderInLevel } =
+    req.body as {
+      phaseNumber: number;
+      phaseName: string;
+      levelType: string;
+      bookCode: string;
+      title: string;
+      totalPages: number;
+      pdfUrl?: string | null;
+      publisher?: string | null;
+      author?: string | null;
+      orderInLevel: number;
+    };
+
+  if (!phaseNumber || !phaseName || !levelType || !bookCode || !title || !totalPages) {
+    res.status(400).json({ error: "Required fields missing" });
+    return;
+  }
+
+  const [book] = await db
+    .update(curriculumTable)
+    .set({ phaseNumber, phaseName, levelType, bookCode, title, totalPages, pdfUrl: pdfUrl ?? null, publisher: publisher ?? null, author: author ?? null, orderInLevel: orderInLevel ?? 1 })
+    .where(eq(curriculumTable.id, id))
+    .returning();
+
+  if (!book) {
+    res.status(404).json({ error: "Book not found" });
+    return;
+  }
+
+  res.json(book);
+});
+
 router.patch("/curriculum/:id", requireAdmin, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);

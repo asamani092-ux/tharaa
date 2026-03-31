@@ -18,4 +18,5 @@ export interface SystemSettings {
   gradeThresholdExcellent: number;
   gradeThresholdGood: number;
   gradeThresholdAcceptable: number;
+  allDaysActive: boolean;
 }

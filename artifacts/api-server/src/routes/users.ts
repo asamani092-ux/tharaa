@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import bcrypt from "bcryptjs";
-import { eq, and } from "drizzle-orm";
-import { db, usersTable, batchesTable } from "@workspace/db";
+import { eq, and, inArray } from "drizzle-orm";
+import { db, usersTable, batchesTable, readingLogsTable } from "@workspace/db";
 import { requireAdmin, requireAuth, normalizePhone } from "../lib/auth";
 
 const router: IRouter = Router();
@@ -242,6 +242,61 @@ router.patch("/users/:id", requireAdmin, async (req, res): Promise<void> => {
   });
 });
 
+router.put("/users/:id", requireAdmin, async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+
+  const { name, phone, batchId, status, phaseNumber, levelType } = req.body as {
+    name: string;
+    phone: string;
+    batchId?: number | null;
+    status: string;
+    phaseNumber?: number | null;
+    levelType?: string | null;
+  };
+
+  if (!name || !phone || !status) {
+    res.status(400).json({ error: "name, phone and status are required" });
+    return;
+  }
+
+  const [user] = await db
+    .update(usersTable)
+    .set({
+      name,
+      phone: normalizePhone(phone),
+      batchId: batchId !== undefined ? batchId : null,
+      status,
+      phaseNumber: phaseNumber !== undefined ? phaseNumber : null,
+      levelType: levelType !== undefined ? levelType : null,
+    })
+    .where(eq(usersTable.id, id))
+    .returning();
+
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  res.json({
+    id: user.id,
+    name: user.name,
+    phone: user.phone,
+    batchId: user.batchId,
+    status: user.status,
+    currentBookId: user.currentBookId,
+    lastPage: user.lastPage,
+    phaseNumber: user.phaseNumber,
+    levelType: user.levelType,
+    completedBooks: user.completedBooks ?? [],
+    createdAt: user.createdAt,
+  });
+});
+
 router.delete("/users/:id", requireAdmin, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
@@ -357,6 +412,61 @@ router.post("/batches", requireAdmin, async (req, res): Promise<void> => {
 
   const [batch] = await db.insert(batchesTable).values({ name }).returning();
   res.status(201).json(batch);
+});
+
+router.put("/batches/:id", requireAdmin, async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+
+  const { name } = req.body as { name: string };
+  if (!name) {
+    res.status(400).json({ error: "Name is required" });
+    return;
+  }
+
+  const [batch] = await db
+    .update(batchesTable)
+    .set({ name })
+    .where(eq(batchesTable.id, id))
+    .returning();
+
+  if (!batch) {
+    res.status(404).json({ error: "Batch not found" });
+    return;
+  }
+
+  res.json(batch);
+});
+
+router.delete("/batches/:id", requireAdmin, async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+
+  await db.transaction(async (tx) => {
+    const batchUsers = await tx
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(eq(usersTable.batchId, id));
+
+    const userIds = batchUsers.map((u) => u.id);
+
+    if (userIds.length > 0) {
+      await tx.delete(readingLogsTable).where(inArray(readingLogsTable.userId, userIds));
+      await tx.delete(usersTable).where(inArray(usersTable.id, userIds));
+    }
+
+    await tx.delete(batchesTable).where(eq(batchesTable.id, id));
+  });
+
+  res.sendStatus(204);
 });
 
 export default router;

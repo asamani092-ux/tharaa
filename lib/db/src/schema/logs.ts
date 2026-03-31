@@ -6,7 +6,7 @@ import { curriculumTable } from "./curriculum";
 
 export const readingLogsTable = pgTable("reading_logs", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => usersTable.id),
+  userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: 'cascade' }),
   bookId: integer("book_id").notNull().references(() => curriculumTable.id),
   date: timestamp("date", { withTimezone: true }).notNull().defaultNow(),
   startPage: integer("start_page").notNull(),

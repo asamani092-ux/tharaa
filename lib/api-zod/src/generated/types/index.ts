@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./adminProfile";
 export * from "./analyticsOverview";
 export * from "./batch";
 export * from "./batchAnalytics";
@@ -29,9 +30,12 @@ export * from "./readingLog";
 export * from "./sessionResponse";
 export * from "./sessionUser";
 export * from "./systemSettings";
+export * from "./updateAdminBody";
+export * from "./updateBatchBody";
 export * from "./updateCurriculumBookBody";
 export * from "./updateSettingsBody";
 export * from "./updateUserBody";
 export * from "./updateUserBookBody";
+export * from "./updateUserFullBody";
 export * from "./user";
 export * from "./userAnalytics";

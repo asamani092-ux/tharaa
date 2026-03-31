@@ -9,7 +9,7 @@ export const usersTable = pgTable("users", {
   phone: text("phone").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   role: text("role").notNull().default("student"),
-  batchId: integer("batch_id").references(() => batchesTable.id),
+  batchId: integer("batch_id").references(() => batchesTable.id, { onDelete: 'set null' }),
   status: text("status").notNull().default("pending"),
   currentBookId: integer("current_book_id"),
   lastPage: integer("last_page").notNull().default(0),

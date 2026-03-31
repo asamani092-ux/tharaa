@@ -46,6 +46,24 @@ export const LogoutResponse = zod.object({
 });
 
 /**
+ * @summary Update admin profile
+ */
+export const UpdateAdminBody = zod.object({
+  name: zod.string().optional(),
+  phone: zod.string().optional(),
+  currentPassword: zod.string(),
+  newPassword: zod.string().optional(),
+});
+
+export const UpdateAdminResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  phone: zod.string(),
+  role: zod.string(),
+  status: zod.string(),
+});
+
+/**
  * @summary Get current user session
  */
 export const GetMeResponse = zod.object({
@@ -119,6 +137,36 @@ export const GetUserParams = zod.object({
 });
 
 export const GetUserResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  phone: zod.string(),
+  batchId: zod.number().nullish(),
+  status: zod.string(),
+  currentBookId: zod.number().nullish(),
+  lastPage: zod.number(),
+  phaseNumber: zod.number().nullish(),
+  levelType: zod.string().nullish(),
+  completedBooks: zod.array(zod.number()),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Full update of user
+ */
+export const ReplaceUserParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ReplaceUserBody = zod.object({
+  name: zod.string(),
+  phone: zod.string(),
+  batchId: zod.number().nullish(),
+  status: zod.string(),
+  phaseNumber: zod.number().nullish(),
+  levelType: zod.string().nullish(),
+});
+
+export const ReplaceUserResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   phone: zod.string(),
@@ -246,6 +294,40 @@ export const ListCurriculumResponse = zod.array(ListCurriculumResponseItem);
  * @summary Add a curriculum book
  */
 export const CreateCurriculumBookBody = zod.object({
+  phaseNumber: zod.number(),
+  phaseName: zod.string(),
+  levelType: zod.string(),
+  bookCode: zod.string(),
+  title: zod.string(),
+  totalPages: zod.number(),
+  pdfUrl: zod.string().nullish(),
+  publisher: zod.string().nullish(),
+  author: zod.string().nullish(),
+  orderInLevel: zod.number(),
+});
+
+/**
+ * @summary Full update of curriculum book
+ */
+export const ReplaceCurriculumBookParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ReplaceCurriculumBookBody = zod.object({
+  phaseNumber: zod.number(),
+  phaseName: zod.string(),
+  levelType: zod.string(),
+  bookCode: zod.string(),
+  title: zod.string(),
+  totalPages: zod.number(),
+  pdfUrl: zod.string().nullish(),
+  publisher: zod.string().nullish(),
+  author: zod.string().nullish(),
+  orderInLevel: zod.number(),
+});
+
+export const ReplaceCurriculumBookResponse = zod.object({
+  id: zod.number(),
   phaseNumber: zod.number(),
   phaseName: zod.string(),
   levelType: zod.string(),
@@ -389,6 +471,7 @@ export const GetSettingsResponse = zod.object({
   gradeThresholdExcellent: zod.number(),
   gradeThresholdGood: zod.number(),
   gradeThresholdAcceptable: zod.number(),
+  allDaysActive: zod.boolean(),
 });
 
 /**
@@ -405,6 +488,7 @@ export const UpdateSettingsBody = zod.object({
   gradeThresholdExcellent: zod.number().optional(),
   gradeThresholdGood: zod.number().optional(),
   gradeThresholdAcceptable: zod.number().optional(),
+  allDaysActive: zod.boolean().optional(),
 });
 
 export const UpdateSettingsResponse = zod.object({
@@ -419,6 +503,7 @@ export const UpdateSettingsResponse = zod.object({
   gradeThresholdExcellent: zod.number(),
   gradeThresholdGood: zod.number(),
   gradeThresholdAcceptable: zod.number(),
+  allDaysActive: zod.boolean(),
 });
 
 /**
@@ -544,4 +629,28 @@ export const ListBatchesResponse = zod.array(ListBatchesResponseItem);
  */
 export const CreateBatchBody = zod.object({
   name: zod.string(),
+});
+
+/**
+ * @summary Update batch name
+ */
+export const UpdateBatchParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateBatchBody = zod.object({
+  name: zod.string(),
+});
+
+export const UpdateBatchResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Delete batch and all its users and logs
+ */
+export const DeleteBatchParams = zod.object({
+  id: zod.coerce.number(),
 });

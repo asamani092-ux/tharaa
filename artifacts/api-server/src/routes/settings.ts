@@ -29,6 +29,7 @@ router.patch("/settings", requireAdmin, async (req, res): Promise<void> => {
     gradeThresholdExcellent,
     gradeThresholdGood,
     gradeThresholdAcceptable,
+    allDaysActive,
   } = req.body as Partial<typeof systemSettingsTable.$inferInsert>;
 
   const updates: Partial<typeof systemSettingsTable.$inferInsert> = {};
@@ -42,6 +43,7 @@ router.patch("/settings", requireAdmin, async (req, res): Promise<void> => {
   if (gradeThresholdExcellent != null) updates.gradeThresholdExcellent = gradeThresholdExcellent;
   if (gradeThresholdGood != null) updates.gradeThresholdGood = gradeThresholdGood;
   if (gradeThresholdAcceptable != null) updates.gradeThresholdAcceptable = gradeThresholdAcceptable;
+  if (allDaysActive != null) updates.allDaysActive = allDaysActive;
 
   if (!settings) {
     [settings] = await db.insert(systemSettingsTable).values(updates).returning();

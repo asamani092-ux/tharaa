@@ -6,25 +6,15 @@ import { requireAuth, requireAdmin } from "../lib/auth";
 const router: IRouter = Router();
 
 function getSubmissionStatus(settings: typeof systemSettingsTable.$inferSelect): string {
+  if (settings.allDaysActive) return "on_time";
+
   const now = new Date();
   const day = now.getDay();
-  const hour = now.getHours();
-
   const startDay = settings.submissionStartDay;
-  const startHour = settings.submissionStartHour;
-  const normalDay = settings.normalDeadlineDay;
-  const normalHour = settings.normalDeadlineHour;
-  const lateDay = settings.lateDeadlineDay;
-  const lateHour = settings.lateDeadlineHour;
+  const lateDay = (startDay + 1) % 7;
 
-  const toMinutes = (d: number, h: number) => d * 24 * 60 + h * 60;
-  const nowMins = toMinutes(day, hour);
-  const startMins = toMinutes(startDay, startHour);
-  const normalMins = toMinutes(normalDay, normalHour);
-  const lateMins = toMinutes(lateDay, lateHour);
-
-  if (nowMins >= startMins && nowMins <= normalMins) return "on_time";
-  if (nowMins > normalMins && nowMins <= lateMins) return "late";
+  if (day === startDay) return "on_time";
+  if (day === lateDay) return "late";
   return "missed";
 }
 

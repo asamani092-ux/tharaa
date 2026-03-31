@@ -73,6 +73,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/MessageResponse"
 
+  /auth/admin:
+    put:
+      operationId: updateAdmin
+      tags: [auth]
+      summary: Update admin profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAdminBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminProfile"
+        "401":
+          description: Invalid current password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /auth/me:
     get:
       operationId: getMe
@@ -176,6 +201,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: replaceUser
+      tags: [users]
+      summary: Full update of user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserFullBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
     patch:
       operationId: updateUser
       tags: [users]
@@ -299,6 +347,35 @@ paths:
                 $ref: "#/components/schemas/CurriculumBook"
 
   /curriculum/{id}:
+    put:
+      operationId: replaceCurriculumBook
+      tags: [curriculum]
+      summary: Full update of curriculum book
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCurriculumBookBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurriculumBook"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     patch:
       operationId: updateCurriculumBook
       tags: [curriculum]
@@ -524,6 +601,50 @@ paths:
               schema:
                 $ref: "#/components/schemas/Batch"
 
+  /batches/{id}:
+    put:
+      operationId: updateBatch
+      tags: [users]
+      summary: Update batch name
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBatchBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Batch"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteBatch
+      tags: [users]
+      summary: Delete batch and all its users and logs
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
 components:
   schemas:
     HealthStatus:
@@ -670,6 +791,26 @@ components:
         - phone
         - password
 
+    UpdateUserFullBody:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        batchId:
+          type: ["integer", "null"]
+        status:
+          type: string
+        phaseNumber:
+          type: ["integer", "null"]
+        levelType:
+          type: ["string", "null"]
+      required:
+        - name
+        - phone
+        - status
+
     UpdateUserBody:
       type: object
       properties:
@@ -757,6 +898,48 @@ components:
           type: string
       required:
         - name
+
+    UpdateBatchBody:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+
+    UpdateAdminBody:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+      required:
+        - currentPassword
+
+    AdminProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        phone:
+          type: string
+        role:
+          type: string
+        status:
+          type: string
+      required:
+        - id
+        - name
+        - phone
+        - role
+        - status
 
     CurriculumBook:
       type: object
@@ -930,6 +1113,8 @@ components:
           type: integer
         gradeThresholdAcceptable:
           type: integer
+        allDaysActive:
+          type: boolean
       required:
         - id
         - weeklyQuota
@@ -942,6 +1127,7 @@ components:
         - gradeThresholdExcellent
         - gradeThresholdGood
         - gradeThresholdAcceptable
+        - allDaysActive
 
     UpdateSettingsBody:
       type: object
@@ -966,6 +1152,8 @@ components:
           type: integer
         gradeThresholdAcceptable:
           type: integer
+        allDaysActive:
+          type: boolean
 
     AnalyticsOverview:
       type: object

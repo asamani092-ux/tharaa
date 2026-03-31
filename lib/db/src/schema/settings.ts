@@ -1,4 +1,4 @@
-import { pgTable, serial, integer } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -14,6 +14,7 @@ export const systemSettingsTable = pgTable("system_settings", {
   gradeThresholdExcellent: integer("grade_threshold_excellent").notNull().default(90),
   gradeThresholdGood: integer("grade_threshold_good").notNull().default(75),
   gradeThresholdAcceptable: integer("grade_threshold_acceptable").notNull().default(60),
+  allDaysActive: boolean("all_days_active").notNull().default(false),
 });
 
 export const insertSettingsSchema = createInsertSchema(systemSettingsTable).omit({ id: true });
