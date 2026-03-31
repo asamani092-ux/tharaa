@@ -22,7 +22,7 @@ A full-stack Arabic reading program management platform with student portal and 
 ## Default Admin Credentials
 
 - Phone: `0500000000`
-- Password: `admin123`
+- Password: `tharaa2025`
 
 ## Structure
 

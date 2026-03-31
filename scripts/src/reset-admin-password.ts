@@ -4,7 +4,7 @@ import { users } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 
 const DEFAULT_ADMIN_PHONE = "0500000000";
-const DEFAULT_ADMIN_PASSWORD = "admin123";
+const DEFAULT_ADMIN_PASSWORD = "tharaa2025";
 
 async function resetAdminPassword() {
   const hash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 10);
