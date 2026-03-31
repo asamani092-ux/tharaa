@@ -140,7 +140,7 @@ export default function AdminCurriculum() {
                     <TableHeader>
                       <TableRow style={{ backgroundColor: 'hsl(218,42%,10%)', borderBottomColor: 'hsl(217,36%,20%)' }}>
                         <TableHead className="text-xs text-muted-foreground">الرمز</TableHead>
-                        <TableHead className="text-xs text-muted-foreground">العنوان</TableHead>
+                        <TableHead className="text-xs text-muted-foreground text-center">العنوان</TableHead>
                         <TableHead className="text-xs text-muted-foreground">المستوى</TableHead>
                         <TableHead className="text-xs text-muted-foreground">الصفحات</TableHead>
                         <TableHead className="text-left text-xs text-muted-foreground">إجراءات</TableHead>
