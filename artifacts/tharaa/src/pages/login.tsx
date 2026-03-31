@@ -52,17 +52,15 @@ export default function Login() {
         <img src={bgPath} alt="" className="w-full h-full object-cover" style={{ opacity: 0.08 }} />
         <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, hsl(218,47%,6%) 0%, hsl(218,47%,10%) 100%)' }} />
       </div>
-
       {/* Watermark text */}
       <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none overflow-hidden">
         <span className="text-[20vw] font-black select-none" style={{ color: 'hsl(46,65%,52%)', opacity: 0.04, fontFamily: 'Cairo, sans-serif' }}>ثراء</span>
       </div>
-
       <div className="relative z-10 w-full max-w-sm mx-4">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
           <img src={logoPath} alt="ثراء المعرفة" className="h-28 object-contain mb-4" />
-          <p className="text-muted-foreground text-sm text-center">أهلاً بك في منصة ثراء المعرفة للقراءة</p>
+          <p className="text-muted-foreground text-sm text-center">أهلاً بك في منصة ثراء المعرفة </p>
         </div>
 
         {/* Card */}
