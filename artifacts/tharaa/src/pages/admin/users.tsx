@@ -3,6 +3,7 @@ import {
   useListUsers,
   useApproveUser,
   useDeleteUser,
+  useUpdateUser,
   useBulkCreateUsers,
   useListBatches,
   getListUsersQueryKey,
@@ -38,7 +39,17 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, Plus, Check, Trash2, Search } from "lucide-react";
+import { Loader2, Plus, Check, Trash2, Search, Pencil } from "lucide-react";
+
+type UserRow = {
+  id: number;
+  name: string;
+  phone: string;
+  batchId: number | null;
+  phaseNumber: number | null;
+  levelType: string | null;
+  status: string;
+};
 
 export default function AdminUsers() {
   const queryClient = useQueryClient();
@@ -52,6 +63,16 @@ export default function AdminUsers() {
   const [bulkPhase, setBulkPhase] = useState<string>("1");
   const [bulkLevel, setBulkLevel] = useState<string>("basic");
 
+  const [editUser, setEditUser] = useState<UserRow | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    phone: "",
+    batchId: "",
+    phaseNumber: "",
+    levelType: "basic",
+    status: "active",
+  });
+
   const { data: users, isLoading } = useListUsers({
     batchId: filterBatch !== "all" ? parseInt(filterBatch) : undefined,
     status: filterStatus !== "all" ? filterStatus : undefined,
@@ -61,6 +82,7 @@ export default function AdminUsers() {
 
   const approveUser = useApproveUser();
   const deleteUser = useDeleteUser();
+  const updateUser = useUpdateUser();
   const bulkCreate = useBulkCreateUsers();
 
   const filteredUsers =
@@ -100,6 +122,47 @@ export default function AdminUsers() {
           toast.error(err?.error || "فشل حذف المستخدم");
         },
       },
+    );
+  };
+
+  const openEditDialog = (user: UserRow) => {
+    setEditUser(user);
+    setEditForm({
+      name: user.name,
+      phone: user.phone,
+      batchId: user.batchId?.toString() || "",
+      phaseNumber: user.phaseNumber?.toString() || "",
+      levelType: user.levelType || "basic",
+      status: user.status,
+    });
+  };
+
+  const handleEditSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editUser) return;
+    updateUser.mutate(
+      {
+        id: editUser.id,
+        data: {
+          name: editForm.name,
+          phone: editForm.phone,
+          batchId: editForm.batchId ? parseInt(editForm.batchId) : null,
+          phaseNumber: editForm.phaseNumber ? parseInt(editForm.phaseNumber) : null,
+          levelType: editForm.levelType || null,
+          status: editForm.status,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success("تم تحديث بيانات المشارك بنجاح");
+          setEditUser(null);
+          queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetAnalyticsOverviewQueryKey() });
+        },
+        onError: (err: any) => {
+          toast.error(err?.error || "فشل تحديث البيانات");
+        },
+      }
     );
   };
 
@@ -260,6 +323,89 @@ export default function AdminUsers() {
           </Dialog>
         </div>
 
+        {/* Edit User Dialog */}
+        <Dialog open={!!editUser} onOpenChange={(open) => { if (!open) setEditUser(null); }}>
+          <DialogContent
+            className="sm:max-w-[500px] rounded-2xl"
+            style={{ backgroundColor: "hsl(218,39%,12%)", borderColor: "hsl(217,36%,20%)" }}
+          >
+            <DialogHeader>
+              <DialogTitle style={{ fontFamily: "Cairo, sans-serif" }}>تعديل بيانات المشارك</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleEditSave} className="space-y-4 pt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-sm text-muted-foreground">الاسم</Label>
+                  <Input
+                    value={editForm.name}
+                    onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                    required
+                    className="rounded-xl"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm text-muted-foreground">رقم الجوال</Label>
+                  <Input
+                    value={editForm.phone}
+                    onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
+                    dir="ltr"
+                    className="rounded-xl"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-sm text-muted-foreground">الدفعة</Label>
+                  <Select value={editForm.batchId} onValueChange={v => setEditForm({ ...editForm, batchId: v })}>
+                    <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر الدفعة" /></SelectTrigger>
+                    <SelectContent>
+                      {batches?.map(b => (
+                        <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm text-muted-foreground">رقم المرحلة</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={editForm.phaseNumber}
+                    onChange={e => setEditForm({ ...editForm, phaseNumber: e.target.value })}
+                    className="rounded-xl"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-sm text-muted-foreground">المستوى</Label>
+                  <Select value={editForm.levelType} onValueChange={v => setEditForm({ ...editForm, levelType: v })}>
+                    <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="basic">أساسي</SelectItem>
+                      <SelectItem value="optional">اختياري</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm text-muted-foreground">الحالة</Label>
+                  <Select value={editForm.status} onValueChange={v => setEditForm({ ...editForm, status: v })}>
+                    <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">نشط</SelectItem>
+                      <SelectItem value="pending">معلق</SelectItem>
+                      <SelectItem value="suspended">موقوف</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <Button type="submit" className="w-full rounded-xl" disabled={updateUser.isPending}>
+                {updateUser.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "حفظ التعديلات"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+
         {/* Filters */}
         <div
           className="flex flex-col md:flex-row gap-3 p-4 rounded-xl"
@@ -415,6 +561,15 @@ export default function AdminUsers() {
                             <Check className="w-4 h-4" />
                           </Button>
                         )}
+                        <Button
+                          data-testid={`button-edit-${user.id}`}
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-blue-400 hover:bg-blue-400/10"
+                          onClick={() => openEditDialog(user)}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
                         <Button
                           data-testid={`button-delete-${user.id}`}
                           size="icon"

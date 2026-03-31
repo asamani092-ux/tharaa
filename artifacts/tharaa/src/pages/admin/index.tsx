@@ -1,7 +1,7 @@
 import { useGetAnalyticsOverview } from "@workspace/api-client-react";
 import { AdminLayout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, BookOpen, FileText, CheckCircle, Clock, AlertTriangle, TrendingUp } from "lucide-react";
+import { Users, BookOpen, CheckCircle, AlertTriangle, TrendingUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AdminDashboard() {
@@ -23,7 +23,6 @@ export default function AdminDashboard() {
   const stats = [
     { title: "إجمالي المشاركين", value: analytics?.totalUsers || 0, icon: Users, accent: "text-blue-400", bg: "bg-blue-400/10" },
     { title: "نشطون", value: analytics?.activeUsers || 0, icon: CheckCircle, accent: "text-emerald-400", bg: "bg-emerald-400/10" },
-    { title: "طلبات معلقة", value: analytics?.pendingUsers || 0, icon: Clock, accent: "text-amber-400", bg: "bg-amber-400/10" },
     { title: "إجمالي الصفحات", value: analytics?.totalPagesRead || 0, icon: TrendingUp, accent: "text-primary", bg: "bg-primary/10" },
     { title: "إرسال في الوقت", value: analytics?.onTimeSubmissions || 0, icon: CheckCircle, accent: "text-emerald-400", bg: "bg-emerald-400/10" },
     { title: "إرسال متأخر", value: analytics?.lateSubmissions || 0, icon: AlertTriangle, accent: "text-orange-400", bg: "bg-orange-400/10" },

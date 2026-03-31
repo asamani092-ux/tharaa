@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { useGetSettings, useUpdateSettings, getGetSettingsQueryKey } from "@workspace/api-client-react";
+import { useGetSettings, useUpdateSettings, useUpdateAdmin, getGetSettingsQueryKey } from "@workspace/api-client-react";
 import { AdminLayout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Save } from "lucide-react";
@@ -20,11 +21,6 @@ const DAYS = [
   { value: "6", label: "السبت" }
 ];
 
-const HOURS = Array.from({ length: 24 }, (_, i) => ({
-  value: i.toString(),
-  label: `${i.toString().padStart(2, '0')}:00`
-}));
-
 const cardStyle = { backgroundColor: 'hsl(218,39%,12%)', borderColor: 'hsl(217,36%,20%)' };
 const sectionStyle = { border: '1px solid hsl(217,36%,22%)', borderRadius: '0.75rem', padding: '1rem', backgroundColor: 'hsl(218,47%,9%)' };
 
@@ -32,12 +28,22 @@ export default function AdminSettings() {
   const queryClient = useQueryClient();
   const { data: settings, isLoading } = useGetSettings();
   const updateSettings = useUpdateSettings();
+  const updateAdmin = useUpdateAdmin();
 
   const [formData, setFormData] = useState<any>({});
+  const [allDaysActive, setAllDaysActive] = useState(false);
+
+  const [adminForm, setAdminForm] = useState({
+    name: "",
+    phone: "",
+    currentPassword: "",
+    newPassword: "",
+  });
 
   useEffect(() => {
     if (settings) {
       setFormData(settings);
+      setAllDaysActive(!!(settings as any).allDaysActive);
     }
   }, [settings]);
 
@@ -46,14 +52,15 @@ export default function AdminSettings() {
     const dataToSubmit = {
       weeklyQuota: Number(formData.weeklyQuota),
       submissionStartDay: Number(formData.submissionStartDay),
-      submissionStartHour: Number(formData.submissionStartHour),
-      normalDeadlineDay: Number(formData.normalDeadlineDay),
-      normalDeadlineHour: Number(formData.normalDeadlineHour),
-      lateDeadlineDay: Number(formData.lateDeadlineDay),
-      lateDeadlineHour: Number(formData.lateDeadlineHour),
+      submissionStartHour: Number(formData.submissionStartHour || 0),
+      normalDeadlineDay: (Number(formData.submissionStartDay) + 1) % 7,
+      normalDeadlineHour: Number(formData.normalDeadlineHour || 0),
+      lateDeadlineDay: Number(formData.lateDeadlineDay || 0),
+      lateDeadlineHour: Number(formData.lateDeadlineHour || 0),
       gradeThresholdExcellent: Number(formData.gradeThresholdExcellent),
       gradeThresholdGood: Number(formData.gradeThresholdGood),
       gradeThresholdAcceptable: Number(formData.gradeThresholdAcceptable),
+      allDaysActive,
     };
 
     updateSettings.mutate({ data: dataToSubmit }, {
@@ -65,14 +72,105 @@ export default function AdminSettings() {
     });
   };
 
+  const handleAdminSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminForm.currentPassword) {
+      toast.error("كلمة المرور الحالية مطلوبة");
+      return;
+    }
+    updateAdmin.mutate(
+      {
+        data: {
+          name: adminForm.name || undefined,
+          phone: adminForm.phone || undefined,
+          currentPassword: adminForm.currentPassword,
+          newPassword: adminForm.newPassword || undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success("تم حفظ بيانات المشرف بنجاح");
+          setAdminForm({ name: "", phone: "", currentPassword: "", newPassword: "" });
+        },
+        onError: (err: any) => {
+          toast.error(err?.error || "فشل حفظ البيانات");
+        },
+      }
+    );
+  };
+
   if (isLoading) {
     return <AdminLayout><div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div></AdminLayout>;
   }
+
+  const normalDeadlineDay = DAYS[((Number(formData.submissionStartDay) || 0) + 1) % 7]?.label || "اليوم التالي";
 
   return (
     <AdminLayout>
       <div className="space-y-6 max-w-3xl">
         <h2 className="text-2xl font-bold" style={{ fontFamily: 'Cairo, sans-serif' }}>إعدادات النظام</h2>
+
+        {/* Admin Data Section */}
+        <Card className="rounded-xl border" style={cardStyle}>
+          <CardHeader style={{ borderBottom: '1px solid hsl(217,36%,18%)' }}>
+            <CardTitle className="text-base" style={{ fontFamily: 'Cairo, sans-serif' }}>بيانات المشرف</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-5">
+            <form onSubmit={handleAdminSave} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-sm text-muted-foreground">الاسم الكامل</Label>
+                  <Input
+                    value={adminForm.name}
+                    onChange={e => setAdminForm({ ...adminForm, name: e.target.value })}
+                    placeholder="اسم المشرف"
+                    className="rounded-xl"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm text-muted-foreground">رقم الجوال</Label>
+                  <Input
+                    value={adminForm.phone}
+                    onChange={e => setAdminForm({ ...adminForm, phone: e.target.value })}
+                    placeholder="05xxxxxxxx"
+                    dir="ltr"
+                    className="rounded-xl"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-sm text-muted-foreground">كلمة المرور الحالية <span className="text-red-400">*</span></Label>
+                  <Input
+                    type="password"
+                    value={adminForm.currentPassword}
+                    onChange={e => setAdminForm({ ...adminForm, currentPassword: e.target.value })}
+                    required
+                    className="rounded-xl"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm text-muted-foreground">كلمة المرور الجديدة (اختياري)</Label>
+                  <Input
+                    type="password"
+                    value={adminForm.newPassword}
+                    onChange={e => setAdminForm({ ...adminForm, newPassword: e.target.value })}
+                    className="rounded-xl"
+                  />
+                </div>
+              </div>
+              <Button
+                data-testid="button-save-admin"
+                type="submit"
+                className="gap-2 rounded-xl"
+                disabled={updateAdmin.isPending}
+              >
+                {updateAdmin.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                حفظ بيانات المشرف
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Weekly quota */}
@@ -101,31 +199,40 @@ export default function AdminSettings() {
               <CardTitle className="text-base" style={{ fontFamily: 'Cairo, sans-serif' }}>أوقات التسليم</CardTitle>
             </CardHeader>
             <CardContent className="pt-5 space-y-4">
-              {[
-                { label: "بداية وقت التسليم", color: "text-muted-foreground", dayKey: "submissionStartDay", hourKey: "submissionStartHour", testDay: "select-start-day", testHour: "select-start-hour" },
-                { label: "نهاية التسليم الطبيعي (بدون خصم)", color: "text-emerald-400", dayKey: "normalDeadlineDay", hourKey: "normalDeadlineHour", testDay: "select-normal-day", testHour: "select-normal-hour" },
-                { label: "نهاية التسليم المتأخر (تخصم درجات)", color: "text-orange-400", dayKey: "lateDeadlineDay", hourKey: "lateDeadlineHour", testDay: "select-late-day", testHour: "select-late-hour" },
-              ].map(section => (
-                <div key={section.dayKey} style={sectionStyle}>
-                  <p className={`text-sm font-semibold mb-3 ${section.color}`}>{section.label}</p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">اليوم</Label>
-                      <Select value={formData[section.dayKey]?.toString()} onValueChange={v => setFormData({...formData, [section.dayKey]: v})}>
-                        <SelectTrigger data-testid={section.testDay} className="rounded-xl"><SelectValue /></SelectTrigger>
-                        <SelectContent>{DAYS.map(d => <SelectItem key={`${section.dayKey}-${d.value}`} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">الساعة</Label>
-                      <Select value={formData[section.hourKey]?.toString()} onValueChange={v => setFormData({...formData, [section.hourKey]: v})}>
-                        <SelectTrigger data-testid={section.testHour} className="rounded-xl"><SelectValue /></SelectTrigger>
-                        <SelectContent>{HOURS.map(h => <SelectItem key={`${section.hourKey}-${h.value}`} value={h.value}>{h.label}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+              {/* All days toggle */}
+              <div style={sectionStyle} className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold">تفعيل التسليم طوال أيام الأسبوع</p>
+                  {allDaysActive && (
+                    <p className="text-xs text-muted-foreground mt-1">جميع التسليمات ستُعدّ في الوقت المحدد بصرف النظر عن اليوم</p>
+                  )}
                 </div>
-              ))}
+                <Switch
+                  data-testid="switch-all-days"
+                  checked={allDaysActive}
+                  onCheckedChange={setAllDaysActive}
+                />
+              </div>
+
+              {/* Submission start day */}
+              <div style={sectionStyle}>
+                <p className="text-sm font-semibold mb-3 text-muted-foreground">يوم بداية التسليم (يوم التسليم الطبيعي)</p>
+                <div className="max-w-xs">
+                  <Label className="text-xs text-muted-foreground">اليوم</Label>
+                  <Select value={formData.submissionStartDay?.toString()} onValueChange={v => setFormData({...formData, submissionStartDay: v})}>
+                    <SelectTrigger data-testid="select-start-day" className="rounded-xl mt-1.5"><SelectValue /></SelectTrigger>
+                    <SelectContent>{DAYS.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Late deadline auto-display */}
+              <div style={sectionStyle}>
+                <p className="text-sm font-semibold mb-1 text-orange-400">يوم التسليم المتأخر</p>
+                <p className="text-sm text-muted-foreground">
+                  {normalDeadlineDay} <span className="text-xs">(اليوم التالي تلقائياً)</span>
+                </p>
+              </div>
             </CardContent>
           </Card>
 

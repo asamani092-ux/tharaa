@@ -62,12 +62,12 @@ export default function StudentPortal() {
   const [pendingSubmissionData, setPendingSubmissionData] = useState<any>(null);
 
   useEffect(() => {
-    if (currentBook && !bookId) {
+    if (currentBook) {
       setBookId(currentBook.id.toString());
       setStartPage((user?.lastPage || 0) + 1);
       setEndPage(suggestedEndPage);
     }
-  }, [currentBook?.id]);
+  }, [currentBook?.id, user?.lastPage]);
 
   useEffect(() => {
     const selectedId = parseInt(bookId);
