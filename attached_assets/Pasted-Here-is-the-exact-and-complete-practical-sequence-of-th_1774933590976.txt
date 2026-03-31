@@ -1,0 +1,36 @@
+Here is the exact and complete practical sequence of the participant's journey, translated into English based on the software architecture we have built:
+
+1. Frictionless Login:
+The participant enters their phone number and password. Upon successful authentication, the session is saved locally in the browser (Persistent Login) so they do not have to log in again during future visits.
+
+2. Smart Dashboard & Routing:
+The system opens the participant's dashboard and immediately filters the curriculum to display only the books assigned to the student's current Phase and Level. It retrieves their "last read page" and the approved "weekly quota" from the system settings.
+
+3. Auto-Targeting (Target Suggestion):
+In the "Weekly Progress Tracker" interface, the system automatically calculates: (Last Read Page + Weekly Quota). It injects this calculated number as a ready-to-use suggestion directly into the "To Page:" input field to streamline the tracking process.
+
+4. Progress Input & Reflection:
+
+The participant either accepts the suggested target or adjusts it to the actual page they reached.
+
+They click the "Add Reflection" button (optional), which expands an elegant text area.
+
+The participant writes down the lesson, benefit, or reflection they extracted from their reading.
+
+5. Direct WhatsApp Integration:
+Once the reflection is written, the participant clicks the "Share via WhatsApp" button. The system takes the (Book Title + Reflection Text), applies text formatting (e.g., bolding), and directly opens the WhatsApp application or web version with a pre-filled message ready to be sent (e.g., A reflection from the book [Title]...).
+
+6. Progress Submission & Core Processing:
+The participant returns to the platform and clicks "Submit Progress". At this point, the system's core engine takes over and executes one of two paths:
+
+The Standard Path: If the entered page number is less than the book's total pages, the system saves the log, evaluates the submission time status (On-time / Late), and updates the "last read page" record.
+
+The Auto-Complete & Smart Quota Rollover Path: If the entered page equals or exceeds the end of the book:
+
+The system automatically marks the book as completed (its UI card turns green).
+
+The system calculates: Is there any remaining unread portion of the weekly quota?
+
+If yes, an instant smart popup (Modal) appears, congratulating the participant on completing the book, informing them of the remaining pages in their quota, and requiring them to select their next book from their filtered list. It then seamlessly rolls over the remaining pages as a new progress log in that newly selected book.
+
+This sequence ensures the participant remains within a fast, engaging, and closed interaction loop, requiring absolutely minimal technical effort on their part.

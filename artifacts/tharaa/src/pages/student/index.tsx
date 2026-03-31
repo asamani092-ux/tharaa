@@ -10,8 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, BookOpen, CheckCircle, TrendingUp, Download, ChevronLeft, Info, Lightbulb } from "lucide-react";
+import { Loader2, BookOpen, CheckCircle, TrendingUp, Download, ChevronLeft, Info, Lightbulb, Send } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 const cardStyle = { backgroundColor: 'hsl(218,39%,12%)', borderColor: 'hsl(217,36%,20%)' };
@@ -55,6 +56,10 @@ export default function StudentPortal() {
   const [startPage, setStartPage] = useState<number>(1);
   const [endPage, setEndPage] = useState<number>(weeklyQuota);
   const [reflection, setReflection] = useState("");
+  const [showReflection, setShowReflection] = useState(false);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [nextBookIdForRollover, setNextBookIdForRollover] = useState<string>("");
+  const [pendingSubmissionData, setPendingSubmissionData] = useState<any>(null);
 
   useEffect(() => {
     if (currentBook && !bookId) {
@@ -83,6 +88,16 @@ export default function StudentPortal() {
 
   const totalPagesRead = logs?.reduce((sum, log) => sum + log.pagesRead, 0) || 0;
 
+  const shareViaWhatsApp = () => {
+    if (!reflection.trim() || !selectedBook) {
+      toast.error("أكتب فائدة لكي تتمكن من المشاركة");
+      return;
+    }
+    const message = `*فائدة من كتاب ${selectedBook.title}*\n\n${reflection.trim()}`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!bookId) return;
@@ -94,16 +109,41 @@ export default function StudentPortal() {
       toast.error("لا يمكن تسجيل أكثر من 499 صفحة في أسبوع واحد");
       return;
     }
+
+    const actualEndPage = Math.min(endPage, selectedBook?.totalPages || endPage);
+    const isBookCompleted = actualEndPage >= (selectedBook?.totalPages || 0);
+    const remainingPages = isBookCompleted && selectedBook 
+      ? Math.max(0, weeklyQuota - (actualEndPage - startPage + 1))
+      : 0;
+
+    // If book is completed and there are remaining pages in quota, show modal
+    if (isBookCompleted && remainingPages > 0 && availableBooks.length > 1) {
+      setPendingSubmissionData({
+        bookId: parseInt(bookId),
+        startPage,
+        endPage: actualEndPage,
+        isCompleted: true,
+        reflection: reflection.trim() || undefined,
+        remainingPages
+      });
+      setShowCompletionModal(true);
+      setNextBookIdForRollover("");
+      return;
+    }
+
+    // Direct submission (book not completed or no remaining pages)
+    submitLog({
+      bookId: parseInt(bookId),
+      startPage,
+      endPage: actualEndPage,
+      isCompleted: isBookCompleted,
+      reflection: reflection.trim() || undefined
+    });
+  };
+
+  const submitLog = (data: any, rolloverPages: number = 0) => {
     createLog.mutate(
-      {
-        data: {
-          bookId: parseInt(bookId),
-          startPage,
-          endPage: Math.min(endPage, selectedBook?.totalPages || endPage),
-          isCompleted: isWillFinishBook,
-          reflection: reflection.trim() || undefined
-        }
-      },
+      { data },
       {
         onSuccess: () => {
           toast.success("تم تسجيل النصاب بنجاح 🎉");
@@ -111,6 +151,35 @@ export default function StudentPortal() {
           queryClient.invalidateQueries({ queryKey: getGetMyLogsQueryKey() });
           setReflection("");
           setBookId("");
+          setShowCompletionModal(false);
+          setPendingSubmissionData(null);
+
+          // If there's a rollover (remaining pages to log in next book)
+          if (rolloverPages > 0 && nextBookIdForRollover) {
+            setTimeout(() => {
+              const nextSelectedBook = availableBooks.find(b => b.id.toString() === nextBookIdForRollover);
+              if (nextSelectedBook) {
+                createLog.mutate(
+                  {
+                    data: {
+                      bookId: parseInt(nextBookIdForRollover),
+                      startPage: 1,
+                      endPage: rolloverPages,
+                      isCompleted: false,
+                      reflection: undefined
+                    }
+                  },
+                  {
+                    onSuccess: () => {
+                      toast.success(`تم ترحيل ${rolloverPages} صفحة إلى كتاب "${nextSelectedBook.title}"`);
+                      queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+                      queryClient.invalidateQueries({ queryKey: getGetMyLogsQueryKey() });
+                    }
+                  }
+                );
+              }
+            }, 500);
+          }
         },
         onError: (err: any) => {
           toast.error(err?.error || "حدث خطأ أثناء تسجيل الورد");
@@ -266,18 +335,43 @@ export default function StudentPortal() {
                 </div>
               )}
 
+              {/* Reflection toggle */}
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full rounded-xl"
+                onClick={() => setShowReflection(!showReflection)}
+              >
+                {showReflection ? "إخفاء الفائدة" : "إضافة فائدة (اختياري)"}
+              </Button>
+
               {/* Reflection */}
-              <div className="space-y-1.5">
-                <Label className="text-sm text-muted-foreground">فائدة أو تأمل (اختياري)</Label>
-                <Textarea
-                  data-testid="input-reflection"
-                  placeholder="شاركنا أبرز ما استفدته من هذه القراءة..."
-                  className="min-h-[80px] rounded-xl resize-none"
-                  style={{ backgroundColor: 'hsl(217,36%,16%)', border: '1px solid hsl(217,36%,24%)' }}
-                  value={reflection}
-                  onChange={e => setReflection(e.target.value)}
-                />
-              </div>
+              {showReflection && (
+                <div className="space-y-1.5">
+                  <Label className="text-sm text-muted-foreground">فائدة أو تأمل</Label>
+                  <Textarea
+                    data-testid="input-reflection"
+                    placeholder="شاركنا أبرز ما استفدته من هذه القراءة..."
+                    className="min-h-[80px] rounded-xl resize-none"
+                    style={{ backgroundColor: 'hsl(217,36%,16%)', border: '1px solid hsl(217,36%,24%)' }}
+                    value={reflection}
+                    onChange={e => setReflection(e.target.value)}
+                  />
+                  
+                  {/* WhatsApp share button */}
+                  {reflection.trim() && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="w-full rounded-xl gap-2"
+                      onClick={shareViaWhatsApp}
+                    >
+                      <Send className="w-4 h-4" />
+                      مشاركة عبر واتساب
+                    </Button>
+                  )}
+                </div>
+              )}
 
               <Button
                 data-testid="button-submit"
@@ -381,6 +475,72 @@ export default function StudentPortal() {
             )}
           </div>
         </div>
+
+        {/* Book Completion Modal */}
+        <Dialog open={showCompletionModal} onOpenChange={setShowCompletionModal}>
+          <DialogContent className="sm:max-w-[500px] rounded-2xl" style={{ backgroundColor: "hsl(218,39%,12%)", borderColor: "hsl(217,36%,20%)" }}>
+            <DialogHeader>
+              <DialogTitle style={{ fontFamily: "Cairo, sans-serif" }} className="text-lg">
+                <CheckCircle className="w-5 h-5 inline text-emerald-400 ml-2" />
+                تهانينا! أنهيت كتاب "{selectedBook?.title}"
+              </DialogTitle>
+            </DialogHeader>
+            
+            {pendingSubmissionData && (
+              <div className="space-y-4 pt-4">
+                <div className="p-3 rounded-xl text-sm" style={{ backgroundColor: "hsl(218,47%,9%)" }}>
+                  <p className="text-muted-foreground mb-2">متبقي لك <strong className="text-amber-400">{pendingSubmissionData.remainingPages}</strong> صفحة من النصاب الأسبوعي</p>
+                  <p className="text-muted-foreground text-xs">اختر كتاباً من قائمتك لتكمل معه النصاب الأسبوعي</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">اختر الكتاب التالي</Label>
+                  <Select value={nextBookIdForRollover} onValueChange={setNextBookIdForRollover}>
+                    <SelectTrigger className="rounded-xl" style={{ backgroundColor: "hsl(217,36%,16%)", border: "1px solid hsl(217,36%,24%)" }}>
+                      <SelectValue placeholder="اختر الكتاب" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableBooks
+                        .filter(b => b.id !== parseInt(bookId))
+                        .map(book => (
+                          <SelectItem key={book.id} value={book.id.toString()}>
+                            <span className="flex items-center gap-2">
+                              {book.title}
+                              <span className="text-muted-foreground text-xs">({book.totalPages} صفحة)</span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1 rounded-xl"
+                    onClick={() => {
+                      setShowCompletionModal(false);
+                      submitLog(pendingSubmissionData);
+                    }}
+                  >
+                    تخطي
+                  </Button>
+                  <Button
+                    type="button"
+                    className="flex-1 rounded-xl"
+                    disabled={!nextBookIdForRollover}
+                    onClick={() => {
+                      submitLog(pendingSubmissionData, pendingSubmissionData.remainingPages);
+                    }}
+                  >
+                    {createLog.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "نعم، ابدأ الكتاب الجديد"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </StudentLayout>
   );
