@@ -18,10 +18,15 @@ export default function Login() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     let normalizedPhone = phone.trim();
-    if (normalizedPhone.startsWith("0")) {
-      normalizedPhone = normalizedPhone.substring(1);
+    if (normalizedPhone.startsWith("+966")) {
+      normalizedPhone = "0" + normalizedPhone.slice(4);
+    } else if (normalizedPhone.startsWith("966") && normalizedPhone.length === 12) {
+      normalizedPhone = "0" + normalizedPhone.slice(3);
     }
-    
+    if (!normalizedPhone.startsWith("0") && normalizedPhone.length === 9) {
+      normalizedPhone = "0" + normalizedPhone;
+    }
+
     login.mutate(
       { data: { phone: normalizedPhone, password } },
       {
@@ -41,56 +46,73 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
-      {/* Background Image with Overlay */}
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden" dir="rtl" style={{ backgroundColor: 'hsl(218,47%,8%)' }}>
+      {/* Background */}
       <div className="absolute inset-0 z-0">
-        <img src={bgPath} alt="Background" className="w-full h-full object-cover opacity-20 mix-blend-overlay" />
-        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm"></div>
+        <img src={bgPath} alt="" className="w-full h-full object-cover" style={{ opacity: 0.08 }} />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, hsl(218,47%,6%) 0%, hsl(218,47%,10%) 100%)' }} />
       </div>
 
-      <div className="relative z-10 w-full max-w-md p-8 bg-card border border-border rounded-xl shadow-2xl">
+      {/* Watermark text */}
+      <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none overflow-hidden">
+        <span className="text-[20vw] font-black select-none" style={{ color: 'hsl(46,65%,52%)', opacity: 0.04, fontFamily: 'Cairo, sans-serif' }}>ثراء</span>
+      </div>
+
+      <div className="relative z-10 w-full max-w-sm mx-4">
+        {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <img src={logoPath} alt="ثراء المعرفة" className="h-24 mb-4 object-contain" />
-          <h1 className="text-2xl font-bold text-primary">تسجيل الدخول</h1>
-          <p className="text-muted-foreground mt-2 text-center">أهلاً بك في منصة ثراء المعرفة للقراءة</p>
+          <img src={logoPath} alt="ثراء المعرفة" className="h-28 object-contain mb-4" />
+          <p className="text-muted-foreground text-sm text-center">أهلاً بك في منصة ثراء المعرفة للقراءة</p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="phone">رقم الهاتف</Label>
-            <Input
-              id="phone"
-              data-testid="input-phone"
-              type="tel"
-              dir="ltr"
-              className="text-right"
-              placeholder="05XXXXXXXX"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
-              disabled={login.isPending}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="password">كلمة المرور</Label>
-            <Input
-              id="password"
-              data-testid="input-password"
-              type="password"
-              dir="ltr"
-              className="text-right"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={login.isPending}
-            />
-          </div>
+        {/* Card */}
+        <div className="rounded-2xl p-8" style={{ backgroundColor: 'hsl(218,39%,12%)', border: '1px solid hsl(217,36%,20%)' }}>
+          <h1 className="text-xl font-bold text-center mb-6 text-foreground" style={{ fontFamily: 'Cairo, sans-serif' }}>تسجيل الدخول</h1>
 
-          <Button data-testid="button-login" type="submit" className="w-full font-bold text-lg h-12" disabled={login.isPending}>
-            {login.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "دخول"}
-          </Button>
-        </form>
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div className="space-y-1.5">
+              <Label className="text-sm text-muted-foreground">رقم الهاتف</Label>
+              <Input
+                id="phone"
+                data-testid="input-phone"
+                type="tel"
+                dir="ltr"
+                className="text-right h-11 rounded-xl"
+                placeholder="05XXXXXXXX"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+                disabled={login.isPending}
+                style={{ backgroundColor: 'hsl(217,36%,16%)', border: '1px solid hsl(217,36%,24%)' }}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-sm text-muted-foreground">كلمة المرور</Label>
+              <Input
+                id="password"
+                data-testid="input-password"
+                type="password"
+                dir="ltr"
+                className="h-11 rounded-xl"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={login.isPending}
+                style={{ backgroundColor: 'hsl(217,36%,16%)', border: '1px solid hsl(217,36%,24%)' }}
+              />
+            </div>
+
+            <Button
+              data-testid="button-login"
+              type="submit"
+              className="w-full h-11 font-bold text-base rounded-xl mt-2"
+              disabled={login.isPending}
+            >
+              {login.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "دخول"}
+            </Button>
+          </form>
+        </div>
       </div>
     </div>
   );
