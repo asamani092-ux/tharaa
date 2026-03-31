@@ -27,6 +27,8 @@ function AuthGuard({ children, requireRole }: { children: React.ReactNode, requi
     if (!isLoading) {
       if (!session?.authenticated) {
         if (location !== "/login") setLocation("/login");
+      } else if (location === "/login") {
+        setLocation(session.user?.role === "admin" ? "/admin" : "/student");
       } else if (requireRole && session.user?.role !== requireRole) {
         setLocation(session.user?.role === "admin" ? "/admin" : "/student");
       } else if (location === "/") {

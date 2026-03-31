@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useLogin } from "@workspace/api-client-react";
+import { useLogin, getGetMeQueryKey } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import bgPath from "@assets/لقطة_شاشة_2026-03-23_233921_1774925020030.png";
 import logoPath from "@assets/لقطة_شاشة_2026-03-24_055723_1774925020035.png";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { Loader2 } from "lucide-react";
 
 export default function Login() {
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
   const login = useLogin();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -30,8 +32,9 @@ export default function Login() {
     login.mutate(
       { data: { phone: normalizedPhone, password } },
       {
-        onSuccess: (res) => {
+        onSuccess: async (res) => {
           toast.success("تم تسجيل الدخول بنجاح");
+          await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
           if (res.role === "admin") {
             setLocation("/admin");
           } else {
