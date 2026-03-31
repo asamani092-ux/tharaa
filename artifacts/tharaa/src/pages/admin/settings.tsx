@@ -25,6 +25,9 @@ const HOURS = Array.from({ length: 24 }, (_, i) => ({
   label: `${i.toString().padStart(2, '0')}:00`
 }));
 
+const cardStyle = { backgroundColor: 'hsl(218,39%,12%)', borderColor: 'hsl(217,36%,20%)' };
+const sectionStyle = { border: '1px solid hsl(217,36%,22%)', borderRadius: '0.75rem', padding: '1rem', backgroundColor: 'hsl(218,47%,9%)' };
+
 export default function AdminSettings() {
   const queryClient = useQueryClient();
   const { data: settings, isLoading } = useGetSettings();
@@ -62,105 +65,98 @@ export default function AdminSettings() {
     });
   };
 
-  if (isLoading) return <AdminLayout><div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin" /></div></AdminLayout>;
+  if (isLoading) {
+    return <AdminLayout><div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div></AdminLayout>;
+  }
 
   return (
     <AdminLayout>
-      <div className="space-y-6 max-w-4xl">
-        <div className="flex justify-between items-center">
-          <h2 className="text-3xl font-bold">إعدادات النظام</h2>
-        </div>
+      <div className="space-y-6 max-w-3xl">
+        <h2 className="text-2xl font-bold" style={{ fontFamily: 'Cairo, sans-serif' }}>إعدادات النظام</h2>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Card>
-            <CardHeader><CardTitle>القراءة الأسبوعية</CardTitle></CardHeader>
-            <CardContent>
-              <div className="space-y-2 max-w-sm">
-                <Label>نصاب القراءة الأسبوعي (عدد الصفحات)</Label>
-                <Input data-testid="input-weekly-quota" type="number" value={formData.weeklyQuota || 0} onChange={e => setFormData({...formData, weeklyQuota: e.target.value})} required />
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Weekly quota */}
+          <Card className="rounded-xl border" style={cardStyle}>
+            <CardHeader style={{ borderBottom: '1px solid hsl(217,36%,18%)' }}>
+              <CardTitle className="text-base" style={{ fontFamily: 'Cairo, sans-serif' }}>القراءة الأسبوعية</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-5">
+              <div className="space-y-1.5 max-w-xs">
+                <Label className="text-sm text-muted-foreground">نصاب القراءة الأسبوعي (عدد الصفحات)</Label>
+                <Input
+                  data-testid="input-weekly-quota"
+                  type="number"
+                  value={formData.weeklyQuota || 0}
+                  onChange={e => setFormData({...formData, weeklyQuota: e.target.value})}
+                  required
+                  className="rounded-xl"
+                />
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader><CardTitle>أوقات التسليم (الأوراد)</CardTitle></CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md border-border">
-                <div className="col-span-full font-semibold text-primary">بداية وقت التسليم</div>
-                <div className="space-y-2">
-                  <Label>اليوم</Label>
-                  <Select value={formData.submissionStartDay?.toString()} onValueChange={v => setFormData({...formData, submissionStartDay: v})}>
-                    <SelectTrigger data-testid="select-start-day"><SelectValue /></SelectTrigger>
-                    <SelectContent>{DAYS.map(d => <SelectItem key={`start-${d.value}`} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
-                  </Select>
+          {/* Submission windows */}
+          <Card className="rounded-xl border" style={cardStyle}>
+            <CardHeader style={{ borderBottom: '1px solid hsl(217,36%,18%)' }}>
+              <CardTitle className="text-base" style={{ fontFamily: 'Cairo, sans-serif' }}>أوقات التسليم</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-5 space-y-4">
+              {[
+                { label: "بداية وقت التسليم", color: "text-muted-foreground", dayKey: "submissionStartDay", hourKey: "submissionStartHour", testDay: "select-start-day", testHour: "select-start-hour" },
+                { label: "نهاية التسليم الطبيعي (بدون خصم)", color: "text-emerald-400", dayKey: "normalDeadlineDay", hourKey: "normalDeadlineHour", testDay: "select-normal-day", testHour: "select-normal-hour" },
+                { label: "نهاية التسليم المتأخر (تخصم درجات)", color: "text-orange-400", dayKey: "lateDeadlineDay", hourKey: "lateDeadlineHour", testDay: "select-late-day", testHour: "select-late-hour" },
+              ].map(section => (
+                <div key={section.dayKey} style={sectionStyle}>
+                  <p className={`text-sm font-semibold mb-3 ${section.color}`}>{section.label}</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">اليوم</Label>
+                      <Select value={formData[section.dayKey]?.toString()} onValueChange={v => setFormData({...formData, [section.dayKey]: v})}>
+                        <SelectTrigger data-testid={section.testDay} className="rounded-xl"><SelectValue /></SelectTrigger>
+                        <SelectContent>{DAYS.map(d => <SelectItem key={`${section.dayKey}-${d.value}`} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">الساعة</Label>
+                      <Select value={formData[section.hourKey]?.toString()} onValueChange={v => setFormData({...formData, [section.hourKey]: v})}>
+                        <SelectTrigger data-testid={section.testHour} className="rounded-xl"><SelectValue /></SelectTrigger>
+                        <SelectContent>{HOURS.map(h => <SelectItem key={`${section.hourKey}-${h.value}`} value={h.value}>{h.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>الساعة</Label>
-                  <Select value={formData.submissionStartHour?.toString()} onValueChange={v => setFormData({...formData, submissionStartHour: v})}>
-                    <SelectTrigger data-testid="select-start-hour"><SelectValue /></SelectTrigger>
-                    <SelectContent>{HOURS.map(h => <SelectItem key={`start-h-${h.value}`} value={h.value}>{h.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md border-border">
-                <div className="col-span-full font-semibold text-green-500">نهاية وقت التسليم الطبيعي (الدرجة الكاملة)</div>
-                <div className="space-y-2">
-                  <Label>اليوم</Label>
-                  <Select value={formData.normalDeadlineDay?.toString()} onValueChange={v => setFormData({...formData, normalDeadlineDay: v})}>
-                    <SelectTrigger data-testid="select-normal-day"><SelectValue /></SelectTrigger>
-                    <SelectContent>{DAYS.map(d => <SelectItem key={`norm-${d.value}`} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>الساعة</Label>
-                  <Select value={formData.normalDeadlineHour?.toString()} onValueChange={v => setFormData({...formData, normalDeadlineHour: v})}>
-                    <SelectTrigger data-testid="select-normal-hour"><SelectValue /></SelectTrigger>
-                    <SelectContent>{HOURS.map(h => <SelectItem key={`norm-h-${h.value}`} value={h.value}>{h.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md border-border">
-                <div className="col-span-full font-semibold text-orange-500">نهاية وقت التسليم المتأخر (تخصم درجات)</div>
-                <div className="space-y-2">
-                  <Label>اليوم</Label>
-                  <Select value={formData.lateDeadlineDay?.toString()} onValueChange={v => setFormData({...formData, lateDeadlineDay: v})}>
-                    <SelectTrigger data-testid="select-late-day"><SelectValue /></SelectTrigger>
-                    <SelectContent>{DAYS.map(d => <SelectItem key={`late-${d.value}`} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>الساعة</Label>
-                  <Select value={formData.lateDeadlineHour?.toString()} onValueChange={v => setFormData({...formData, lateDeadlineHour: v})}>
-                    <SelectTrigger data-testid="select-late-hour"><SelectValue /></SelectTrigger>
-                    <SelectContent>{HOURS.map(h => <SelectItem key={`late-h-${h.value}`} value={h.value}>{h.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-              </div>
+              ))}
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader><CardTitle>عتبات التقييم (نسبة مئوية للالتزام)</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>امتياز (%)</Label>
-                <Input data-testid="input-grade-excellent" type="number" value={formData.gradeThresholdExcellent || 0} onChange={e => setFormData({...formData, gradeThresholdExcellent: e.target.value})} required />
-              </div>
-              <div className="space-y-2">
-                <Label>جيد جداً (%)</Label>
-                <Input data-testid="input-grade-good" type="number" value={formData.gradeThresholdGood || 0} onChange={e => setFormData({...formData, gradeThresholdGood: e.target.value})} required />
-              </div>
-              <div className="space-y-2">
-                <Label>مقبول (%)</Label>
-                <Input data-testid="input-grade-acceptable" type="number" value={formData.gradeThresholdAcceptable || 0} onChange={e => setFormData({...formData, gradeThresholdAcceptable: e.target.value})} required />
-              </div>
+          {/* Grade thresholds */}
+          <Card className="rounded-xl border" style={cardStyle}>
+            <CardHeader style={{ borderBottom: '1px solid hsl(217,36%,18%)' }}>
+              <CardTitle className="text-base" style={{ fontFamily: 'Cairo, sans-serif' }}>عتبات التقييم (نسبة الالتزام %)</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                { label: "امتياز (%)", key: "gradeThresholdExcellent", testid: "input-grade-excellent" },
+                { label: "جيد جداً (%)", key: "gradeThresholdGood", testid: "input-grade-good" },
+                { label: "مقبول (%)", key: "gradeThresholdAcceptable", testid: "input-grade-acceptable" },
+              ].map(g => (
+                <div key={g.key} className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">{g.label}</Label>
+                  <Input
+                    data-testid={g.testid}
+                    type="number"
+                    value={formData[g.key] || 0}
+                    onChange={e => setFormData({...formData, [g.key]: e.target.value})}
+                    required
+                    className="rounded-xl"
+                  />
+                </div>
+              ))}
             </CardContent>
           </Card>
 
-          <Button data-testid="button-save-settings" type="submit" size="lg" className="w-full md:w-auto gap-2" disabled={updateSettings.isPending}>
-            {updateSettings.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+          <Button data-testid="button-save-settings" type="submit" className="gap-2 rounded-xl" disabled={updateSettings.isPending}>
+            {updateSettings.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             حفظ الإعدادات
           </Button>
         </form>

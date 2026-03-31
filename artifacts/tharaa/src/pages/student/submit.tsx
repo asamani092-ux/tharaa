@@ -13,15 +13,17 @@ import { Loader2, ArrowRight } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetMeQueryKey, getGetMyLogsQueryKey } from "@workspace/api-client-react";
 
+const cardStyle = { backgroundColor: 'hsl(218,39%,12%)', borderColor: 'hsl(217,36%,20%)' };
+
 export default function SubmitLog() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { data: session } = useGetMe();
   const user = session?.user;
-  
+
   const { data: settings } = useGetSettings();
-  const { data: books } = useListCurriculum({ 
-    query: { enabled: !!user?.phaseNumber } 
+  const { data: books } = useListCurriculum({
+    query: { enabled: !!user?.phaseNumber }
   });
 
   const phaseBooks = books?.filter(b => b.phaseNumber === user?.phaseNumber && !user?.completedBooks.includes(b.id)) || [];
@@ -52,6 +54,7 @@ export default function SubmitLog() {
 
   const selectedBook = phaseBooks.find(b => b.id.toString() === bookId);
   const isCompleted = selectedBook ? endPage >= selectedBook.totalPages : false;
+  const pagesCount = Math.max(0, endPage - startPage + 1);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,14 +66,14 @@ export default function SubmitLog() {
     }
 
     createLog.mutate(
-      { 
-        data: { 
-          bookId: parseInt(bookId), 
-          startPage, 
-          endPage: Math.min(endPage, selectedBook?.totalPages || endPage), 
+      {
+        data: {
+          bookId: parseInt(bookId),
+          startPage,
+          endPage: Math.min(endPage, selectedBook?.totalPages || endPage),
           isCompleted,
           reflection: reflection.trim() || undefined
-        } 
+        }
       },
       {
         onSuccess: () => {
@@ -88,24 +91,25 @@ export default function SubmitLog() {
 
   return (
     <StudentLayout>
-      <div className="max-w-2xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
-          <Button data-testid="button-back" variant="outline" size="icon" onClick={() => setLocation("/student")}>
+      <div className="max-w-xl mx-auto space-y-5">
+        <div className="flex items-center gap-3">
+          <Button data-testid="button-back" variant="ghost" size="icon" className="rounded-xl" onClick={() => setLocation("/student")}>
             <ArrowRight className="w-4 h-4" />
           </Button>
-          <h2 className="text-3xl font-bold">تسجيل ورد القراءة</h2>
+          <h2 className="text-xl font-bold" style={{ fontFamily: 'Cairo, sans-serif' }}>تسجيل ورد القراءة</h2>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>تفاصيل الورد الأسبوعي</CardTitle>
+        <Card className="rounded-xl border" style={cardStyle}>
+          <CardHeader style={{ borderBottom: '1px solid hsl(217,36%,18%)' }}>
+            <CardTitle className="text-base" style={{ fontFamily: 'Cairo, sans-serif' }}>تفاصيل الورد الأسبوعي</CardTitle>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label>الكتاب</Label>
+          <CardContent className="pt-5">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Book select */}
+              <div className="space-y-1.5">
+                <Label className="text-sm text-muted-foreground">الكتاب</Label>
                 <Select value={bookId} onValueChange={setBookId}>
-                  <SelectTrigger data-testid="select-book">
+                  <SelectTrigger data-testid="select-book" className="rounded-xl">
                     <SelectValue placeholder="اختر الكتاب" />
                   </SelectTrigger>
                   <SelectContent>
@@ -118,55 +122,66 @@ export default function SubmitLog() {
                 </Select>
               </div>
 
+              {/* Page range */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>من صفحة</Label>
-                  <Input 
+                <div className="space-y-1.5">
+                  <Label className="text-sm text-muted-foreground">من صفحة</Label>
+                  <Input
                     data-testid="input-start-page"
-                    type="number" 
+                    type="number"
                     min="1"
-                    value={startPage} 
+                    value={startPage}
                     onChange={e => setStartPage(parseInt(e.target.value) || 1)}
-                    required 
+                    required
+                    className="rounded-xl"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>إلى صفحة</Label>
-                  <Input 
+                <div className="space-y-1.5">
+                  <Label className="text-sm text-muted-foreground">إلى صفحة</Label>
+                  <Input
                     data-testid="input-end-page"
-                    type="number" 
+                    type="number"
                     min={startPage}
-                    value={endPage} 
+                    value={endPage}
                     onChange={e => setEndPage(parseInt(e.target.value) || startPage)}
-                    required 
+                    required
+                    className="rounded-xl"
                   />
                 </div>
               </div>
 
+              {/* Pages summary */}
               {selectedBook && (
-                <div className="p-4 bg-muted rounded-md text-sm">
-                  مجموع الصفحات المقروءة: <strong>{Math.max(0, endPage - startPage + 1)}</strong> صفحة
+                <div className="p-3 rounded-xl text-sm" style={{ backgroundColor: 'hsl(218,47%,9%)', border: '1px solid hsl(217,36%,20%)' }}>
+                  مجموع الصفحات المقروءة: <strong className="text-primary">{pagesCount}</strong> صفحة
                 </div>
               )}
 
+              {/* Completion notice */}
               {isCompleted && (
-                <div className="p-4 bg-green-900/20 border border-green-700 rounded-md text-green-400 font-medium">
+                <div className="p-3 rounded-xl text-sm font-medium text-emerald-400" style={{ backgroundColor: 'hsl(142,40%,8%)', border: '1px solid hsl(142,40%,20%)' }}>
                   تهانينا! يبدو أنك ستنهي هذا الكتاب بهذا الورد.
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label>فائدة أو تأمل (اختياري)</Label>
-                <Textarea 
+              {/* Reflection */}
+              <div className="space-y-1.5">
+                <Label className="text-sm text-muted-foreground">فائدة أو تأمل (اختياري)</Label>
+                <Textarea
                   data-testid="input-reflection"
-                  placeholder="شاركنا أبرز ما استفدته من هذه القراءة..." 
-                  className="min-h-[100px]"
+                  placeholder="شاركنا أبرز ما استفدته من هذه القراءة..."
+                  className="min-h-[90px] rounded-xl"
                   value={reflection}
                   onChange={e => setReflection(e.target.value)}
                 />
               </div>
 
-              <Button data-testid="button-submit" type="submit" className="w-full" disabled={createLog.isPending || !bookId}>
+              <Button
+                data-testid="button-submit"
+                type="submit"
+                className="w-full rounded-xl"
+                disabled={createLog.isPending || !bookId}
+              >
                 {createLog.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "اعتماد الورد"}
               </Button>
             </form>
