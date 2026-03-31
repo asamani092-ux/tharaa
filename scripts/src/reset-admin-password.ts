@@ -21,7 +21,7 @@ async function resetAdminPassword() {
   }
 
   console.log(`✓ Admin password reset for phone ${DEFAULT_ADMIN_PHONE}`);
-  console.log(`  Use password: ${DEFAULT_ADMIN_PASSWORD}`);
+  console.log(`  Password: tharaa2025 (see scripts/src/reset-admin-password.ts)`);
   process.exit(0);
 }
 
