@@ -1,8 +1,8 @@
-# Workspace
+# ثراء المعرفة (Tharaa Al-Maarifa) - Reading Platform
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+A full-stack Arabic reading program management platform with student portal and admin dashboard.
 
 ## Stack
 
@@ -15,82 +15,107 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
+- **Frontend**: React + Vite + Tailwind CSS + shadcn/ui
+- **Auth**: express-session + bcryptjs (password hashing)
+- **Logging**: pino + pino-http
+
+## Default Admin Credentials
+
+- Phone: `0500000000`
+- Password: `admin123`
 
 ## Structure
 
 ```text
 artifacts-monorepo/
-├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
-├── lib/                    # Shared libraries
+├── artifacts/
+│   ├── api-server/         # Express API server
+│   └── tharaa/             # React frontend (SPA)
+├── lib/
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
 │   ├── api-zod/            # Generated Zod schemas from OpenAPI
 │   └── db/                 # Drizzle ORM schema + DB connection
-├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
-├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
-├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
-├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
+├── scripts/                # Utility scripts
+├── pnpm-workspace.yaml
+├── tsconfig.base.json
+└── tsconfig.json
 ```
+
+## Features
+
+### Student Portal (/student)
+- Login with phone + password (persistent session, 7 days)
+- View current phase books only
+- Visual distinction for completed books (green)
+- PDF download links per book
+- Submit weekly reading log
+- Smart quota rollover: when finishing a book mid-quota, select next book and roll over remaining pages
+
+### Admin Dashboard (/admin)
+- Overview statistics (total/active/pending users, pages read, submission compliance)
+- User management: approve, edit, delete, bulk import (paste "Name Phone Password" lines)
+- Analytics: per-student, per-batch, program-wide
+- Curriculum management: add/edit/delete books per phase/level
+- Batch management
+- System settings: weekly quota, submission windows, grade thresholds
+
+## Data Models
+
+- **users**: students and admins with hashed passwords, batch assignment, reading progress
+- **batches**: program cohorts
+- **curriculum**: 8 phases × levels (basic only for phases 1-3, basic+optional for phases 4-8)
+- **reading_logs**: weekly submission records with on_time/late/missed status
+- **system_settings**: configurable quotas, time windows, grade thresholds
+
+## Business Logic
+
+- **Phone normalization**: handles leading zero, +966/966 prefix stripping
+- **Submission status**: calculated based on configurable day/hour windows (0=Sun..6=Sat)
+- **Quota rollover**: completing a book mid-week rolls remaining pages to next book
+- **Phase progression**: students assigned to specific phase+level, admins can advance them
+
+## API Routes
+
+All routes under `/api`:
+- `POST /auth/login` — login
+- `POST /auth/logout` — logout  
+- `GET /auth/me` — session check
+- `GET/POST /users` — list/create users (admin)
+- `POST /users/bulk` — bulk import users (admin)
+- `PATCH /users/:id` — update user (admin)
+- `POST /users/:id/approve` — approve user (admin)
+- `PATCH /users/:id/book` — update current book/progress
+- `GET/POST /batches` — manage batches
+- `GET/POST /curriculum` — manage curriculum
+- `PATCH/DELETE /curriculum/:id` — edit/delete book
+- `GET/POST /logs` — reading logs
+- `GET /logs/my` — student's own logs
+- `GET /settings` — system settings
+- `PATCH /settings` — update settings (admin)
+- `GET /analytics/overview` — program-wide analytics
+- `GET /analytics/user/:id` — per-student analytics
+- `GET /analytics/batch/:id` — per-batch analytics
+
+## Seeded Data
+
+- Admin user: phone `0500000000`, password `admin123`
+- Phase 1 curriculum: 10 books (Islamic behavioral + scholarly selections)
+- Default batch: "الدفعة الأولى"
+- Default settings: 105 pages/week quota, Friday submission window
 
 ## TypeScript & Composite Projects
 
-Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
-
-- **Always typecheck from the root** — run `pnpm run typecheck` (which runs `tsc --build --emitDeclarationOnly`). This builds the full dependency graph so that cross-package imports resolve correctly. Running `tsc` inside a single package will fail if its dependencies haven't been built yet.
-- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck; actual JS bundling is handled by esbuild/tsx/vite...etc, not `tsc`.
-- **Project references** — when package A depends on package B, A's `tsconfig.json` must list B in its `references` array. `tsc --build` uses this to determine build order and skip up-to-date packages.
+Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all lib packages as project references.
 
 ## Root Scripts
 
-- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
+- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages
 - `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
 
-## Packages
+## Codegen
 
-### `artifacts/api-server` (`@workspace/api-server`)
-
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
-
-- Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
-- Depends on: `@workspace/db`, `@workspace/api-zod`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
-
-### `lib/db` (`@workspace/db`)
-
-Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
-
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
-- Exports: `.` (pool, db, schema), `./schema` (schema only)
-
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
-
-### `lib/api-spec` (`@workspace/api-spec`)
-
-Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
-
-1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
-2. `lib/api-zod/src/generated/` — Zod schemas
-
-Run codegen: `pnpm --filter @workspace/api-spec run codegen`
-
-### `lib/api-zod` (`@workspace/api-zod`)
-
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
-
-### `lib/api-client-react` (`@workspace/api-client-react`)
-
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
-
-### `scripts` (`@workspace/scripts`)
-
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+After any OpenAPI spec changes:
+```bash
+pnpm --filter @workspace/api-spec run codegen
+```

@@ -1,22 +1,32 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Tharaa Al-Maarifa Reading Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: users
+    description: User management
+  - name: curriculum
+    description: Curriculum management
+  - name: logs
+    description: Reading logs
+  - name: settings
+    description: System settings
+  - name: analytics
+    description: Analytics and statistics
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +34,496 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user session
+      responses:
+        "200":
+          description: Current session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all users
+      parameters:
+        - name: batchId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: status
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Create a single user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/bulk:
+    post:
+      operationId: bulkCreateUsers
+      tags: [users]
+      summary: Bulk create users from pasted text
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkCreateUsersBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkCreateUsersResponse"
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateUser
+      tags: [users]
+      summary: Update user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Delete user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /users/{id}/approve:
+    post:
+      operationId: approveUser
+      tags: [users]
+      summary: Approve user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{id}/book:
+    patch:
+      operationId: updateUserBook
+      tags: [users]
+      summary: Update user current book and last page
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserBookBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /curriculum:
+    get:
+      operationId: listCurriculum
+      tags: [curriculum]
+      summary: List all curriculum items
+      parameters:
+        - name: phaseNumber
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: level
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: Curriculum list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CurriculumBook"
+    post:
+      operationId: createCurriculumBook
+      tags: [curriculum]
+      summary: Add a curriculum book
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCurriculumBookBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurriculumBook"
+
+  /curriculum/{id}:
+    patch:
+      operationId: updateCurriculumBook
+      tags: [curriculum]
+      summary: Update curriculum book
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCurriculumBookBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurriculumBook"
+    delete:
+      operationId: deleteCurriculumBook
+      tags: [curriculum]
+      summary: Delete curriculum book
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /logs:
+    get:
+      operationId: listLogs
+      tags: [logs]
+      summary: List reading logs
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: week
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: Reading logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReadingLog"
+    post:
+      operationId: createLog
+      tags: [logs]
+      summary: Submit a reading log
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLogBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadingLog"
+
+  /logs/{id}:
+    get:
+      operationId: getLog
+      tags: [logs]
+      summary: Get a reading log
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Reading log
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadingLog"
+
+  /logs/my:
+    get:
+      operationId: getMyLogs
+      tags: [logs]
+      summary: Get current user's reading logs
+      responses:
+        "200":
+          description: My reading logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReadingLog"
+
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get system settings
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemSettings"
+    patch:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Update system settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSettingsBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemSettings"
+
+  /analytics/overview:
+    get:
+      operationId: getAnalyticsOverview
+      tags: [analytics]
+      summary: Get program-wide analytics overview
+      responses:
+        "200":
+          description: Analytics overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsOverview"
+
+  /analytics/user/{id}:
+    get:
+      operationId: getUserAnalytics
+      tags: [analytics]
+      summary: Get analytics for a specific user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserAnalytics"
+
+  /analytics/batch/{batchId}:
+    get:
+      operationId: getBatchAnalytics
+      tags: [analytics]
+      summary: Get analytics for a specific batch
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Batch analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchAnalytics"
+
+  /batches:
+    get:
+      operationId: listBatches
+      tags: [users]
+      summary: List all batches
+      responses:
+        "200":
+          description: Batches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Batch"
+    post:
+      operationId: createBatch
+      tags: [users]
+      summary: Create a new batch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBatchBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Batch"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +534,566 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    LoginBody:
+      type: object
+      properties:
+        phone:
+          type: string
+        password:
+          type: string
+      required:
+        - phone
+        - password
+
+    LoginResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/SessionUser"
+        role:
+          type: string
+      required:
+        - user
+        - role
+
+    SessionUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        phone:
+          type: string
+        role:
+          type: string
+        batchId:
+          type: ["integer", "null"]
+        status:
+          type: string
+        currentBookId:
+          type: ["integer", "null"]
+        lastPage:
+          type: integer
+        phaseNumber:
+          type: ["integer", "null"]
+        levelType:
+          type: ["string", "null"]
+      required:
+        - id
+        - name
+        - phone
+        - role
+        - status
+        - lastPage
+
+    SessionResponse:
+      type: object
+      properties:
+        authenticated:
+          type: boolean
+        user:
+          $ref: "#/components/schemas/SessionUser"
+      required:
+        - authenticated
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        phone:
+          type: string
+        batchId:
+          type: ["integer", "null"]
+        status:
+          type: string
+        currentBookId:
+          type: ["integer", "null"]
+        lastPage:
+          type: integer
+        phaseNumber:
+          type: ["integer", "null"]
+        levelType:
+          type: ["string", "null"]
+        completedBooks:
+          type: array
+          items:
+            type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - phone
+        - status
+        - lastPage
+        - completedBooks
+        - createdAt
+
+    CreateUserBody:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        password:
+          type: string
+        batchId:
+          type: ["integer", "null"]
+        phaseNumber:
+          type: ["integer", "null"]
+        levelType:
+          type: ["string", "null"]
+      required:
+        - name
+        - phone
+        - password
+
+    UpdateUserBody:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        batchId:
+          type: ["integer", "null"]
+        status:
+          type: string
+        phaseNumber:
+          type: ["integer", "null"]
+        levelType:
+          type: ["string", "null"]
+        currentBookId:
+          type: ["integer", "null"]
+        lastPage:
+          type: integer
+
+    UpdateUserBookBody:
+      type: object
+      properties:
+        currentBookId:
+          type: ["integer", "null"]
+        lastPage:
+          type: integer
+        completedBookId:
+          type: ["integer", "null"]
+      required:
+        - lastPage
+
+    BulkCreateUsersBody:
+      type: object
+      properties:
+        batchId:
+          type: integer
+        rawText:
+          type: string
+        phaseNumber:
+          type: integer
+        levelType:
+          type: string
+      required:
+        - batchId
+        - rawText
+        - phaseNumber
+        - levelType
+
+    BulkCreateUsersResponse:
+      type: object
+      properties:
+        created:
+          type: integer
+        failed:
+          type: integer
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+      required:
+        - created
+        - failed
+        - users
+
+    Batch:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - createdAt
+
+    CreateBatchBody:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+
+    CurriculumBook:
+      type: object
+      properties:
+        id:
+          type: integer
+        phaseNumber:
+          type: integer
+        phaseName:
+          type: string
+        levelType:
+          type: string
+        bookCode:
+          type: string
+        title:
+          type: string
+        totalPages:
+          type: integer
+        pdfUrl:
+          type: ["string", "null"]
+        publisher:
+          type: ["string", "null"]
+        author:
+          type: ["string", "null"]
+        orderInLevel:
+          type: integer
+      required:
+        - id
+        - phaseNumber
+        - phaseName
+        - levelType
+        - bookCode
+        - title
+        - totalPages
+        - orderInLevel
+
+    CreateCurriculumBookBody:
+      type: object
+      properties:
+        phaseNumber:
+          type: integer
+        phaseName:
+          type: string
+        levelType:
+          type: string
+        bookCode:
+          type: string
+        title:
+          type: string
+        totalPages:
+          type: integer
+        pdfUrl:
+          type: ["string", "null"]
+        publisher:
+          type: ["string", "null"]
+        author:
+          type: ["string", "null"]
+        orderInLevel:
+          type: integer
+      required:
+        - phaseNumber
+        - phaseName
+        - levelType
+        - bookCode
+        - title
+        - totalPages
+        - orderInLevel
+
+    UpdateCurriculumBookBody:
+      type: object
+      properties:
+        phaseName:
+          type: string
+        levelType:
+          type: string
+        bookCode:
+          type: string
+        title:
+          type: string
+        totalPages:
+          type: integer
+        pdfUrl:
+          type: ["string", "null"]
+        publisher:
+          type: ["string", "null"]
+        author:
+          type: ["string", "null"]
+        orderInLevel:
+          type: integer
+
+    ReadingLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        bookId:
+          type: integer
+        bookTitle:
+          type: ["string", "null"]
+        date:
+          type: string
+          format: date-time
+        startPage:
+          type: integer
+        endPage:
+          type: integer
+        pagesRead:
+          type: integer
+        isCompleted:
+          type: boolean
+        submissionStatus:
+          type: string
+        reflection:
+          type: ["string", "null"]
+        weekLabel:
+          type: ["string", "null"]
+      required:
+        - id
+        - userId
+        - bookId
+        - date
+        - startPage
+        - endPage
+        - pagesRead
+        - isCompleted
+        - submissionStatus
+
+    CreateLogBody:
+      type: object
+      properties:
+        bookId:
+          type: integer
+        startPage:
+          type: integer
+        endPage:
+          type: integer
+        isCompleted:
+          type: boolean
+        reflection:
+          type: ["string", "null"]
+      required:
+        - bookId
+        - startPage
+        - endPage
+        - isCompleted
+
+    SystemSettings:
+      type: object
+      properties:
+        id:
+          type: integer
+        weeklyQuota:
+          type: integer
+        submissionStartDay:
+          type: integer
+        submissionStartHour:
+          type: integer
+        normalDeadlineDay:
+          type: integer
+        normalDeadlineHour:
+          type: integer
+        lateDeadlineDay:
+          type: integer
+        lateDeadlineHour:
+          type: integer
+        gradeThresholdExcellent:
+          type: integer
+        gradeThresholdGood:
+          type: integer
+        gradeThresholdAcceptable:
+          type: integer
+      required:
+        - id
+        - weeklyQuota
+        - submissionStartDay
+        - submissionStartHour
+        - normalDeadlineDay
+        - normalDeadlineHour
+        - lateDeadlineDay
+        - lateDeadlineHour
+        - gradeThresholdExcellent
+        - gradeThresholdGood
+        - gradeThresholdAcceptable
+
+    UpdateSettingsBody:
+      type: object
+      properties:
+        weeklyQuota:
+          type: integer
+        submissionStartDay:
+          type: integer
+        submissionStartHour:
+          type: integer
+        normalDeadlineDay:
+          type: integer
+        normalDeadlineHour:
+          type: integer
+        lateDeadlineDay:
+          type: integer
+        lateDeadlineHour:
+          type: integer
+        gradeThresholdExcellent:
+          type: integer
+        gradeThresholdGood:
+          type: integer
+        gradeThresholdAcceptable:
+          type: integer
+
+    AnalyticsOverview:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+        activeUsers:
+          type: integer
+        pendingUsers:
+          type: integer
+        totalPagesRead:
+          type: integer
+        totalLogsSubmitted:
+          type: integer
+        onTimeSubmissions:
+          type: integer
+        lateSubmissions:
+          type: integer
+        missedSubmissions:
+          type: integer
+        completedBooksCount:
+          type: integer
+        batchBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/BatchSummary"
+      required:
+        - totalUsers
+        - activeUsers
+        - pendingUsers
+        - totalPagesRead
+        - totalLogsSubmitted
+        - onTimeSubmissions
+        - lateSubmissions
+        - missedSubmissions
+        - completedBooksCount
+        - batchBreakdown
+
+    BatchSummary:
+      type: object
+      properties:
+        batchId:
+          type: integer
+        batchName:
+          type: string
+        userCount:
+          type: integer
+        totalPagesRead:
+          type: integer
+        avgPagesPerUser:
+          type: number
+      required:
+        - batchId
+        - batchName
+        - userCount
+        - totalPagesRead
+        - avgPagesPerUser
+
+    UserAnalytics:
+      type: object
+      properties:
+        userId:
+          type: integer
+        name:
+          type: string
+        totalPagesRead:
+          type: integer
+        totalLogs:
+          type: integer
+        onTimeCount:
+          type: integer
+        lateCount:
+          type: integer
+        missedCount:
+          type: integer
+        completedBooks:
+          type: integer
+        currentStreak:
+          type: integer
+        complianceRate:
+          type: number
+        recentLogs:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReadingLog"
+      required:
+        - userId
+        - name
+        - totalPagesRead
+        - totalLogs
+        - onTimeCount
+        - lateCount
+        - missedCount
+        - completedBooks
+        - currentStreak
+        - complianceRate
+        - recentLogs
+
+    BatchAnalytics:
+      type: object
+      properties:
+        batchId:
+          type: integer
+        batchName:
+          type: string
+        totalUsers:
+          type: integer
+        totalPagesRead:
+          type: integer
+        avgPagesPerUser:
+          type: number
+        onTimeRate:
+          type: number
+        lateRate:
+          type: number
+        missedRate:
+          type: number
+        topReaders:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserAnalytics"
+      required:
+        - batchId
+        - batchName
+        - totalUsers
+        - totalPagesRead
+        - avgPagesPerUser
+        - onTimeRate
+        - lateRate
+        - missedRate
+        - topReaders
