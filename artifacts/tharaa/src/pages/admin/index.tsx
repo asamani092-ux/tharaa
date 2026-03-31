@@ -42,7 +42,7 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat, i) => (
             <Card key={i} className="rounded-xl border" style={{ backgroundColor: 'hsl(218,39%,12%)', borderColor: 'hsl(217,36%,20%)' }}>
-              <CardContent className="p-5 flex flex-col gap-3">
+              <CardContent className="p-5 flex flex-col gap-3 text-center">
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${stat.bg} ${stat.accent}`}>
                   <stat.icon className="w-4 h-4" />
                 </div>
