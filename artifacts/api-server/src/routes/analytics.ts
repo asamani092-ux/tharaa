@@ -1,11 +1,12 @@
-import { Router, type IRouter } from "express";
+import { Hono } from 'hono';
 import { eq, sql } from "drizzle-orm";
 import { db, usersTable, readingLogsTable, batchesTable } from "@workspace/db";
 import { requireAdmin } from "../lib/auth";
 
-const router: IRouter = Router();
+const router = new Hono();
 
-router.get("/analytics/overview", requireAdmin, async (_req, res): Promise<void> => {
+// نظرة عامة على التحليلات
+router.get("/overview", requireAdmin, async (c) => {
   const users = await db.select().from(usersTable).where(eq(usersTable.role, "student"));
   const totalUsers = users.length;
   const activeUsers = users.filter((u) => u.status === "active").length;
@@ -34,7 +35,7 @@ router.get("/analytics/overview", requireAdmin, async (_req, res): Promise<void>
     };
   });
 
-  res.json({
+  return c.json({
     totalUsers,
     activeUsers,
     pendingUsers,
@@ -48,18 +49,16 @@ router.get("/analytics/overview", requireAdmin, async (_req, res): Promise<void>
   });
 });
 
-router.get("/analytics/user/:id", requireAdmin, async (req, res): Promise<void> => {
-  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const id = parseInt(raw, 10);
+// تحليلات مستخدم محدد
+router.get("/user/:id", requireAdmin, async (c) => {
+  const id = parseInt(c.req.param('id'), 10);
   if (isNaN(id)) {
-    res.status(400).json({ error: "Invalid id" });
-    return;
+    return c.json({ error: "Invalid id" }, 400);
   }
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
   if (!user) {
-    res.status(404).json({ error: "User not found" });
-    return;
+    return c.json({ error: "User not found" }, 404);
   }
 
   const logs = await db
@@ -76,6 +75,7 @@ router.get("/analytics/user/:id", requireAdmin, async (req, res): Promise<void> 
   const completedBooks = (user.completedBooks ?? []).length;
   const complianceRate = totalLogs > 0 ? (onTimeCount / totalLogs) * 100 : 0;
 
+  // Streak logic
   let currentStreak = 0;
   const sortedLogs = [...logs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   for (const log of sortedLogs) {
@@ -88,7 +88,7 @@ router.get("/analytics/user/:id", requireAdmin, async (req, res): Promise<void> 
     bookTitle: null,
   }));
 
-  res.json({
+  return c.json({
     userId: user.id,
     name: user.name,
     totalPagesRead,
@@ -103,32 +103,32 @@ router.get("/analytics/user/:id", requireAdmin, async (req, res): Promise<void> 
   });
 });
 
-router.get("/analytics/batch/:batchId", requireAdmin, async (req, res): Promise<void> => {
-  const raw = Array.isArray(req.params.batchId) ? req.params.batchId[0] : req.params.batchId;
-  const batchId = parseInt(raw, 10);
+// تحليلات دفعة (Batch) محددة
+router.get("/batch/:batchId", requireAdmin, async (c) => {
+  const batchId = parseInt(c.req.param('batchId'), 10);
   if (isNaN(batchId)) {
-    res.status(400).json({ error: "Invalid batchId" });
-    return;
+    return c.json({ error: "Invalid batchId" }, 400);
   }
 
   const [batch] = await db.select().from(batchesTable).where(eq(batchesTable.id, batchId));
   if (!batch) {
-    res.status(404).json({ error: "Batch not found" });
-    return;
+    return c.json({ error: "Batch not found" }, 404);
   }
 
   const users = await db.select().from(usersTable).where(eq(usersTable.batchId, batchId));
   const userIds = new Set(users.map((u) => u.id));
 
+  // ملاحظة: لجعل الكود أرخص وأسرع، يفضل استخدام SQL aggregation مستقبلاً بدلاً من جلب كل السجلات
   const logs = await db.select().from(readingLogsTable);
   const batchLogs = logs.filter((l) => userIds.has(l.userId));
 
   const totalUsers = users.length;
   const totalPagesRead = batchLogs.reduce((sum, l) => sum + l.pagesRead, 0);
   const avgPagesPerUser = totalUsers > 0 ? totalPagesRead / totalUsers : 0;
-  const onTimeRate = batchLogs.length > 0 ? (batchLogs.filter((l) => l.submissionStatus === "on_time").length / batchLogs.length) * 100 : 0;
-  const lateRate = batchLogs.length > 0 ? (batchLogs.filter((l) => l.submissionStatus === "late").length / batchLogs.length) * 100 : 0;
-  const missedRate = batchLogs.length > 0 ? (batchLogs.filter((l) => l.submissionStatus === "missed").length / batchLogs.length) * 100 : 0;
+  const totalBatchLogs = batchLogs.length;
+
+  const getRate = (status: string) => 
+    totalBatchLogs > 0 ? (batchLogs.filter((l) => l.submissionStatus === status).length / totalBatchLogs) * 100 : 0;
 
   const topReaders = users
     .map((u) => {
@@ -138,27 +138,21 @@ router.get("/analytics/batch/:batchId", requireAdmin, async (req, res): Promise<
         name: u.name,
         totalPagesRead: userLogs.reduce((sum, l) => sum + l.pagesRead, 0),
         totalLogs: userLogs.length,
-        onTimeCount: userLogs.filter((l) => l.submissionStatus === "on_time").length,
-        lateCount: userLogs.filter((l) => l.submissionStatus === "late").length,
-        missedCount: userLogs.filter((l) => l.submissionStatus === "missed").length,
-        completedBooks: (u.completedBooks ?? []).length,
-        currentStreak: 0,
         complianceRate: userLogs.length > 0 ? (userLogs.filter((l) => l.submissionStatus === "on_time").length / userLogs.length) * 100 : 0,
-        recentLogs: [],
       };
     })
     .sort((a, b) => b.totalPagesRead - a.totalPagesRead)
     .slice(0, 10);
 
-  res.json({
+  return c.json({
     batchId: batch.id,
     batchName: batch.name,
     totalUsers,
     totalPagesRead,
     avgPagesPerUser,
-    onTimeRate,
-    lateRate,
-    missedRate,
+    onTimeRate: getRate("on_time"),
+    lateRate: getRate("late"),
+    missedRate: getRate("missed"),
     topReaders,
   });
 });
