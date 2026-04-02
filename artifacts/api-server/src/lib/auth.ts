@@ -1,34 +1,55 @@
-import { Request, Response, NextFunction } from "express";
+import { Context, Next } from "hono";
+import { getCookie } from "hono/cookie";
 
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
-  if (!req.session.userId) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
+/**
+ * التحقق من تسجيل الدخول (للمستخدمين العاديين)
+ */
+export async function requireAuth(c: Context, next: Next) {
+  const userId = getCookie(c, 'userId');
+
+  if (!userId) {
+    return c.json({ error: "Not authenticated" }, 401);
   }
-  next();
+  
+  // تمرير الطلب للمرحلة التالية
+  await next();
 }
 
-export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
-  if (!req.session.userId) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
+/**
+ * التحقق من صلاحيات المدير (Admin)
+ */
+export async function requireAdmin(c: Context, next: Next) {
+  const userId = getCookie(c, 'userId');
+  const userRole = getCookie(c, 'userRole'); // سنقوم بحفظ الدور في الكوكي عند تسجيل الدخول
+
+  if (!userId) {
+    return c.json({ error: "Not authenticated" }, 401);
   }
-  if (req.session.role !== "admin") {
-    res.status(403).json({ error: "Admin access required" });
-    return;
+
+  if (userRole !== "admin") {
+    return c.json({ error: "Admin access required" }, 403);
   }
-  next();
+
+  await next();
 }
 
+/**
+ * معالجة وتوحيد صيغة أرقام الجوال السعودية
+ */
 export function normalizePhone(phone: string): string {
+  if (!phone) return "";
+  
   let p = phone.trim().replace(/\s+/g, "");
+  
   if (p.startsWith("+966")) {
     p = "0" + p.slice(4);
   } else if (p.startsWith("966") && p.length === 12) {
     p = "0" + p.slice(3);
   }
+  
   if (!p.startsWith("0") && p.length === 9) {
     p = "0" + p;
   }
+  
   return p;
 }
