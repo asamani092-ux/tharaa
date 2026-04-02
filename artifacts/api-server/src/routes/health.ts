@@ -1,11 +1,14 @@
-import { Router, type IRouter } from "express";
+import { Hono } from 'hono';
 import { HealthCheckResponse } from "@workspace/api-zod";
 
-const router: IRouter = Router();
+const router = new Hono();
 
-router.get("/healthz", (_req, res) => {
+// اختبار حالة النظام (Health Check)
+router.get("/healthz", (c) => {
+  // استخدام Zod للتحقق من البيانات (بما أنك تستخدم @workspace/api-zod)
   const data = HealthCheckResponse.parse({ status: "ok" });
-  res.json(data);
+  
+  return c.json(data);
 });
 
 export default router;
