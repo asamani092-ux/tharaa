@@ -1,25 +1,27 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 
-const rawPort = process.env["PORT"];
+/**
+ * في بيئة Cloudflare Workers:
+ * 1. لا نحتاج لـ app.listen
+ * 2. يجب تصدير التطبيق كـ default export
+ */
 
-if (!rawPort) {
-  throw new Error(
-    "PORT environment variable is required but was not provided.",
-  );
-}
+// إذا كنت تستخدم Hono، هذا السطر يكفي:
+// export default app;
 
-const port = Number(rawPort);
-
-if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
-}
-
-app.listen(port, (err) => {
-  if (err) {
-    logger.error({ err }, "Error listening on port");
-    process.exit(1);
-  }
-
-  logger.info({ port }, "Server listening");
-});
+// إذا كنت تستخدم Express أو إطار عمل آخر، نستخدم هذا التغليف:
+export default {
+  async fetch(request: Request, env: any, ctx: any) {
+    // تمرير المتغيرات من السحاب للكود (مثل DATABASE_URL)
+    // ملاحظة: يمكنك الوصول لـ env.DATABASE_URL هنا إذا احتجت
+    
+    try {
+      // معالجة الطلب وتمريره للتطبيق
+      return await app.fetch(request, env, ctx); 
+    } catch (err) {
+      logger.error({ err }, "Error handling request at Edge");
+      return new Response("Internal Server Error", { status: 500 });
+    }
+  },
+};
