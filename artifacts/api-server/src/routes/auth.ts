@@ -1,153 +1,85 @@
-import { Router, type IRouter } from "express";
+import { Hono } from 'hono';
+import { setCookie, deleteCookie } from 'hono/cookie'; // بديل للجلسات
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
-import { normalizePhone, requireAdmin } from "../lib/auth";
+import { normalizePhone } from "../lib/auth";
 
-const router: IRouter = Router();
+const router = new Hono();
 
-router.post("/auth/login", async (req, res): Promise<void> => {
-  const { phone, password } = req.body as { phone: string; password: string };
+// تسجيل الدخول
+router.post("/login", async (c) => {
+  const { phone, password } = await c.req.json();
+  
   if (!phone || !password) {
-    res.status(400).json({ error: "Phone and password are required" });
-    return;
+    return c.json({ error: "Phone and password are required" }, 400);
   }
 
   const normalized = normalizePhone(phone);
-
   const [user] = await db
     .select()
     .from(usersTable)
     .where(eq(usersTable.phone, normalized));
 
-  if (!user) {
-    res.status(401).json({ error: "Invalid credentials" });
-    return;
-  }
-
-  const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) {
-    res.status(401).json({ error: "Invalid credentials" });
-    return;
+  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+    return c.json({ error: "Invalid credentials" }, 401);
   }
 
   if (user.status === "suspended") {
-    res.status(403).json({ error: "Account suspended" });
-    return;
+    return c.json({ error: "Account suspended" }, 403);
   }
 
-  req.session.userId = user.id;
-  req.session.role = user.role;
+  // في Workers لا نستخدم req.session
+  // نستخدم الكوكيز المشفرة (Cookies) لحفظ معرف المستخدم
+  setCookie(c, 'userId', user.id, {
+    httpOnly: true,
+    secure: true,
+    maxAge: 7 * 24 * 60 * 60, // أسبوع
+    sameSite: 'Lax',
+  });
 
-  res.json({
+  return c.json({
     user: {
       id: user.id,
       name: user.name,
       phone: user.phone,
       role: user.role,
-      batchId: user.batchId,
-      status: user.status,
-      currentBookId: user.currentBookId,
-      lastPage: user.lastPage,
-      phaseNumber: user.phaseNumber,
-      levelType: user.levelType,
-      completedBooks: user.completedBooks ?? [],
     },
     role: user.role,
   });
 });
 
-router.post("/auth/logout", (req, res): void => {
-  req.session.destroy(() => {
-    res.json({ message: "Logged out" });
-  });
+// تسجيل الخروج
+router.post("/logout", (c) => {
+  deleteCookie(c, 'userId');
+  return c.json({ message: "Logged out" });
 });
 
-router.put("/auth/admin", requireAdmin, async (req, res): Promise<void> => {
-  const { name, phone, currentPassword, newPassword } = req.body as {
-    name?: string;
-    phone?: string;
-    currentPassword: string;
-    newPassword?: string;
-  };
-
-  if (!currentPassword) {
-    res.status(400).json({ error: "currentPassword is required" });
-    return;
-  }
-
-  const [admin] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.id, req.session.userId!));
-
-  if (!admin) {
-    res.status(404).json({ error: "Admin not found" });
-    return;
-  }
-
-  const valid = await bcrypt.compare(currentPassword, admin.passwordHash);
-  if (!valid) {
-    res.status(401).json({ error: "Current password is incorrect" });
-    return;
-  }
-
-  const updates: Partial<typeof usersTable.$inferInsert> = {};
-  if (name != null) updates.name = name;
-  if (phone != null) updates.phone = normalizePhone(phone);
-  if (newPassword) updates.passwordHash = await bcrypt.hash(newPassword, 10);
-
-  if (Object.keys(updates).length === 0) {
-    res.status(400).json({ error: "No fields to update" });
-    return;
-  }
-
-  const [updated] = await db
-    .update(usersTable)
-    .set(updates)
-    .where(eq(usersTable.id, req.session.userId!))
-    .returning();
-
-  res.json({
-    id: updated.id,
-    name: updated.name,
-    phone: updated.phone,
-    role: updated.role,
-    status: updated.status,
-  });
-});
-
-router.get("/auth/me", async (req, res): Promise<void> => {
-  if (!req.session.userId) {
-    res.json({ authenticated: false });
-    return;
+// الحصول على بياناتي (Me)
+router.get("/me", async (c) => {
+  // جلب المعرف من الكوكيز
+  const userId = c.req.cookie('userId');
+  
+  if (!userId) {
+    return c.json({ authenticated: false });
   }
 
   const [user] = await db
     .select()
     .from(usersTable)
-    .where(eq(usersTable.id, req.session.userId));
+    .where(eq(usersTable.id, userId));
 
   if (!user) {
-    req.session.destroy(() => {});
-    res.json({ authenticated: false });
-    return;
+    deleteCookie(c, 'userId');
+    return c.json({ authenticated: false });
   }
 
-  res.json({
+  return c.json({
     authenticated: true,
     user: {
       id: user.id,
       name: user.name,
-      phone: user.phone,
       role: user.role,
-      batchId: user.batchId,
-      status: user.status,
-      currentBookId: user.currentBookId,
-      lastPage: user.lastPage,
-      phaseNumber: user.phaseNumber,
-      levelType: user.levelType,
-      completedBooks: user.completedBooks ?? [],
     },
   });
 });
