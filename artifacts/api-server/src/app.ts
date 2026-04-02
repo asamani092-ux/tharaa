@@ -1,17 +1,14 @@
-import express, { type Express } from "express";
-import cors from "cors";
-// تم تعطيل pino و session مؤقتاً لأنها غير متوافقة مع Cloudflare Workers
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 import router from "./routes";
 
-const app: Express = express();
+const app = new Hono();
 
-app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// تفعيل الـ CORS
+app.use('*', cors());
 
-// ملاحظة: Cloudflare هو "Serverless"، لذا Memory Session لن تعمل بشكل مستقر
-// سنقوم بربط الـ API أولاً ثم نفكر في حلول البديلة مثل (JWT)
-
-app.use("/api", router);
+// ربط المسارات (Routes)
+// ملاحظة: قد تحتاج لتعديل بسيط في ملفات الـ routes لاحقاً ليتوافق مع Hono
+app.route('/api', router);
 
 export default app;
