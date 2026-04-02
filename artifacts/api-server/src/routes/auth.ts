@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { setCookie, deleteCookie } from 'hono/cookie'; // بديل للجلسات
+import { getCookie, setCookie, deleteCookie } from 'hono/cookie'; // أضفنا getCookie
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
@@ -29,13 +29,22 @@ router.post("/login", async (c) => {
     return c.json({ error: "Account suspended" }, 403);
   }
 
-  // في Workers لا نستخدم req.session
-  // نستخدم الكوكيز المشفرة (Cookies) لحفظ معرف المستخدم
-  setCookie(c, 'userId', user.id, {
+  // حفظ المعرف والدور في الكوكيز
+  // ملاحظة: الكوكيز تقبل نصوص فقط، لذا حولنا ID لنص
+  setCookie(c, 'userId', String(user.id), {
     httpOnly: true,
     secure: true,
-    maxAge: 7 * 24 * 60 * 60, // أسبوع
+    maxAge: 7 * 24 * 60 * 60,
     sameSite: 'Lax',
+    path: '/', // مهم جداً لكي يظهر الكوكي في كل المسارات
+  });
+
+  setCookie(c, 'userRole', user.role, {
+    httpOnly: true,
+    secure: true,
+    maxAge: 7 * 24 * 60 * 60,
+    sameSite: 'Lax',
+    path: '/',
   });
 
   return c.json({
@@ -51,14 +60,15 @@ router.post("/login", async (c) => {
 
 // تسجيل الخروج
 router.post("/logout", (c) => {
-  deleteCookie(c, 'userId');
+  deleteCookie(c, 'userId', { path: '/' });
+  deleteCookie(c, 'userRole', { path: '/' });
   return c.json({ message: "Logged out" });
 });
 
 // الحصول على بياناتي (Me)
 router.get("/me", async (c) => {
-  // جلب المعرف من الكوكيز
-  const userId = c.req.cookie('userId');
+  // التصحيح: استخدام getCookie بدلاً من c.req.cookie
+  const userId = getCookie(c, 'userId');
   
   if (!userId) {
     return c.json({ authenticated: false });
@@ -67,10 +77,10 @@ router.get("/me", async (c) => {
   const [user] = await db
     .select()
     .from(usersTable)
-    .where(eq(usersTable.id, userId));
+    .where(eq(usersTable.id, parseInt(userId, 10))); // حولناه لرقم ليتطابق مع النوع في DB
 
   if (!user) {
-    deleteCookie(c, 'userId');
+    deleteCookie(c, 'userId', { path: '/' });
     return c.json({ authenticated: false });
   }
 
