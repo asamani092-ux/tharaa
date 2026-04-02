@@ -19,7 +19,7 @@
     "@types/bcryptjs": "^3.0.0",
     "@types/cors": "^2.8.19",
     "@types/node": "catalog:",
-    "typescript": "^5.4.0",
+    "typescript": "^5.9.3",
     "esbuild": "^0.27.3"
   }
 }
