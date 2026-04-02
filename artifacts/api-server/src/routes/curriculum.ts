@@ -1,12 +1,14 @@
-import { Router, type IRouter } from "express";
+import { Hono } from 'hono';
 import { eq, and } from "drizzle-orm";
 import { db, curriculumTable } from "@workspace/db";
 import { requireAuth, requireAdmin } from "../lib/auth";
 
-const router: IRouter = Router();
+const router = new Hono();
 
-router.get("/curriculum", requireAuth, async (req, res): Promise<void> => {
-  const { phaseNumber, level } = req.query as { phaseNumber?: string; level?: string };
+// جلب الكتب (للمستخدمين المسجلين)
+router.get("/", requireAuth, async (c) => {
+  const phaseNumber = c.req.query('phaseNumber');
+  const level = c.req.query('level');
 
   const books = await db
     .select()
@@ -22,122 +24,71 @@ router.get("/curriculum", requireAuth, async (req, res): Promise<void> => {
     )
     .orderBy(curriculumTable.phaseNumber, curriculumTable.orderInLevel);
 
-  res.json(books);
+  return c.json(books);
 });
 
-router.post("/curriculum", requireAdmin, async (req, res): Promise<void> => {
-  const { phaseNumber, phaseName, levelType, bookCode, title, totalPages, pdfUrl, publisher, author, orderInLevel } =
-    req.body as {
-      phaseNumber: number;
-      phaseName: string;
-      levelType: string;
-      bookCode: string;
-      title: string;
-      totalPages: number;
-      pdfUrl?: string | null;
-      publisher?: string | null;
-      author?: string | null;
-      orderInLevel: number;
-    };
+// إضافة كتاب جديد (للمدير فقط)
+router.post("/", requireAdmin, async (c) => {
+  const body = await c.req.json();
+  const { phaseNumber, phaseName, levelType, bookCode, title, totalPages } = body;
 
   if (!phaseNumber || !phaseName || !levelType || !bookCode || !title || !totalPages) {
-    res.status(400).json({ error: "Required fields missing" });
-    return;
+    return c.json({ error: "Required fields missing" }, 400);
   }
 
   const [book] = await db
     .insert(curriculumTable)
     .values({
-      phaseNumber,
-      phaseName,
-      levelType,
-      bookCode,
-      title,
-      totalPages,
-      pdfUrl: pdfUrl ?? null,
-      publisher: publisher ?? null,
-      author: author ?? null,
-      orderInLevel: orderInLevel ?? 1,
+      ...body,
+      pdfUrl: body.pdfUrl ?? null,
+      publisher: body.publisher ?? null,
+      author: body.author ?? null,
+      orderInLevel: body.orderInLevel ?? 1,
     })
     .returning();
 
-  res.status(201).json(book);
+  return c.json(book, 201);
 });
 
-router.put("/curriculum/:id", requireAdmin, async (req, res): Promise<void> => {
-  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const id = parseInt(raw, 10);
-  if (isNaN(id)) {
-    res.status(400).json({ error: "Invalid id" });
-    return;
-  }
+// تحديث كامل لبيانات كتاب
+router.put("/:id", requireAdmin, async (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  if (isNaN(id)) return c.json({ error: "Invalid id" }, 400);
 
-  const { phaseNumber, phaseName, levelType, bookCode, title, totalPages, pdfUrl, publisher, author, orderInLevel } =
-    req.body as {
-      phaseNumber: number;
-      phaseName: string;
-      levelType: string;
-      bookCode: string;
-      title: string;
-      totalPages: number;
-      pdfUrl?: string | null;
-      publisher?: string | null;
-      author?: string | null;
-      orderInLevel: number;
-    };
-
-  if (!phaseNumber || !phaseName || !levelType || !bookCode || !title || !totalPages) {
-    res.status(400).json({ error: "Required fields missing" });
-    return;
-  }
-
+  const body = await c.req.json();
   const [book] = await db
     .update(curriculumTable)
-    .set({ phaseNumber, phaseName, levelType, bookCode, title, totalPages, pdfUrl: pdfUrl ?? null, publisher: publisher ?? null, author: author ?? null, orderInLevel: orderInLevel ?? 1 })
+    .set({ ...body })
     .where(eq(curriculumTable.id, id))
     .returning();
 
-  if (!book) {
-    res.status(404).json({ error: "Book not found" });
-    return;
-  }
-
-  res.json(book);
+  if (!book) return c.json({ error: "Book not found" }, 404);
+  return c.json(book);
 });
 
-router.patch("/curriculum/:id", requireAdmin, async (req, res): Promise<void> => {
-  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const id = parseInt(raw, 10);
-  if (isNaN(id)) {
-    res.status(400).json({ error: "Invalid id" });
-    return;
-  }
+// تحديث جزئي لبيانات كتاب
+router.patch("/:id", requireAdmin, async (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  if (isNaN(id)) return c.json({ error: "Invalid id" }, 400);
 
-  const updates = req.body as Partial<typeof curriculumTable.$inferInsert>;
+  const updates = await c.req.json();
   const [book] = await db
     .update(curriculumTable)
     .set(updates)
     .where(eq(curriculumTable.id, id))
     .returning();
 
-  if (!book) {
-    res.status(404).json({ error: "Book not found" });
-    return;
-  }
-
-  res.json(book);
+  if (!book) return c.json({ error: "Book not found" }, 404);
+  return c.json(book);
 });
 
-router.delete("/curriculum/:id", requireAdmin, async (req, res): Promise<void> => {
-  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const id = parseInt(raw, 10);
-  if (isNaN(id)) {
-    res.status(400).json({ error: "Invalid id" });
-    return;
-  }
+// حذف كتاب
+router.delete("/:id", requireAdmin, async (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  if (isNaN(id)) return c.json({ error: "Invalid id" }, 400);
 
   await db.delete(curriculumTable).where(eq(curriculumTable.id, id));
-  res.sendStatus(204);
+  return c.body(null, 204);
 });
 
 export default router;
