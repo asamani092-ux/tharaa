@@ -4,9 +4,10 @@ import router from "./routes";
 
 const app = new Hono();
 
-// تفعيل الـ CORS
-app.use('*', cors());
-
+app.use('/api/*', cors({
+  origin: ['https://tharaa-web.pages.dev', 'https://tharaa.sam-dev.win'], // أضف الدومين الجديد هنا
+  credentials: true,
+}));
 // ربط المسارات (Routes)
 // ملاحظة: قد تحتاج لتعديل بسيط في ملفات الـ routes لاحقاً ليتوافق مع Hono
 app.route('/api', router);
