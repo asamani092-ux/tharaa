@@ -17,20 +17,10 @@ export default function Login() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
 
-  const response = await fetch('https://tharaa-api...', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ phone, password }),
-  credentials: 'include', // إذا لم تضف هذا السطر، المتصفح سيتجاهل الكوكي تماماً!
-});
-
-if (response.ok) {
-  // السيرفر لن ينقلك تلقائياً، يجب أن تأمره أنت هنا:
-  window.location.href = '/dashboard'; 
-}
-
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 1. تنظيف الرقم
     let normalizedPhone = phone.trim();
     if (normalizedPhone.startsWith("+966")) {
       normalizedPhone = "0" + normalizedPhone.slice(4);
@@ -41,16 +31,21 @@ if (response.ok) {
       normalizedPhone = "0" + normalizedPhone;
     }
 
+    // 2. تنفيذ تسجيل الدخول عبر mutate
     login.mutate(
       { data: { phone: normalizedPhone, password } },
       {
         onSuccess: async (res) => {
           toast.success("تم تسجيل الدخول بنجاح");
+          
+          // تحديث بيانات المستخدم في الكاش
           await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+          
+          // الانتقال لصفحة التحكم (استخدمنا href لضمان تحديث الصفحة والكوكيز)
           if (res.role === "admin") {
-            setLocation("/admin");
+            window.location.href = "/admin"; 
           } else {
-            setLocation("/student");
+            window.location.href = "/student";
           }
         },
         onError: () => {
@@ -62,23 +57,19 @@ if (response.ok) {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden" dir="rtl" style={{ backgroundColor: 'hsl(218,47%,8%)' }}>
-      {/* Background */}
       <div className="absolute inset-0 z-0">
         <img src={bgPath} alt="" className="w-full h-full object-cover" style={{ opacity: 0.08 }} />
         <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, hsl(218,47%,6%) 0%, hsl(218,47%,10%) 100%)' }} />
       </div>
-      {/* Watermark text */}
       <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none overflow-hidden">
         <span className="text-[20vw] font-black select-none" style={{ color: 'hsl(46,65%,52%)', opacity: 0.04, fontFamily: 'Cairo, sans-serif' }}>ثراء</span>
       </div>
       <div className="relative z-10 w-full max-w-sm mx-4">
-        {/* Logo */}
         <div className="flex flex-col items-center mb-8">
           <img src={logoPath} alt="ثراء المعرفة" className="h-28 object-contain mb-4" />
           <p className="text-muted-foreground text-sm text-center">أهلاً بك في منصة ثراء المعرفة </p>
         </div>
 
-        {/* Card */}
         <div className="rounded-2xl p-8" style={{ backgroundColor: 'hsl(218,39%,12%)', border: '1px solid hsl(217,36%,20%)' }}>
           <h1 className="text-xl font-bold text-center mb-6 text-foreground" style={{ fontFamily: 'Cairo, sans-serif' }}>تسجيل الدخول</h1>
 
@@ -87,7 +78,6 @@ if (response.ok) {
               <Label className="text-sm text-muted-foreground">رقم الهاتف</Label>
               <Input
                 id="phone"
-                data-testid="input-phone"
                 type="tel"
                 dir="ltr"
                 className="text-right h-11 rounded-xl"
@@ -104,7 +94,6 @@ if (response.ok) {
               <Label className="text-sm text-muted-foreground">كلمة المرور</Label>
               <Input
                 id="password"
-                data-testid="input-password"
                 type="password"
                 dir="ltr"
                 className="h-11 rounded-xl"
@@ -117,7 +106,6 @@ if (response.ok) {
             </div>
 
             <Button
-              data-testid="button-login"
               type="submit"
               className="w-full h-11 font-bold text-base rounded-xl mt-2"
               disabled={login.isPending}
