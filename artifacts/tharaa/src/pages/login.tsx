@@ -20,7 +20,7 @@ export default function Login() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // 1. تنظيف الرقم
+    // 1. تنظيف وتوحيد صيغة رقم الهاتف
     let normalizedPhone = phone.trim();
     if (normalizedPhone.startsWith("+966")) {
       normalizedPhone = "0" + normalizedPhone.slice(4);
@@ -31,17 +31,17 @@ export default function Login() {
       normalizedPhone = "0" + normalizedPhone;
     }
 
-    // 2. تنفيذ تسجيل الدخول عبر mutate
+    // 2. تنفيذ تسجيل الدخول (سيستخدم الإعدادات الجديدة في custom-fetch)
     login.mutate(
       { data: { phone: normalizedPhone, password } },
       {
         onSuccess: async (res) => {
           toast.success("تم تسجيل الدخول بنجاح");
           
-          // تحديث بيانات المستخدم في الكاش
+          // تحديث كاش البيانات للتأكد من التعرف على الجلسة الجديدة
           await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
           
-          // الانتقال لصفحة التحكم (استخدمنا href لضمان تحديث الصفحة والكوكيز)
+          // الانتقال لصفحة الإدارة أو الطالب
           if (res.role === "admin") {
             window.location.href = "/admin"; 
           } else {
