@@ -1,6 +1,5 @@
 // @ts-nocheck
 /* eslint-disable */
-console.log("API Client Loaded - Version 2.0");
 
 export type CustomFetchOptions = RequestInit & {
   responseType?: "json" | "text" | "blob" | "auto";
