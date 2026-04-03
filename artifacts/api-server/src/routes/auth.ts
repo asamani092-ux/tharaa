@@ -44,21 +44,21 @@ router.post("/login", async (c) => {
   }
 
   // حفظ المعرف والدور في الكوكيز
-  setCookie(c, 'userId', String(user.id), {
-    httpOnly: true,
-    secure: true,
-    maxAge: 7 * 24 * 60 * 60,
-    sameSite: 'Lax',
-    path: '/',
-  });
+setCookie(c, 'userId', String(user.id), {
+  httpOnly: true,
+  secure: true,   // يجب أن يكون true
+  sameSite: 'None', // غيره من Lax إلى None (هذا هو السر!)
+  maxAge: 7 * 24 * 60 * 60,
+  path: '/',
+});
 
-  setCookie(c, 'userRole', user.role, {
-    httpOnly: true,
-    secure: true,
-    maxAge: 7 * 24 * 60 * 60,
-    sameSite: 'Lax',
-    path: '/',
-  });
+setCookie(c, 'userRole', user.role, {
+  httpOnly: true,
+  secure: true,
+  sameSite: 'None', // غيره من Lax إلى None
+  maxAge: 7 * 24 * 60 * 60,
+  path: '/',
+});
 
   return c.json({
     user: {
