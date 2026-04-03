@@ -1,55 +1,55 @@
 import { Hono } from 'hono';
-import { getCookie, setCookie, deleteCookie } from 'hono/cookie'; // أضفنا getCookie
-import bcrypt from "bcryptjs";
+import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { eq } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
 import { normalizePhone } from "../lib/auth";
 
 const router = new Hono();
 
-// تسجيل الدخول
+// تسجيل الدخول (نص صريح بدون تشفير)
 router.post("/login", async (c) => {
-  const { phone, password } = await c.req.json();
+  // قراءة البيانات مرة واحدة فقط
+  const body = await c.req.json();
+  const rawPhone = body.phone;
+  const rawPassword = body.password;
   
-  if (!phone || !password) {
+  if (!rawPhone || !rawPassword) {
     return c.json({ error: "Phone and password are required" }, 400);
   }
 
-  const normalized = normalizePhone(phone);
+  const normalized = normalizePhone(rawPhone);
+  const password = rawPassword.trim(); // تنظيف كلمة المرور
+
   const [user] = await db
     .select()
     .from(usersTable)
     .where(eq(usersTable.phone, normalized));
 
-  console.log('--- Debug Login ---');
-console.log('Normalized Phone:', normalized);
-console.log('User found:', !!user);
-console.log('DB Password Hash Value:', user?.password_hash || user?.passwordHash || 'Not Found');
+  // جلب كلمة المرور من القاعدة (دعم كلا التسميتين)
+  const storedPassword = user?.passwordHash || (user as any)?.password_hash;
 
-  // عدل سطر استخراج البيانات ليكون هكذا:
-const { phone, password: rawPassword } = await c.req.json();
-const password = rawPassword?.trim(); // تنظيف كلمة المرور من أي فراغات
-  
-// استبدل سطر التحقق القديم بهذا السطر الذكي
-const storedHash = user.passwordHash || (user as any).password_hash;
+  console.log('--- Debug Login (Plain Text) ---');
+  console.log('Normalized Phone:', normalized);
+  console.log('User found:', !!user);
+  console.log('Stored Password:', storedPassword);
+  console.log('Received Password:', password);
 
-if (!user || !storedHash || !(await bcrypt.compare(password, storedHash))) {
-  console.log('Login failed for:', normalized, 'Hash found:', !!storedHash);
-  return c.json({ error: "Invalid credentials" }, 401);
-}
+  // مقارنة مباشرة بالنص الصريح
+  if (!user || password !== storedPassword) {
+    return c.json({ error: "Invalid credentials" }, 401);
+  }
 
   if (user.status === "suspended") {
     return c.json({ error: "Account suspended" }, 403);
   }
 
   // حفظ المعرف والدور في الكوكيز
-  // ملاحظة: الكوكيز تقبل نصوص فقط، لذا حولنا ID لنص
   setCookie(c, 'userId', String(user.id), {
     httpOnly: true,
     secure: true,
     maxAge: 7 * 24 * 60 * 60,
     sameSite: 'Lax',
-    path: '/', // مهم جداً لكي يظهر الكوكي في كل المسارات
+    path: '/',
   });
 
   setCookie(c, 'userRole', user.role, {
@@ -80,17 +80,13 @@ router.post("/logout", (c) => {
 
 // الحصول على بياناتي (Me)
 router.get("/me", async (c) => {
-  // التصحيح: استخدام getCookie بدلاً من c.req.cookie
   const userId = getCookie(c, 'userId');
-  
-  if (!userId) {
-    return c.json({ authenticated: false });
-  }
+  if (!userId) return c.json({ authenticated: false });
 
   const [user] = await db
     .select()
     .from(usersTable)
-    .where(eq(usersTable.id, parseInt(userId, 10))); // حولناه لرقم ليتطابق مع النوع في DB
+    .where(eq(usersTable.id, parseInt(userId, 10)));
 
   if (!user) {
     deleteCookie(c, 'userId', { path: '/' });
