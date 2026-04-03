@@ -26,6 +26,10 @@ console.log('Normalized Phone:', normalized);
 console.log('User found:', !!user);
 console.log('DB Password Hash Value:', user?.password_hash || user?.passwordHash || 'Not Found');
 
+  // عدل سطر استخراج البيانات ليكون هكذا:
+const { phone, password: rawPassword } = await c.req.json();
+const password = rawPassword?.trim(); // تنظيف كلمة المرور من أي فراغات
+  
 // استبدل سطر التحقق القديم بهذا السطر الذكي
 const storedHash = user.passwordHash || (user as any).password_hash;
 
