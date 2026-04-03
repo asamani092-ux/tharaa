@@ -132,7 +132,10 @@ async function parseSuccessBody(response: Response, responseType: "json" | "text
 
 export async function customFetch<T = unknown>(input: RequestInfo | URL, options: CustomFetchOptions = {}): Promise<T> {
   const finalInput = applyBaseUrl(input);
-  const { responseType = "auto", headers: headersInit, ...init } = options;
+  
+  // التعديل هنا: أضفنا credentials = "include" كقيمة افتراضية
+  const { responseType = "auto", headers: headersInit, credentials = "include", ...init } = options;
+  
   const method = resolveMethod(finalInput, init.method);
   const headers = mergeHeaders(isRequest(finalInput) ? finalInput.headers : undefined, headersInit);
 
@@ -145,7 +148,9 @@ export async function customFetch<T = unknown>(input: RequestInfo | URL, options
     if (token) headers.set("authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(finalInput, { ...init, method, headers });
+  // التعديل هنا: مررنا الـ credentials لطلب الـ fetch
+  const response = await fetch(finalInput, { ...init, method, headers, credentials });
+  
   const requestInfo = { method, url: resolveUrl(finalInput) };
 
   if (!response.ok) {
