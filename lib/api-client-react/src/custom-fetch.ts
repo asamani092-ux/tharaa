@@ -1,3 +1,15 @@
+export async function customFetch<T = unknown>(
+  input: RequestInfo | URL,
+  options: CustomFetchOptions = {},
+): Promise<T> {
+  // أضف هذا السطر هنا للتجربة فقط
+  console.log("الرابط الذي يحاول الموقع مراسلته هو:", applyBaseUrl(input)); 
+
+  input = applyBaseUrl(input);
+  // ... باقي الكود
+
+
+
 export type CustomFetchOptions = RequestInit & {
   responseType?: "json" | "text" | "blob" | "auto";
 };
