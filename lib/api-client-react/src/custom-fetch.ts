@@ -11,11 +11,9 @@ export type AuthTokenGetter = () => Promise<string | null> | string | null;
 const NO_BODY_STATUS = new Set([204, 205, 304]);
 const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
-// ---------------------------------------------------------------------------
-// Module-level configuration
-// ---------------------------------------------------------------------------
 
 let _baseUrl: string | null = (import.meta.env.VITE_API_URL as string) || "https://tharaa-api.a-samani092.workers.dev";
+
 /**
  * Set a base URL that is prepended to every relative request URL
  * (i.e. paths that start with `/`).
