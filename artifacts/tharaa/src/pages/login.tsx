@@ -17,6 +17,18 @@ export default function Login() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
 
+  const response = await fetch('https://tharaa-api...', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ phone, password }),
+  credentials: 'include', // إذا لم تضف هذا السطر، المتصفح سيتجاهل الكوكي تماماً!
+});
+
+if (response.ok) {
+  // السيرفر لن ينقلك تلقائياً، يجب أن تأمره أنت هنا:
+  window.location.href = '/dashboard'; 
+}
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     let normalizedPhone = phone.trim();
