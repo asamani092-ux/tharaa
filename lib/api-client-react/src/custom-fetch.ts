@@ -15,7 +15,6 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 // Module-level configuration
 // ---------------------------------------------------------------------------
 
-من نهاية الرابط لكي لا يتكرر
 let _baseUrl: string | null = (import.meta.env.VITE_API_URL as string) || "https://tharaa-api.a-samani092.workers.dev";
 /**
  * Set a base URL that is prepended to every relative request URL
