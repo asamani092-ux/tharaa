@@ -21,9 +21,17 @@ router.post("/login", async (c) => {
     .from(usersTable)
     .where(eq(usersTable.phone, normalized));
 
-  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+  console.log('--- Debug Login ---');
+console.log('Normalized Phone:', normalized);
+console.log('User found:', !!user);
+console.log('DB Password Hash Value:', user?.password_hash || user?.passwordHash || 'Not Found');
+
+  // جرب كلا الاسمين للتأكد من أيهما يحتوي على البيانات
+const storedHash = user.passwordHash || (user as any).password_hash;
+
+if (!user || !(await bcrypt.compare(password, storedHash))) {
     return c.json({ error: "Invalid credentials" }, 401);
-  }
+}
 
   if (user.status === "suspended") {
     return c.json({ error: "Account suspended" }, 403);
