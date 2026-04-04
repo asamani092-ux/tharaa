@@ -6,6 +6,7 @@ import curriculumRouter from "./curriculum";
 import logsRouter from "./logs";
 import settingsRouter from "./settings";
 import analyticsRouter from "./analytics";
+import batchesRouter from "./batches"; 
 
 const router = new Hono();
 
@@ -20,5 +21,6 @@ router.route("/curriculum", curriculumRouter); // سيستجيب لـ /api/curri
 router.route("/logs", logsRouter);          // سيستجيب لـ /api/logs/
 router.route("/settings", settingsRouter);  // سيستجيب لـ /api/settings/
 router.route("/analytics", analyticsRouter); // سيستجيب لـ /api/analytics/
+router.route("/batches", batchesRouter); 
 
 export default router;
