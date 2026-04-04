@@ -1,16 +1,10 @@
 import { Hono } from 'hono';
-import { getCookie } from 'hono/cookie';
 import { eq, and } from "drizzle-orm";
-import { db, usersTable, batchesTable } from "@workspace/db";
-import { requireAdmin, requireAuth, normalizePhone } from "../lib/auth";
+import { db, usersTable } from "@workspace/db";
+import { requireAdmin, normalizePhone } from "../lib/auth";
 
 const router = new Hono();
 
-// ==========================================
-// قسم المشاركين (Users)
-// ==========================================
-
-// جلب المستخدمين (موجود مسبقاً)
 router.get("/", requireAdmin, async (c) => {
   const batchId = c.req.query('batchId');
   const status = c.req.query('status');
@@ -18,106 +12,87 @@ router.get("/", requireAdmin, async (c) => {
   const users = await db.select().from(usersTable)
     .where(and(
       eq(usersTable.role, "student"),
-      batchId ? eq(usersTable.batchId, parseInt(batchId)) : undefined,
-      status ? eq(usersTable.status, status) : undefined
+      batchId && batchId !== "null" ? eq(usersTable.batchId, parseInt(batchId)) : undefined,
+      status && status !== "null" ? eq(usersTable.status, status) : undefined
     )).orderBy(usersTable.createdAt);
 
   return c.json(users.map(({passwordHash, ...u}) => u));
 });
 
-// إضافة مشارك جديد (الكود الناقص الذي يسبب المشكلة)
 router.post("/", requireAdmin, async (c) => {
   try {
     const body = await c.req.json();
-    const { name, phone, password, batchId, status, phaseNumber, levelType } = body;
+    const normalizedPhone = normalizePhone(body.phone);
 
-    if (!name || !phone || !password) {
-      return c.json({ error: "الاسم، رقم الجوال، وكلمة المرور مطلوبة" }, 400);
-    }
-
-    const normalizedPhone = normalizePhone(phone);
-
-    // التحقق من عدم وجود الرقم مسبقاً
-    const existingUser = await db.select().from(usersTable).where(eq(usersTable.phone, normalizedPhone));
-    if (existingUser.length > 0) {
-      return c.json({ error: "رقم الجوال مسجل مسبقاً" }, 400);
-    }
-
-    // إضافة المشارك (نص صريح كما اتفقنا سابقاً لتسهيل العمل)
     const [user] = await db.insert(usersTable).values({
-      name,
+      ...body,
       phone: normalizedPhone,
-      passwordHash: password.trim(), // حفظ مباشر بدون تشفير حالياً
+      passwordHash: body.password.trim(), 
       role: "student",
-      batchId: batchId || null,
-      status: status || "active",
-      phaseNumber: phaseNumber || 1,
-      levelType: levelType || "basic",
+      status: body.status || "active",
     }).returning();
 
     const { passwordHash, ...userWithoutPassword } = user;
     return c.json(userWithoutPassword, 201);
   } catch (error) {
-    console.error("Error creating user:", error);
     return c.json({ error: "حدث خطأ أثناء إضافة المشارك" }, 500);
   }
 });
 
-// حذف مستخدم (موجود مسبقاً)
-router.delete("/:id", requireAdmin, async (c) => {
-  const id = parseInt(c.req.param('id'));
-  await db.delete(usersTable).where(eq(usersTable.id, id));
-  return c.body(null, 204);
-});
-
-
-// ==========================================
-// قسم الدفعات (Batches)
-// ==========================================
-
-// جلب كل الدفعات (موجود مسبقاً)
-router.get("/batches/all", requireAuth, async (c) => {
-  const batches = await db.select().from(batchesTable).orderBy(batchesTable.createdAt);
-  return c.json(batches);
-});
-
-// إضافة دفعة جديدة (الكود الناقص الذي يسبب 404)
-router.post("/batches", requireAdmin, async (c) => {
+// المسار السري الذي كانت الواجهة تبحث عنه! (Bulk Insert)
+router.post("/bulk", requireAdmin, async (c) => {
   try {
     const body = await c.req.json();
-    if (!body.name) {
-      return c.json({ error: "اسم الدفعة مطلوب" }, 400);
+    const { batchId, phaseNumber, levelType, rawText } = body;
+    
+    if (!rawText) return c.json({ error: "لا توجد بيانات" }, 400);
+
+    const lines = rawText.split('\n').filter((l: string) => l.trim() !== '');
+    let created = 0, failed = 0;
+
+    for (const line of lines) {
+      // تفترض الواجهة: الاسم رقم_الجوال كلمة_المرور
+      const parts = line.trim().split(/\s+/);
+      if (parts.length >= 3) {
+         const name = parts[0];
+         const phone = normalizePhone(parts[1]);
+         const password = parts[2];
+         
+         try {
+             await db.insert(usersTable).values({
+                name, phone, passwordHash: password,
+                batchId, phaseNumber, levelType, role: "student"
+             });
+             created++;
+         } catch(e) { failed++; }
+      } else {
+         failed++;
+      }
     }
-
-    const [batch] = await db.insert(batchesTable).values({
-      name: body.name
-    }).returning();
-
-    return c.json(batch, 201);
+    
+    return c.json({ created, failed, users: [] }, 201);
   } catch (error) {
-    console.error("Error creating batch:", error);
-    return c.json({ error: "حدث خطأ أثناء إنشاء الدفعة" }, 500);
+    return c.json({ error: "خطأ في الاستيراد" }, 500);
   }
 });
 
-// تعديل دفعة
-router.patch("/batches/:id", requireAdmin, async (c) => {
-  const id = parseInt(c.req.param('id'));
-  const body = await c.req.json();
-  
-  const [batch] = await db.update(batchesTable)
-    .set({ name: body.name })
-    .where(eq(batchesTable.id, id))
-    .returning();
-
-  if (!batch) return c.json({ error: "الدفعة غير موجودة" }, 404);
-  return c.json(batch);
+// تعديل بيانات مستخدم (دعم PUT و PATCH)
+router.put("/:id", requireAdmin, async (c) => {
+   const id = parseInt(c.req.param('id'));
+   const body = await c.req.json();
+   const [user] = await db.update(usersTable).set(body).where(eq(usersTable.id, id)).returning();
+   return c.json(user);
+});
+router.patch("/:id", requireAdmin, async (c) => {
+   const id = parseInt(c.req.param('id'));
+   const body = await c.req.json();
+   const [user] = await db.update(usersTable).set(body).where(eq(usersTable.id, id)).returning();
+   return c.json(user);
 });
 
-// حذف دفعة
-router.delete("/batches/:id", requireAdmin, async (c) => {
+router.delete("/:id", requireAdmin, async (c) => {
   const id = parseInt(c.req.param('id'));
-  await db.delete(batchesTable).where(eq(batchesTable.id, id));
+  await db.delete(usersTable).where(eq(usersTable.id, id));
   return c.body(null, 204);
 });
 
