@@ -3,7 +3,7 @@ name: Deploy Frontend to Hostinger
 on:
   push:
     branches:
-      - main # تأكد أن هذا هو اسم الفرع الرئيسي عندك
+      - main # تأكد أن هذا هو اسم الفرع الرئيسي لديك
 
 jobs:
   web-deploy:
@@ -23,15 +23,15 @@ jobs:
       with:
         version: 8
 
-    - name: 📥 Install Dependencies
-      # قمنا بإضافة المسار الصحيح هنا
+    - name: 📥 Install Dependencies (Root)
+      # التثبيت يجب أن يكون في المجلد الرئيسي للمشروع
       run: pnpm install
-      working-directory: ./artifacts/thraa
 
-    - name: 🏗️ Build Project
-      # قمنا بإضافة المسار الصحيح هنا أيضاً
-      run: pnpm run build
-      working-directory: ./artifacts/thraa
+    - name: 🏗️ Build Frontend
+      # سنقوم بالدخول لمجلد الواجهة وبنائه
+      run: |
+        cd artifacts/tharaa
+        pnpm run build
 
     - name: 🚀 Sync files to Hostinger
       uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -39,6 +39,6 @@ jobs:
         server: ${{ secrets.FTP_SERVER }}
         username: ${{ secrets.FTP_USERNAME }}
         password: ${{ secrets.FTP_PASSWORD }}
-        # المسار الذي ستخرج فيه ملفات الـ Build النهائية
-        local-dir: ./artifacts/thraa/dist/ 
+        # المسار الناتج من عملية البناء
+        local-dir: ./artifacts/tharaa/dist/ 
         server-dir: ./public_html/
