@@ -1,0 +1,40 @@
+name: Deploy Frontend to Hostinger
+
+on:
+  push:
+    branches:
+      - main # إذا كان اسم الفرع الرئيسي لديك master، قم بتغييرها هنا
+
+jobs:
+  web-deploy:
+    name: 🎉 Deploy
+    runs-on: ubuntu-latest
+    steps:
+    - name: 🚚 Get latest code
+      uses: actions/checkout@v3
+
+    - name: 📦 Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18' # إصدار نود جي إس
+
+    - name: 🛠️ Install pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+
+    - name: 📥 Install Dependencies
+      run: pnpm install
+
+    - name: 🏗️ Build Project
+      run: pnpm run build
+
+    - name: 🚀 Sync files to Hostinger
+      uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      with:
+        server: ${{ secrets.FTP_SERVER }}
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        # هام: تأكد أن مجلد المخرجات اسمه dist، إذا كان مختلفاً (مثل client/dist) قم بتعديله هنا
+        local-dir: ./dist/ 
+        server-dir: ./public_html/
