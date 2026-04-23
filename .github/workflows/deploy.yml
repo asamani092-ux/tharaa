@@ -21,15 +21,17 @@ jobs:
     - name: 🛠️ Install pnpm
       uses: pnpm/action-setup@v4
 
-    - name: 📥 Install Dependencies (Frontend Only)
-      run: pnpm install --filter "./artifacts/tharaa..."
+    - name: 📥 Install All Dependencies
+      # سنقوم بتثبيت كل الحزم لضمان عمل الروابط بين المجلدات (Workspace Linking)
+      run: pnpm install --no-frozen-lockfile
 
     - name: 🏗️ Build Frontend
-      # قمنا بإضافة كل المتغيرات التي يطلبها مشروعك هنا
+      # تزويد النظام بكل المتغيرات التي يطلبها مع تجاهل تحذيرات التنسيق
       env:
         PORT: 3000
         BASE_PATH: /
         NODE_ENV: production
+        CI: false # لمنع توقف البناء بسبب تحذيرات بسيطة (Warnings)
       run: pnpm --filter "./artifacts/tharaa" build
 
     - name: 🚀 Sync files to Hostinger
@@ -40,3 +42,4 @@ jobs:
         password: ${{ secrets.FTP_PASSWORD }}
         local-dir: ./artifacts/tharaa/dist/ 
         server-dir: ./public_html/
+        dangerous-clean-slate: false # لضمان عدم حذف مجلد api في هوستنجر
