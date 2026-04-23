@@ -25,9 +25,11 @@ jobs:
       run: pnpm install --filter "./artifacts/tharaa..."
 
     - name: 🏗️ Build Frontend
-      # أضفنا متغير المنفذ هنا لإرضاء النظام وإكمال البناء
+      # قمنا بإضافة كل المتغيرات التي يطلبها مشروعك هنا
       env:
-        PORT: 3000 
+        PORT: 3000
+        BASE_PATH: /
+        NODE_ENV: production
       run: pnpm --filter "./artifacts/tharaa" build
 
     - name: 🚀 Sync files to Hostinger
