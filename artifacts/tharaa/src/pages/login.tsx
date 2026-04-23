@@ -3,7 +3,6 @@ import { useLocation } from "wouter";
 import { useLogin, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import bgPath from "@assets/لقطة_شاشة_2026-03-23_233921_1774925020030.png";
-import logoPath from "@assets/لقطة_شاشة_2026-03-24_055723_1774925020035.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +19,6 @@ export default function Login() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // 1. تنظيف وتوحيد صيغة رقم الهاتف
     let normalizedPhone = phone.trim();
     if (normalizedPhone.startsWith("+966")) {
       normalizedPhone = "0" + normalizedPhone.slice(4);
@@ -31,17 +29,13 @@ export default function Login() {
       normalizedPhone = "0" + normalizedPhone;
     }
 
-    // 2. تنفيذ تسجيل الدخول (سيستخدم الإعدادات الجديدة في custom-fetch)
     login.mutate(
       { data: { phone: normalizedPhone, password } },
       {
         onSuccess: async (res) => {
           toast.success("تم تسجيل الدخول بنجاح");
-          
-          // تحديث كاش البيانات للتأكد من التعرف على الجلسة الجديدة
           await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
           
-          // الانتقال لصفحة الإدارة أو الطالب
           if (res.role === "admin") {
             window.location.href = "/admin"; 
           } else {
@@ -57,30 +51,35 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden" dir="rtl" style={{ backgroundColor: 'hsl(218,47%,8%)' }}>
+      {/* الخلفية */}
       <div className="absolute inset-0 z-0">
         <img src={bgPath} alt="" className="w-full h-full object-cover" style={{ opacity: 0.08 }} />
         <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, hsl(218,47%,6%) 0%, hsl(218,47%,10%) 100%)' }} />
       </div>
+
+      {/* الهوية النصية الكبيرة في الخلفية */}
       <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none overflow-hidden">
-        <span className="text-[20vw] font-black select-none" style={{ color: 'hsl(46,65%,52%)', opacity: 0.04, fontFamily: 'Cairo, sans-serif' }}>ثراء</span>
+        <span className="text-[25vw] font-black select-none" style={{ color: 'hsl(46,65%,52%)', opacity: 0.03, fontFamily: 'Cairo, sans-serif' }}>ثراء</span>
       </div>
+
       <div className="relative z-10 w-full max-w-sm mx-4">
-        <div className="flex flex-col items-center mb-8">
-          <img src={logoPath} alt="ثراء المعرفة" className="h-28 object-contain mb-4" />
-          <p className="text-muted-foreground text-sm text-center">أهلاً بك في منصة ثراء المعرفة </p>
+        <div className="flex flex-col items-center mb-10">
+          {/* تم حذف الشعار بناءً على الطلب */}
+          <h2 className="text-2xl font-black mb-2" style={{ color: 'hsl(46,65%,52%)', fontFamily: 'Cairo, sans-serif' }}>ثراء المعرفة</h2>
+          <p className="text-muted-foreground text-sm text-center">أهلاً بك في البرنامج الوطني لتعزيز القراءة</p>
         </div>
 
-        <div className="rounded-2xl p-8" style={{ backgroundColor: 'hsl(218,39%,12%)', border: '1px solid hsl(217,36%,20%)' }}>
-          <h1 className="text-xl font-bold text-center mb-6 text-foreground" style={{ fontFamily: 'Cairo, sans-serif' }}>تسجيل الدخول</h1>
+        <div className="rounded-2xl p-8 shadow-2xl" style={{ backgroundColor: 'hsl(218,39%,12%)', border: '1px solid hsl(217,36%,20%)' }}>
+          <h1 className="text-xl font-bold text-center mb-8 text-foreground" style={{ fontFamily: 'Cairo, sans-serif' }}>تسجيل الدخول</h1>
 
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-1.5">
-              <Label className="text-sm text-muted-foreground">رقم الهاتف</Label>
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-2">
+              <Label className="text-sm text-muted-foreground mr-1">رقم الهاتف</Label>
               <Input
                 id="phone"
                 type="tel"
                 dir="ltr"
-                className="text-right h-11 rounded-xl"
+                className="text-right h-12 rounded-xl focus:ring-primary/20"
                 placeholder="05XXXXXXXX"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
@@ -90,13 +89,13 @@ export default function Login() {
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-sm text-muted-foreground">كلمة المرور</Label>
+            <div className="space-y-2">
+              <Label className="text-sm text-muted-foreground mr-1">كلمة المرور</Label>
               <Input
                 id="password"
                 type="password"
                 dir="ltr"
-                className="h-11 rounded-xl"
+                className="h-12 rounded-xl focus:ring-primary/20"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -107,10 +106,10 @@ export default function Login() {
 
             <Button
               type="submit"
-              className="w-full h-11 font-bold text-base rounded-xl mt-2"
+              className="w-full h-12 font-bold text-base rounded-xl mt-4 bg-primary hover:bg-primary/90 transition-all shadow-lg shadow-primary/10"
               disabled={login.isPending}
             >
-              {login.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "دخول"}
+              {login.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "دخول للنظام"}
             </Button>
           </form>
         </div>
