@@ -25,22 +25,14 @@ jobs:
       # سنقوم بتثبيت كل الحزم لضمان عمل الروابط بين المجلدات (Workspace Linking)
       run: pnpm install --no-frozen-lockfile
 
-    - name: 🏗️ Build Frontend
-      # تزويد النظام بكل المتغيرات التي يطلبها مع تجاهل تحذيرات التنسيق
-      env:
-        PORT: 3000
-        BASE_PATH: /
-        NODE_ENV: production
-        CI: false # لمنع توقف البناء بسبب تحذيرات بسيطة (Warnings)
-      run: pnpm --filter "./artifacts/tharaa" build
-
-    - name: 🚀 Sync files to Hostinger
+   - name: 🚀 Sync files to Hostinger
       uses: SamKirkland/FTP-Deploy-Action@v4.3.4
       with:
         server: ${{ secrets.FTP_SERVER }}
         username: ${{ secrets.FTP_USERNAME }}
         password: ${{ secrets.FTP_PASSWORD }}
-        port: 21 # المنفذ الافتراضي لـ Hostinger
+        # تعديل المسار المحلي لضمان رفع المحتويات فقط
         local-dir: ./artifacts/tharaa/dist/ 
-        server-dir: ./public_html/
+        # تعديل مسار السيرفر ليكون "الجذر" مباشرة
+        server-dir: / 
         dangerous-clean-slate: false
