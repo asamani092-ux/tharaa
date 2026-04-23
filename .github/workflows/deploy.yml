@@ -25,7 +25,6 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: 🏗️ Build Frontend
-        # هذا السطر كان مفقوداً، وبدونه لن يجد الروبوت مجلد dist لرفعه
         env:
           PORT: 3000
           BASE_PATH: /
@@ -39,6 +38,8 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
+          # رفع محتويات مجلد dist فقط
           local-dir: ./artifacts/tharaa/dist/
+          # الرفع للجذر مباشرة لأن حساب FTP موجه لـ public_html
           server-dir: ./
           dangerous-clean-slate: false
