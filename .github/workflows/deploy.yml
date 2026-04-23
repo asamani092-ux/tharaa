@@ -16,19 +16,16 @@ jobs:
     - name: 📦 Setup Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '20' # ترقية الإصدار ليتوافق مع التقنيات الحديثة
+        node-version: '20'
 
     - name: 🛠️ Install pnpm
-      uses: pnpm/action-setup@v4 # استخدام أحدث إصدار من الأداة
-      with:
-        version: 9 # إجبار النظام على استخدام إصدار 9 لدعم الـ Catalogs
+      uses: pnpm/action-setup@v4
+      # حذفنا سطر الإصدار هنا لحل مشكلة التعارض (Multiple versions)
 
     - name: 📥 Install Dependencies (Frontend Only)
-      # سنقوم بتثبيت حزم الواجهة فقط وتجاهل الـ api-server
       run: pnpm install --filter "./artifacts/tharaa..."
 
     - name: 🏗️ Build Frontend
-      # بناء مشروع الثراء فقط
       run: pnpm --filter "./artifacts/tharaa" build
 
     - name: 🚀 Sync files to Hostinger
