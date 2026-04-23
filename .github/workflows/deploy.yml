@@ -10,29 +10,35 @@ jobs:
     name: 🎉 Deploy
     runs-on: ubuntu-latest
     steps:
-    - name: 🚚 Get latest code
-      uses: actions/checkout@v3
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v3
 
-    - name: 📦 Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20'
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
 
-    - name: 🛠️ Install pnpm
-      uses: pnpm/action-setup@v4
+      - name: 🛠️ Install pnpm
+        uses: pnpm/action-setup@v4
 
-    - name: 📥 Install All Dependencies
-      # سنقوم بتثبيت كل الحزم لضمان عمل الروابط بين المجلدات (Workspace Linking)
-      run: pnpm install --no-frozen-lockfile
+      - name: 📥 Install All Dependencies
+        run: pnpm install --no-frozen-lockfile
 
-   - name: 🚀 Sync files to Hostinger
-      uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-      with:
-        server: ${{ secrets.FTP_SERVER }}
-        username: ${{ secrets.FTP_USERNAME }}
-        password: ${{ secrets.FTP_PASSWORD }}
-        # تعديل المسار المحلي لضمان رفع المحتويات فقط
-        local-dir: ./artifacts/tharaa/dist/ 
-        # تعديل مسار السيرفر ليكون "الجذر" مباشرة
-        server-dir: / 
-        dangerous-clean-slate: false
+      - name: 🏗️ Build Frontend
+        # هذا السطر كان مفقوداً، وبدونه لن يجد الروبوت مجلد dist لرفعه
+        env:
+          PORT: 3000
+          BASE_PATH: /
+          NODE_ENV: production
+          CI: false
+        run: pnpm --filter "./artifacts/tharaa" build
+
+      - name: 🚀 Sync files to Hostinger
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./artifacts/tharaa/dist/
+          server-dir: ./
+          dangerous-clean-slate: false
