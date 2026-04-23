@@ -3,7 +3,7 @@ name: Deploy Frontend to Hostinger
 on:
   push:
     branches:
-      - main # إذا كان اسم الفرع الرئيسي لديك master، قم بتغييرها هنا
+      - main # تأكد أن هذا هو اسم الفرع الرئيسي عندك
 
 jobs:
   web-deploy:
@@ -16,7 +16,7 @@ jobs:
     - name: 📦 Setup Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '18' # إصدار نود جي إس
+        node-version: '18'
 
     - name: 🛠️ Install pnpm
       uses: pnpm/action-setup@v2
@@ -24,10 +24,14 @@ jobs:
         version: 8
 
     - name: 📥 Install Dependencies
+      # قمنا بإضافة المسار الصحيح هنا
       run: pnpm install
+      working-directory: ./artifacts/thraa
 
     - name: 🏗️ Build Project
+      # قمنا بإضافة المسار الصحيح هنا أيضاً
       run: pnpm run build
+      working-directory: ./artifacts/thraa
 
     - name: 🚀 Sync files to Hostinger
       uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -35,6 +39,6 @@ jobs:
         server: ${{ secrets.FTP_SERVER }}
         username: ${{ secrets.FTP_USERNAME }}
         password: ${{ secrets.FTP_PASSWORD }}
-        # هام: تأكد أن مجلد المخرجات اسمه dist، إذا كان مختلفاً (مثل client/dist) قم بتعديله هنا
-        local-dir: ./dist/ 
+        # المسار الذي ستخرج فيه ملفات الـ Build النهائية
+        local-dir: ./artifacts/thraa/dist/ 
         server-dir: ./public_html/
