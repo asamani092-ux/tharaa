@@ -20,12 +20,14 @@ jobs:
 
     - name: 🛠️ Install pnpm
       uses: pnpm/action-setup@v4
-      # حذفنا سطر الإصدار هنا لحل مشكلة التعارض (Multiple versions)
 
     - name: 📥 Install Dependencies (Frontend Only)
       run: pnpm install --filter "./artifacts/tharaa..."
 
     - name: 🏗️ Build Frontend
+      # أضفنا متغير المنفذ هنا لإرضاء النظام وإكمال البناء
+      env:
+        PORT: 3000 
       run: pnpm --filter "./artifacts/tharaa" build
 
     - name: 🚀 Sync files to Hostinger
