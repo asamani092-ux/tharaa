@@ -38,9 +38,10 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          # نأخذ محتويات مجلد dist
-          local-dir: ./artifacts/tharaa/dist/
-          # نفرغها في المكان الحالي مباشرة (لأننا أصلاً داخل public_htm
+          # التعديل السحري: الدخول إلى مجلد public داخل dist لأخذ الملفات مباشرة
+          local-dir: ./artifacts/tharaa/dist/public/
+          # الرفع للجذر الافتراضي لحساب الـ FTP
+          server-dir: /
           dangerous-clean-slate: false
           exclude: |
             **/api/**
