@@ -38,10 +38,12 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
+          # نرفع "محتويات" مجلد dist فقط
           local-dir: ./artifacts/tharaa/dist/
+          # نستخدم السلاش فقط لأن حساب FTP يشير أصلاً لـ public_html
           server-dir: /
           dangerous-clean-slate: false
-          # هذه الأسطر مهمة جداً لحماية ملفات السيرفر
+          # استثناء مجلد السيرفر لضمان عدم حذفه
           exclude: |
             **/api/**
             .htaccess
