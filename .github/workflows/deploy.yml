@@ -41,7 +41,7 @@ jobs:
           # أخذ الملفات من داخل المجلد الذي حدده Vite في outDir
           local-dir: ./artifacts/tharaa/dist/public/
           # تحديد المسار الصحيح للموقع في هوستنجر
-          server-dir: public_html/
+          server-dir: ./
           dangerous-clean-slate: false
           exclude: |
             **/api/**
