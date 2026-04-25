@@ -38,9 +38,10 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
+          # السلاش في النهاية هنا مهم جداً ليأخذ "محتويات" المجلد وليس المجلد نفسه
           local-dir: ./artifacts/tharaa/dist/
-          # توجيه الروبوت للدخول إلى المجلد الصحيح للموقع
-          server-dir: /public_html/
+          # كتابة الاسم هكذا تخبره بالدخول للمجلد الموجود مسبقاً
+          server-dir: public_html/
           dangerous-clean-slate: false
           exclude: |
             **/api/**
