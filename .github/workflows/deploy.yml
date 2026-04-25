@@ -38,8 +38,10 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          # رفع محتويات مجلد dist فقط
           local-dir: ./artifacts/tharaa/dist/
-          # الرفع للجذر مباشرة لأن حساب FTP موجه لـ public_html
-          server-dir: ./
+          server-dir: /
           dangerous-clean-slate: false
+          # هذه الأسطر مهمة جداً لحماية ملفات السيرفر
+          exclude: |
+            **/api/**
+            .htaccess
