@@ -38,10 +38,10 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          # التعديل السحري: الدخول إلى مجلد public داخل dist لأخذ الملفات مباشرة
+          # أخذ الملفات من داخل المجلد الذي حدده Vite في outDir
           local-dir: ./artifacts/tharaa/dist/public/
-          # الرفع للجذر الافتراضي لحساب الـ FTP
-          server-dir: /
+          # تحديد المسار الصحيح للموقع في هوستنجر
+          server-dir: public_html/
           dangerous-clean-slate: false
           exclude: |
             **/api/**
