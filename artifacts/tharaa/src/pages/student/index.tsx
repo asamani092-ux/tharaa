@@ -105,10 +105,6 @@ export default function StudentPortal() {
       toast.error("صفحة النهاية يجب أن تكون أكبر من صفحة البداية");
       return;
     }
-    if (pagesCount > 499) {
-      toast.error("لا يمكن تسجيل أكثر من 499 صفحة في أسبوع واحد");
-      return;
-    }
 
     const actualEndPage = Math.min(endPage, selectedBook?.totalPages || endPage);
     const isBookCompleted = actualEndPage >= (selectedBook?.totalPages || 0);
@@ -159,13 +155,17 @@ export default function StudentPortal() {
             setTimeout(() => {
               const nextSelectedBook = availableBooks.find(b => b.id.toString() === nextBookIdForRollover);
               if (nextSelectedBook) {
+                // التأكد من أن صفحة النهاية لا تتجاوز عدد صفحات الكتاب الجديد
+                const actualRolloverEndPage = Math.min(rolloverPages, nextSelectedBook.totalPages);
+                const isRolloverCompleted = actualRolloverEndPage >= nextSelectedBook.totalPages;
+
                 createLog.mutate(
                   {
                     data: {
                       bookId: parseInt(nextBookIdForRollover),
                       startPage: 1,
-                      endPage: rolloverPages,
-                      isCompleted: false,
+                      endPage: actualRolloverEndPage,
+                      isCompleted: isRolloverCompleted,
                       reflection: undefined
                     }
                   },
@@ -290,7 +290,7 @@ export default function StudentPortal() {
                     data-testid="input-end-page"
                     type="number"
                     min={startPage}
-                    max={499}
+                    max={selectedBook?.totalPages || ""}
                     value={endPage}
                     onChange={e => setEndPage(parseInt(e.target.value) || startPage)}
                     required
@@ -331,14 +331,6 @@ export default function StudentPortal() {
                       بقي لك <strong className="text-foreground">{weeklyQuota - pagesCount}</strong> صفحة لإتمام النصاب الأسبوعي
                     </p>
                   )}
-                </div>
-              )}
-
-              {/* Completion notice */}
-              {isWillFinishBook && selectedBook && (
-                <div className="p-3 rounded-xl text-sm font-medium text-emerald-300" style={{ backgroundColor: 'hsl(142,40%,8%)', border: '1px solid hsl(142,40%,20%)' }}>
-                  <CheckCircle className="w-4 h-4 inline ml-1.5" />
-                  تهانينا! ستنهي كتاب "{selectedBook.title}" بهذا الورد.
                 </div>
               )}
 
