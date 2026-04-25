@@ -40,8 +40,7 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           # نأخذ محتويات مجلد dist
           local-dir: ./artifacts/tharaa/dist/
-          # نفرغها في المكان الحالي مباشرة (لأننا أصلاً داخل public_html)
-          server-dir: ./
+          # نفرغها في المكان الحالي مباشرة (لأننا أصلاً داخل public_htm
           dangerous-clean-slate: false
           exclude: |
             **/api/**
