@@ -182,7 +182,7 @@ export default function StudentPortal() {
           }
         },
         onError: (err: any) => {
-          toast.error(err?.error || "حدث خطأ أثناء تسجيل الورد");
+          toast.error(err?.error || "حدث خطأ أثناء الرصد");
         }
       }
     );
@@ -207,7 +207,7 @@ export default function StudentPortal() {
           <CardHeader style={{ borderBottom: '1px solid hsl(217,36%,20%)' }}>
             <CardTitle className="text-lg flex items-center gap-2" style={{ fontFamily: 'Cairo, sans-serif' }}>
               <BookOpen className="w-5 h-5 text-primary" />
-              تسجيل الورد الأسبوعي
+              الرصد الأسبوعي
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-5">
@@ -324,6 +324,13 @@ export default function StudentPortal() {
                       قراءة أكثر من {weeklyQuota} صفحة مسموحة لكنها تؤثر على نسبة الالتزام
                     </p>
                   )}
+                  {/* التنبيه الذكي للنصاب المتبقي */}
+                  {pagesCount > 0 && pagesCount < weeklyQuota && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Info className="w-3 h-3" />
+                      بقي لك <strong className="text-foreground">{weeklyQuota - pagesCount}</strong> صفحة لإتمام النصاب الأسبوعي
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -381,7 +388,7 @@ export default function StudentPortal() {
               >
                 {createLog.isPending
                   ? <Loader2 className="w-5 h-5 animate-spin" />
-                  : "اعتماد الورد الأسبوعي"}
+                  : "اعتماد الرصد "}
               </Button>
             </form>
           </CardContent>
