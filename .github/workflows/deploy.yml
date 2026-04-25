@@ -38,10 +38,10 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          # السلاش في النهاية هنا مهم جداً ليأخذ "محتويات" المجلد وليس المجلد نفسه
+          # نأخذ محتويات مجلد dist
           local-dir: ./artifacts/tharaa/dist/
-          # كتابة الاسم هكذا تخبره بالدخول للمجلد الموجود مسبقاً
-          server-dir: public_html/
+          # نفرغها في المكان الحالي مباشرة (لأننا أصلاً داخل public_html)
+          server-dir: ./
           dangerous-clean-slate: false
           exclude: |
             **/api/**
