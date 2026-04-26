@@ -26,41 +26,17 @@ export default function StudentPortal() {
   const { data: settings } = useGetSettings();
   const weeklyQuota = settings?.weeklyQuota || WEEKLY_QUOTA;
 
-  const { data: books } = useListCurriculum({
-    query: { enabled: !!user?.phaseNumber }
-  });
+  const { data: books } = useListCurriculum();
   const { data: logs } = useGetMyLogs();
   const createLog = useCreateLog();
 
   const completedBookIds: number[] = user?.completedBooks ?? [];
-  const phaseBooks = books?.filter(b => b.phaseNumber === user?.phaseNumber) || [];
-  const availableBooks = phaseBooks.filter(b => !completedBookIds.includes(b.id));
-
-  // If currentBook is completed, use first available instead
-  const userCurrentBook = user?.currentBookId ? phaseBooks.find(b => b.id === user.currentBookId) : null;
   
-  // هل الكتاب الحالي للمستخدم لا يزال سارياً (لم يكتمل)؟
-  const isCurrentBookValid = userCurrentBook && !completedBookIds.includes(userCurrentBook.id);
+  // استخراج المراحل المتاحة ديناميكياً
+  const uniquePhases = Array.from(new Set(books?.map(b => b.phaseNumber) || [1])).sort((a, b) => a - b);
   
-  const currentBook = isCurrentBookValid
-    ? userCurrentBook
-    : availableBooks[0];
-
-  // الحل الجذري: نأخذ آخر صفحة فقط إذا كان الكتاب المعروض هو نفسه كتاب المستخدم النشط، غير ذلك نعتبرها 0
-  const effectiveLastPage = (isCurrentBookValid && currentBook?.id === userCurrentBook?.id)
-    ? (user?.lastPage || 0)
-    : 0;
-
-  const remainingInCurrentBook = currentBook
-    ? Math.max(0, currentBook.totalPages - effectiveLastPage)
-    : 0;
-
-  const suggestedEndPage = currentBook
-    ? effectiveLastPage + Math.min(remainingInCurrentBook, weeklyQuota)
-    : weeklyQuota;
-
-  const nextBook = availableBooks.find(b => b.id !== currentBook?.id);
-
+  // حالات الواجهة
+  const [viewPhase, setViewPhase] = useState<number>(1);
   const [bookId, setBookId] = useState<string>("");
   const [startPage, setStartPage] = useState<number>(1);
   const [endPage, setEndPage] = useState<number>(weeklyQuota);
@@ -70,6 +46,36 @@ export default function StudentPortal() {
   const [nextBookIdForRollover, setNextBookIdForRollover] = useState<string>("");
   const [pendingSubmissionData, setPendingSubmissionData] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // حالات نافذة الإنجاز السابق
+  const [showCustomProgress, setShowCustomProgress] = useState(false);
+  const [selectedCustomBooks, setSelectedCustomBooks] = useState<number[]>([]);
+  const [isSubmittingCustom, setIsSubmittingCustom] = useState(false);
+
+  useEffect(() => {
+    if (user?.phaseNumber) setViewPhase(user.phaseNumber);
+  }, [user?.phaseNumber]);
+
+  // فلترة الكتب
+  const userPhaseBooks = books?.filter(b => b.phaseNumber === user?.phaseNumber) || [];
+  const displayedPhaseBooks = books?.filter(b => b.phaseNumber === viewPhase) || [];
+  const availableBooks = userPhaseBooks.filter(b => !completedBookIds.includes(b.id));
+
+  // تحديد الكتاب الحالي
+  const userCurrentBook = user?.currentBookId ? userPhaseBooks.find(b => b.id === user.currentBookId) : null;
+  const isCurrentBookValid = userCurrentBook && !completedBookIds.includes(userCurrentBook.id);
+  const currentBook = isCurrentBookValid ? userCurrentBook : availableBooks[0];
+
+  const effectiveLastPage = (isCurrentBookValid && currentBook?.id === userCurrentBook?.id)
+    ? (user?.lastPage || 0) : 0;
+
+  const remainingInCurrentBook = currentBook
+    ? Math.max(0, currentBook.totalPages - effectiveLastPage) : 0;
+
+  const suggestedEndPage = currentBook
+    ? effectiveLastPage + Math.min(remainingInCurrentBook, weeklyQuota) : weeklyQuota;
+
+  const nextBook = availableBooks.find(b => b.id !== currentBook?.id);
 
   useEffect(() => {
     if (currentBook) {
@@ -90,11 +96,10 @@ export default function StudentPortal() {
     }
   }, [bookId, currentBook?.id, effectiveLastPage, suggestedEndPage]);
 
-  const selectedBook = phaseBooks.find(b => b.id.toString() === bookId);
+  const selectedBook = userPhaseBooks.find(b => b.id.toString() === bookId);
   const pagesCount = Math.max(0, endPage - startPage + 1);
   const isOverQuota = pagesCount > weeklyQuota;
   const isWillFinishBook = selectedBook ? endPage >= selectedBook.totalPages : false;
-  const quotaPercent = Math.min(100, (pagesCount / weeklyQuota) * 100);
 
   const totalPagesRead = logs?.reduce((sum, log) => sum + log.pagesRead, 0) || 0;
 
@@ -119,10 +124,8 @@ export default function StudentPortal() {
     const actualEndPage = Math.min(endPage, selectedBook?.totalPages || endPage);
     const isBookCompleted = actualEndPage >= (selectedBook?.totalPages || 0);
     const remainingPages = isBookCompleted && selectedBook 
-      ? Math.max(0, weeklyQuota - (actualEndPage - startPage + 1))
-      : 0;
+      ? Math.max(0, weeklyQuota - (actualEndPage - startPage + 1)) : 0;
 
-    // If book is completed and there are remaining pages in quota, show modal
     if (isBookCompleted && remainingPages > 0 && availableBooks.length > 1) {
       setPendingSubmissionData({
         bookId: parseInt(bookId),
@@ -137,7 +140,6 @@ export default function StudentPortal() {
       return;
     }
 
-    // Direct submission (book not completed or no remaining pages)
     submitLog({
       bookId: parseInt(bookId),
       startPage,
@@ -148,11 +150,10 @@ export default function StudentPortal() {
   };
 
   const submitLog = async (data: any, rolloverPages: number = 0) => {
-    if (isSubmitting) return; // منع النقرات المزدوجة نهائياً
+    if (isSubmitting) return;
     setIsSubmitting(true);
 
     try {
-      // 1. تسجيل الكتاب الأول والانتظار حتى ينتهي تماماً
       await createLog.mutateAsync({ data });
       toast.success("تم تسجيل النصاب بنجاح 🎉");
       setReflection("");
@@ -160,7 +161,6 @@ export default function StudentPortal() {
       setShowCompletionModal(false);
       setPendingSubmissionData(null);
 
-      // 2. ترحيل الصفحات للكتاب الثاني (العملية الثانية المستقلة)
       if (rolloverPages > 0 && nextBookIdForRollover) {
         const nextSelectedBook = availableBooks.find(b => b.id.toString() === nextBookIdForRollover);
         if (nextSelectedBook) {
@@ -180,7 +180,6 @@ export default function StudentPortal() {
         }
       }
 
-      // 3. تحديث البيانات في الواجهة مرة واحدة بعد انتهاء كل شيء
       await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
       await queryClient.invalidateQueries({ queryKey: getGetMyLogsQueryKey() });
       setNextBookIdForRollover("");
@@ -188,9 +187,32 @@ export default function StudentPortal() {
     } catch (err: any) {
       toast.error(err?.error || "حدث خطأ أثناء الرصد");
     } finally {
-      setIsSubmitting(false); // فتح الأزرار بعد انتهاء العمليات
+      setIsSubmitting(false);
     }
-  };;
+  };
+
+  // دالة حفظ الإنجاز السابق
+  const submitCustomProgress = async () => {
+    setIsSubmittingCustom(true);
+    try {
+      const response = await fetch('/api/custom_progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ book_ids: selectedCustomBooks })
+      });
+
+      if (!response.ok) throw new Error("فشل في تحديث البيانات");
+
+      toast.success("تم اعتماد الكتب السابقة بنجاح!");
+      setShowCustomProgress(false);
+      setSelectedCustomBooks([]);
+      queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+    } catch (error: any) {
+      toast.error("حدث خطأ أثناء حفظ الإنجاز السابق");
+    } finally {
+      setIsSubmittingCustom(false);
+    }
+  };
 
   return (
     <StudentLayout>
@@ -216,13 +238,12 @@ export default function StudentPortal() {
           </CardHeader>
           <CardContent className="pt-5">
 
-            {/* Smart suggestion banner */}
             {currentBook && remainingInCurrentBook < weeklyQuota && remainingInCurrentBook > 0 && (
               <div className="flex gap-2 p-3 rounded-xl mb-5 text-sm" style={{ backgroundColor: 'hsl(46,65%,8%)', border: '1px solid hsl(46,65%,22%)' }}>
                 <Lightbulb className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <span className="text-amber-200">
                   متبقي لك <strong>{remainingInCurrentBook}</strong> صفحة في "{currentBook.title}"، يُقترح إنهاؤها ثم الانتقال إلى{" "}
-                  {nextBook ? `"${nextBook.title}"` : "الكتاب التالي"} لإتمام النصاب الأسبوعي.
+                  {nextBook ? `"${nextBook.title}"` : "الكتاب التالي"} لإتمام النصاب.
                 </span>
               </div>
             )}
@@ -237,12 +258,10 @@ export default function StudentPortal() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
-
-              {/* Book select */}
               <div className="space-y-1.5">
                 <Label className="text-sm text-muted-foreground">الكتاب</Label>
                 <Select value={bookId} onValueChange={setBookId}>
-                  <SelectTrigger data-testid="select-book" className="rounded-xl h-11" style={{ backgroundColor: 'hsl(217,36%,16%)', border: '1px solid hsl(217,36%,24%)' }}>
+                  <SelectTrigger className="rounded-xl h-11" style={{ backgroundColor: 'hsl(217,36%,16%)', border: '1px solid hsl(217,36%,24%)' }}>
                     <SelectValue placeholder="اختر الكتاب" />
                   </SelectTrigger>
                   <SelectContent>
@@ -250,8 +269,7 @@ export default function StudentPortal() {
                       <SelectItem key={book.id} value={book.id.toString()}>
                         <span className="flex items-center gap-2">
                           {book.id === currentBook?.id && <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block" />}
-                          {book.title}
-                          <span className="text-muted-foreground text-xs">({book.totalPages} صفحة)</span>
+                          {book.title} <span className="text-muted-foreground text-xs">({book.totalPages} صفحة)</span>
                         </span>
                       </SelectItem>
                     ))}
@@ -259,7 +277,6 @@ export default function StudentPortal() {
                 </Select>
               </div>
 
-            {/* Progress in current book */}
               {selectedBook && parseInt(bookId) === currentBook?.id && effectiveLastPage > 0 && (
                 <div className="p-3 rounded-xl text-sm" style={{ backgroundColor: 'hsl(218,47%,9%)', border: '1px solid hsl(217,36%,20%)' }}>
                   <div className="flex justify-between mb-2 text-xs text-muted-foreground">
@@ -273,118 +290,51 @@ export default function StudentPortal() {
                 </div>
               )}
 
-              {/* Page range */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-sm text-muted-foreground">من صفحة</Label>
-                  <Input
-                    data-testid="input-start-page"
-                    type="number"
-                    min="1"
-                    value={startPage}
-                    onChange={e => setStartPage(Math.max(1, parseInt(e.target.value) || 1))}
-                    required
-                    className="rounded-xl h-11 text-center"
-                    style={{ backgroundColor: 'hsl(217,36%,16%)', border: '1px solid hsl(217,36%,24%)' }}
-                  />
+                  <Input type="number" min="1" value={startPage} onChange={e => setStartPage(Math.max(1, parseInt(e.target.value) || 1))} required className="rounded-xl h-11 text-center" style={{ backgroundColor: 'hsl(217,36%,16%)', border: '1px solid hsl(217,36%,24%)' }} />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-sm text-muted-foreground">إلى صفحة</Label>
-                  <Input
-                    data-testid="input-end-page"
-                    type="number"
-                    min={startPage}
-                    max={selectedBook?.totalPages || ""}
-                    value={endPage}
-                    onChange={e => setEndPage(parseInt(e.target.value) || startPage)}
-                    required
-                    className="rounded-xl h-11 text-center"
-                    style={{ backgroundColor: 'hsl(217,36%,16%)', border: '1px solid hsl(217,36%,24%)' }}
-                  />
+                  <Input type="number" min={startPage} max={selectedBook?.totalPages || ""} value={endPage} onChange={e => setEndPage(parseInt(e.target.value) || startPage)} required className="rounded-xl h-11 text-center" style={{ backgroundColor: 'hsl(217,36%,16%)', border: '1px solid hsl(217,36%,24%)' }} />
                 </div>
               </div>
 
-              {/* Quota indicator */}
               {bookId && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-muted-foreground">النصاب الأسبوعي</span>
-                    <span className={isOverQuota ? "text-amber-400 font-medium" : "text-primary font-medium"}>
-                      {pagesCount} / {weeklyQuota} صفحة
-                    </span>
+                    <span className={isOverQuota ? "text-amber-400 font-medium" : "text-primary font-medium"}>{pagesCount} / {weeklyQuota} صفحة</span>
                   </div>
                   <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'hsl(217,36%,20%)' }}>
-                    <div
-                      className="h-full rounded-full transition-all duration-300"
-                      style={{
-                        width: `${Math.min(100, (pagesCount / weeklyQuota) * 100)}%`,
-                        backgroundColor: isOverQuota ? 'hsl(38,92%,50%)' : 'hsl(46,65%,52%)'
-                      }}
-                    />
+                    <div className="h-full rounded-full transition-all duration-300" style={{ width: `${Math.min(100, (pagesCount / weeklyQuota) * 100)}%`, backgroundColor: isOverQuota ? 'hsl(38,92%,50%)' : 'hsl(46,65%,52%)' }} />
                   </div>
                   {isOverQuota && (
-                    <p className="text-xs text-amber-400 flex items-center gap-1">
-                      <Info className="w-3 h-3" />
-                      قراءة أكثر من {weeklyQuota} صفحة مسموحة لكنها تؤثر على نسبة الالتزام
-                    </p>
+                    <p className="text-xs text-amber-400 flex items-center gap-1"><Info className="w-3 h-3" /> قراءة أكثر من {weeklyQuota} صفحة مسموحة لكنها تؤثر على نسبة الالتزام</p>
                   )}
-                  {/* التنبيه الذكي للنصاب المتبقي */}
                   {pagesCount > 0 && pagesCount < weeklyQuota && (
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Info className="w-3 h-3" />
-                      بقي لك <strong className="text-foreground">{weeklyQuota - pagesCount}</strong> صفحة لإتمام النصاب الأسبوعي
-                    </p>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1"><Info className="w-3 h-3" /> بقي لك <strong className="text-foreground">{weeklyQuota - pagesCount}</strong> صفحة لإتمام النصاب</p>
                   )}
                 </div>
               )}
 
-              {/* Reflection toggle */}
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full rounded-xl"
-                onClick={() => setShowReflection(!showReflection)}
-              >
+              <Button type="button" variant="outline" className="w-full rounded-xl" onClick={() => setShowReflection(!showReflection)}>
                 {showReflection ? "إخفاء الفائدة" : "إضافة فائدة (اختياري)"}
               </Button>
 
-              {/* Reflection */}
               {showReflection && (
                 <div className="space-y-1.5">
                   <Label className="text-sm text-muted-foreground">فائدة أو تأمل</Label>
-                  <Textarea
-                    data-testid="input-reflection"
-                    placeholder="شاركنا أبرز ما استفدته من هذه القراءة..."
-                    className="min-h-[80px] rounded-xl resize-none"
-                    style={{ backgroundColor: 'hsl(217,36%,16%)', border: '1px solid hsl(217,36%,24%)' }}
-                    value={reflection}
-                    onChange={e => setReflection(e.target.value)}
-                  />
-                  
-                  {/* WhatsApp share button */}
+                  <Textarea placeholder="شاركنا أبرز ما استفدته من هذه القراءة..." className="min-h-[80px] rounded-xl resize-none" style={{ backgroundColor: 'hsl(217,36%,16%)', border: '1px solid hsl(217,36%,24%)' }} value={reflection} onChange={e => setReflection(e.target.value)} />
                   {reflection.trim() && (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="w-full rounded-xl gap-2"
-                      onClick={shareViaWhatsApp}
-                    >
-                      <Send className="w-4 h-4" />
-                      مشاركة عبر واتساب
-                    </Button>
+                    <Button type="button" variant="secondary" className="w-full rounded-xl gap-2" onClick={shareViaWhatsApp}><Send className="w-4 h-4" /> مشاركة عبر واتساب</Button>
                   )}
                 </div>
               )}
 
-             <Button
-                data-testid="button-submit"
-                type="submit"
-                className="w-full h-11 rounded-xl font-bold text-base"
-                disabled={isSubmitting || !bookId}
-              >
-                {isSubmitting
-                  ? <Loader2 className="w-5 h-5 animate-spin" />
-                  : "اعتماد الرصد"}
+              <Button type="submit" className="w-full h-11 rounded-xl font-bold text-base" disabled={isSubmitting || !bookId}>
+                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "اعتماد الرصد"}
               </Button>
             </form>
           </CardContent>
@@ -393,53 +343,51 @@ export default function StudentPortal() {
         {/* Quick stats */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: "الصفحات المقروءة", value: totalPagesRead, icon: TrendingUp, testid: "text-total-pages", color: "text-primary" },
-            { label: "الكتب المنجزة", value: completedBookIds.length, icon: CheckCircle, testid: "text-completed-books", color: "text-emerald-400" },
-            { label: "آخر صفحة", value: user?.lastPage || 0, icon: BookOpen, testid: "text-last-page", color: "text-blue-400" },
+            { label: "الصفحات المقروءة", value: totalPagesRead, icon: TrendingUp, color: "text-primary" },
+            { label: "الكتب المنجزة", value: completedBookIds.length, icon: CheckCircle, color: "text-emerald-400" },
+            { label: "آخر صفحة", value: effectiveLastPage, icon: BookOpen, color: "text-blue-400" },
           ].map((stat) => (
             <Card key={stat.label} className="rounded-xl border" style={cardStyle}>
               <CardContent className="p-4 text-center">
                 <stat.icon className={`w-4 h-4 mx-auto mb-1.5 ${stat.color}`} />
-                <p data-testid={stat.testid} className="text-xl font-bold">{stat.value}</p>
+                <p className="text-xl font-bold">{stat.value}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* Phase books */}
+        {/* Phase books (With Phase Navigator) */}
         <div>
-          <h3 className="text-base font-bold mb-3" style={{ fontFamily: 'Cairo, sans-serif' }}>
-            كتب المرحلة {user?.phaseNumber}
-          </h3>
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-base font-bold flex items-center gap-2" style={{ fontFamily: 'Cairo, sans-serif' }}>
+              كتب المرحلة
+              <Select value={viewPhase.toString()} onValueChange={(v) => setViewPhase(parseInt(v))}>
+                <SelectTrigger className="w-auto px-3 h-8 rounded-lg bg-transparent border-primary/30 text-primary">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {uniquePhases.map(phase => (
+                    <SelectItem key={phase} value={phase.toString()}>المرحلة {phase}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </h3>
+            <Button variant="outline" size="sm" onClick={() => setShowCustomProgress(true)} className="text-xs h-8 rounded-lg border-primary/30 text-primary hover:bg-primary/10">
+              <CheckCircle className="w-3 h-3 ml-1" /> إنجاز سابق
+            </Button>
+          </div>
+
           <div className="grid grid-cols-1 gap-3">
-            {phaseBooks.map((book) => {
+            {displayedPhaseBooks.map((book) => {
               const isCompleted = completedBookIds.includes(book.id);
               const isCurrent = user?.currentBookId === book.id;
 
               return (
-                <div
-                  key={book.id}
-                  data-testid={`card-book-${book.id}`}
-                  className="flex items-center gap-4 p-4 rounded-xl"
-                  style={{
-                    backgroundColor: isCompleted ? 'hsl(142,40%,9%)' : 'hsl(218,39%,12%)',
-                    border: `1px solid ${isCompleted ? 'hsl(142,40%,22%)' : isCurrent ? 'hsl(46,65%,40%,0.6)' : 'hsl(217,36%,20%)'}`,
-                  }}
-                >
-                  {/* Status icon */}
-                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                    isCompleted ? 'bg-emerald-400/15' : isCurrent ? 'bg-primary/15' : 'bg-white/5'
-                  }`}>
-                    {isCompleted
-                      ? <CheckCircle className="w-4 h-4 text-emerald-400" />
-                      : isCurrent
-                        ? <BookOpen className="w-4 h-4 text-primary" />
-                        : <ChevronLeft className="w-4 h-4 text-muted-foreground" />
-                    }
+                <div key={book.id} className="flex items-center gap-4 p-4 rounded-xl" style={{ backgroundColor: isCompleted ? 'hsl(142,40%,9%)' : 'hsl(218,39%,12%)', border: `1px solid ${isCompleted ? 'hsl(142,40%,22%)' : isCurrent ? 'hsl(46,65%,40%,0.6)' : 'hsl(217,36%,20%)'}` }}>
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${isCompleted ? 'bg-emerald-400/15' : isCurrent ? 'bg-primary/15' : 'bg-white/5'}`}>
+                    {isCompleted ? <CheckCircle className="w-4 h-4 text-emerald-400" /> : isCurrent ? <BookOpen className="w-4 h-4 text-primary" /> : <ChevronLeft className="w-4 h-4 text-muted-foreground" />}
                   </div>
-
-                  {/* Book info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="font-medium text-sm truncate">{book.title}</span>
@@ -447,39 +395,57 @@ export default function StudentPortal() {
                       {isCurrent && !isCompleted && <Badge className="bg-primary/20 text-primary text-xs shrink-0">حالي</Badge>}
                     </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span>{book.bookCode}</span>
-                      <span>{book.totalPages} صفحة</span>
-                      <span>{book.levelType === 'basic' ? 'أساسي' : 'اختياري'}</span>
+                      <span>{book.bookCode}</span><span>{book.totalPages} صفحة</span><span>{book.levelType === 'basic' ? 'أساسي' : 'اختياري'}</span>
                     </div>
-                    {isCurrent && !isCompleted && user?.lastPage !== undefined && user.lastPage > 0 && (
-                      <Progress
-                        value={(user.lastPage / book.totalPages) * 100}
-                        className="h-1 mt-2"
-                      />
+                    {isCurrent && !isCompleted && effectiveLastPage > 0 && (
+                      <Progress value={(effectiveLastPage / book.totalPages) * 100} className="h-1 mt-2" />
                     )}
                   </div>
-
-                  {/* PDF download */}
                   {book.pdfUrl && (
-                    <a href={book.pdfUrl} target="_blank" rel="noreferrer" data-testid={`link-pdf-${book.id}`}>
-                      <Button variant="ghost" size="icon" className="w-8 h-8 rounded-lg shrink-0 text-muted-foreground hover:text-foreground">
-                        <Download className="w-3.5 h-3.5" />
-                      </Button>
+                    <a href={book.pdfUrl} target="_blank" rel="noreferrer">
+                      <Button variant="ghost" size="icon" className="w-8 h-8 rounded-lg shrink-0 text-muted-foreground hover:text-foreground"><Download className="w-3.5 h-3.5" /></Button>
                     </a>
                   )}
                 </div>
               );
             })}
-
-            {phaseBooks.length === 0 && (
-              <div className="py-10 text-center text-muted-foreground rounded-xl text-sm" style={{ border: '1px solid hsl(217,36%,20%)' }}>
-                لا توجد كتب مسجلة لهذه المرحلة حالياً
-              </div>
+            {displayedPhaseBooks.length === 0 && (
+              <div className="py-10 text-center text-muted-foreground rounded-xl text-sm" style={{ border: '1px solid hsl(217,36%,20%)' }}>لا توجد كتب مسجلة لهذه المرحلة حالياً</div>
             )}
           </div>
         </div>
 
-        {/* Book Completion Modal */}
+        {/* ═══════════ Custom Progress Modal (الإنجاز السابق) ═══════════ */}
+        <Dialog open={showCustomProgress} onOpenChange={setShowCustomProgress}>
+          <DialogContent className="sm:max-w-[450px] rounded-2xl" style={{ backgroundColor: "hsl(218,39%,12%)", borderColor: "hsl(217,36%,20%)" }}>
+            <DialogHeader>
+              <DialogTitle style={{ fontFamily: "Cairo, sans-serif" }} className="text-lg">إضافة إنجاز سابق</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              <p className="text-sm text-muted-foreground">هل قرأت بعض هذه الكتب خارج النظام؟ حددها ليتم اعتمادها كـ "مكتملة" في حسابك:</p>
+              <div className="grid grid-cols-1 gap-2 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
+                {books?.filter(b => !completedBookIds.includes(b.id)).map(book => (
+                  <div key={book.id} onClick={() => setSelectedCustomBooks(prev => prev.includes(book.id) ? prev.filter(id => id !== book.id) : [...prev, book.id])} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-colors border ${selectedCustomBooks.includes(book.id) ? 'bg-primary/20 border-primary/50' : 'bg-white/5 border-transparent hover:bg-white/10'}`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-5 h-5 rounded flex items-center justify-center border ${selectedCustomBooks.includes(book.id) ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
+                        {selectedCustomBooks.includes(book.id) && <CheckCircle className="w-3 h-3 text-primary-foreground" />}
+                      </div>
+                      <span className="text-sm font-medium">{book.title}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">المرحلة {book.phaseNumber}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="pt-2">
+                <Button className="w-full h-11 rounded-xl font-bold" disabled={isSubmittingCustom || selectedCustomBooks.length === 0} onClick={submitCustomProgress}>
+                  {isSubmittingCustom ? <Loader2 className="w-5 h-5 animate-spin" /> : `اعتماد (${selectedCustomBooks.length}) كتب`}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* ═══════════ Rollover Modal ═══════════ */}
         <Dialog open={showCompletionModal} onOpenChange={setShowCompletionModal}>
           <DialogContent className="sm:max-w-[500px] rounded-2xl" style={{ backgroundColor: "hsl(218,39%,12%)", borderColor: "hsl(217,36%,20%)" }}>
             <DialogHeader>
@@ -488,14 +454,12 @@ export default function StudentPortal() {
                 تهانينا! أنهيت كتاب "{selectedBook?.title}"
               </DialogTitle>
             </DialogHeader>
-            
             {pendingSubmissionData && (
               <div className="space-y-4 pt-4">
                 <div className="p-3 rounded-xl text-sm" style={{ backgroundColor: "hsl(218,47%,9%)" }}>
                   <p className="text-muted-foreground mb-2">متبقي لك <strong className="text-amber-400">{pendingSubmissionData.remainingPages}</strong> صفحة من النصاب الأسبوعي</p>
                   <p className="text-muted-foreground text-xs">اختر كتاباً من قائمتك لتكمل معه النصاب الأسبوعي</p>
                 </div>
-
                 <div className="space-y-2">
                   <Label className="text-sm text-muted-foreground">اختر الكتاب التالي</Label>
                   <Select value={nextBookIdForRollover} onValueChange={setNextBookIdForRollover}>
@@ -503,41 +467,15 @@ export default function StudentPortal() {
                       <SelectValue placeholder="اختر الكتاب" />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableBooks
-                        .filter(b => b.id !== parseInt(bookId))
-                        .map(book => (
-                          <SelectItem key={book.id} value={book.id.toString()}>
-                            <span className="flex items-center gap-2">
-                              {book.title}
-                              <span className="text-muted-foreground text-xs">({book.totalPages} صفحة)</span>
-                            </span>
-                          </SelectItem>
-                        ))}
+                      {availableBooks.filter(b => b.id !== parseInt(bookId)).map(book => (
+                        <SelectItem key={book.id} value={book.id.toString()}>{book.title}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div className="flex gap-3 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex-1 rounded-xl"
-                    disabled={isSubmitting}
-                    onClick={() => {
-                      setShowCompletionModal(false);
-                      submitLog(pendingSubmissionData);
-                    }}
-                  >
-                    تخطي
-                  </Button>
-                  <Button
-                    type="button"
-                    className="flex-1 rounded-xl"
-                    disabled={!nextBookIdForRollover || isSubmitting}
-                    onClick={() => {
-                      submitLog(pendingSubmissionData, pendingSubmissionData.remainingPages);
-                    }}
-                  >
+                  <Button type="button" variant="outline" className="flex-1 rounded-xl" disabled={isSubmitting} onClick={() => { setShowCompletionModal(false); submitLog(pendingSubmissionData); }}>تخطي</Button>
+                  <Button type="button" className="flex-1 rounded-xl" disabled={!nextBookIdForRollover || isSubmitting} onClick={() => { submitLog(pendingSubmissionData, pendingSubmissionData.remainingPages); }}>
                     {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "نعم، ابدأ الكتاب الجديد"}
                   </Button>
                 </div>
@@ -545,6 +483,7 @@ export default function StudentPortal() {
             )}
           </DialogContent>
         </Dialog>
+
       </div>
     </StudentLayout>
   );
