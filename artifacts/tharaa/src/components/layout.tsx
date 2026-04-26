@@ -8,7 +8,6 @@ import {
   Layers,
   Home,
 } from "lucide-react";
-// تم إزالة استيراد صورة الشعار بناءً على طلبك
 import { Button } from "@/components/ui/button";
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -165,7 +164,7 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
             {/* تم إزالة صورة الشعار من هنا */}
             <div>
               <h1 className="text-lg font-bold text-primary" style={{ fontFamily: 'Cairo, sans-serif' }}>ثراء المعرفة</h1>
-              <p className="text-xs text-muted-foreground">بوابة الطالب</p>
+              <p className="text-xs text-muted-foreground">بوابة المشارك</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
