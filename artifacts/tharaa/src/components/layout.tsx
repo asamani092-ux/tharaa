@@ -5,11 +5,10 @@ import {
   BookOpen,
   Users,
   BarChart3,
-  Settings,
   Layers,
   Home,
 } from "lucide-react";
-import logoPath from "@assets/لقطة_شاشة_2026-03-24_055723_1774925020035.png";
+// تم إزالة استيراد صورة الشعار بناءً على طلبك
 import { Button } from "@/components/ui/button";
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -46,12 +45,13 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       icon: BarChart3,
       id: "analytics",
     },
-    {
-      href: "/admin/settings",
-      label: "الإعدادات",
-      icon: Settings,
-      id: "settings",
-    },
+    // تم إخفاء رابط الإعدادات لتنظيف القائمة الجانبية
+    // {
+    //   href: "/admin/settings",
+    //   label: "الإعدادات",
+    //   icon: Settings,
+    //   id: "settings",
+    // },
   ];
 
   return (
@@ -68,14 +68,13 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         }}
       >
         <div
-          className="p-5 flex justify-center"
+          className="p-5 flex justify-center items-center h-[97px]"
           style={{ borderBottom: "1px solid hsl(217,36%,18%)" }}
         >
-          <img
-            src={logoPath}
-            alt="ثراء المعرفة"
-            className="h-14 object-contain"
-          />
+          {/* تم استبدال الشعار بنص واضح وأنيق */}
+          <h1 className="text-2xl font-bold text-primary" style={{ fontFamily: 'Cairo, sans-serif' }}>
+            ثراء المعرفة
+          </h1>
         </div>
 
         <nav className="flex-1 p-3 space-y-1">
@@ -163,13 +162,9 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
       >
         <div className="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <img
-              src={logoPath}
-              alt="ثراء المعرفة"
-              className="h-10 object-contain"
-            />
+            {/* تم إزالة صورة الشعار من هنا */}
             <div>
-              <h1 className="text-base font-bold text-primary">ثراء المعرفة</h1>
+              <h1 className="text-lg font-bold text-primary" style={{ fontFamily: 'Cairo, sans-serif' }}>ثراء المعرفة</h1>
               <p className="text-xs text-muted-foreground">بوابة الطالب</p>
             </div>
           </div>
