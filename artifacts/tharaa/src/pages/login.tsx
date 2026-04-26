@@ -66,7 +66,7 @@ export default function Login() {
         <div className="flex flex-col items-center mb-10">
           {/* تم حذف الشعار بناءً على الطلب */}
           <h2 className="text-2xl font-black mb-2" style={{ color: 'hsl(46,65%,52%)', fontFamily: 'Cairo, sans-serif' }}>ثراء المعرفة</h2>
-          <p className="text-muted-foreground text-sm text-center">أهلاً بك في البرنامج الوطني لتعزيز القراءة</p>
+          <p className="text-muted-foreground text-sm text-center">أهلاً بك    </p>
         </div>
 
         <div className="rounded-2xl p-8 shadow-2xl" style={{ backgroundColor: 'hsl(218,39%,12%)', border: '1px solid hsl(217,36%,20%)' }}>
