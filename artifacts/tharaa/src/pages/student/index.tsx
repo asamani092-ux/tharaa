@@ -60,6 +60,7 @@ export default function StudentPortal() {
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [nextBookIdForRollover, setNextBookIdForRollover] = useState<string>("");
   const [pendingSubmissionData, setPendingSubmissionData] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (currentBook) {
@@ -137,56 +138,50 @@ export default function StudentPortal() {
     });
   };
 
-  const submitLog = (data: any, rolloverPages: number = 0) => {
-    createLog.mutate(
-      { data },
-      {
-        onSuccess: () => {
-          toast.success("تم تسجيل النصاب بنجاح 🎉");
-          queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-          queryClient.invalidateQueries({ queryKey: getGetMyLogsQueryKey() });
-          setReflection("");
-          setBookId("");
-          setShowCompletionModal(false);
-          setPendingSubmissionData(null);
+  const submitLog = async (data: any, rolloverPages: number = 0) => {
+    if (isSubmitting) return; // منع النقرات المزدوجة نهائياً
+    setIsSubmitting(true);
 
-          // If there's a rollover (remaining pages to log in next book)
-          if (rolloverPages > 0 && nextBookIdForRollover) {
-            setTimeout(() => {
-              const nextSelectedBook = availableBooks.find(b => b.id.toString() === nextBookIdForRollover);
-              if (nextSelectedBook) {
-                // التأكد من أن صفحة النهاية لا تتجاوز عدد صفحات الكتاب الجديد
-                const actualRolloverEndPage = Math.min(rolloverPages, nextSelectedBook.totalPages);
-                const isRolloverCompleted = actualRolloverEndPage >= nextSelectedBook.totalPages;
+    try {
+      // 1. تسجيل الكتاب الأول والانتظار حتى ينتهي تماماً
+      await createLog.mutateAsync({ data });
+      toast.success("تم تسجيل النصاب بنجاح 🎉");
+      setReflection("");
+      setBookId("");
+      setShowCompletionModal(false);
+      setPendingSubmissionData(null);
 
-                createLog.mutate(
-                  {
-                    data: {
-                      bookId: parseInt(nextBookIdForRollover),
-                      startPage: 1,
-                      endPage: actualRolloverEndPage,
-                      isCompleted: isRolloverCompleted,
-                      reflection: undefined
-                    }
-                  },
-                  {
-                    onSuccess: () => {
-                      toast.success(`تم ترحيل ${rolloverPages} صفحة إلى كتاب "${nextSelectedBook.title}"`);
-                      queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-                      queryClient.invalidateQueries({ queryKey: getGetMyLogsQueryKey() });
-                    }
-                  }
-                );
-              }
-            }, 500);
-          }
-        },
-        onError: (err: any) => {
-          toast.error(err?.error || "حدث خطأ أثناء الرصد");
+      // 2. ترحيل الصفحات للكتاب الثاني (العملية الثانية المستقلة)
+      if (rolloverPages > 0 && nextBookIdForRollover) {
+        const nextSelectedBook = availableBooks.find(b => b.id.toString() === nextBookIdForRollover);
+        if (nextSelectedBook) {
+          const actualRolloverEndPage = Math.min(rolloverPages, nextSelectedBook.totalPages);
+          const isRolloverCompleted = actualRolloverEndPage >= nextSelectedBook.totalPages;
+
+          await createLog.mutateAsync({
+            data: {
+              bookId: parseInt(nextBookIdForRollover),
+              startPage: 1,
+              endPage: actualRolloverEndPage,
+              isCompleted: isRolloverCompleted,
+              reflection: undefined
+            }
+          });
+          toast.success(`تم ترحيل ${actualRolloverEndPage} صفحة إلى كتاب "${nextSelectedBook.title}"`);
         }
       }
-    );
-  };
+
+      // 3. تحديث البيانات في الواجهة مرة واحدة بعد انتهاء كل شيء
+      await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      await queryClient.invalidateQueries({ queryKey: getGetMyLogsQueryKey() });
+      setNextBookIdForRollover("");
+
+    } catch (err: any) {
+      toast.error(err?.error || "حدث خطأ أثناء الرصد");
+    } finally {
+      setIsSubmitting(false); // فتح الأزرار بعد انتهاء العمليات
+    }
+  };;
 
   return (
     <StudentLayout>
@@ -372,15 +367,15 @@ export default function StudentPortal() {
                 </div>
               )}
 
-              <Button
+             <Button
                 data-testid="button-submit"
                 type="submit"
                 className="w-full h-11 rounded-xl font-bold text-base"
-                disabled={createLog.isPending || !bookId}
+                disabled={isSubmitting || !bookId}
               >
-                {createLog.isPending
+                {isSubmitting
                   ? <Loader2 className="w-5 h-5 animate-spin" />
-                  : "اعتماد الرصد "}
+                  : "اعتماد الرصد"}
               </Button>
             </form>
           </CardContent>
@@ -518,6 +513,7 @@ export default function StudentPortal() {
                     type="button"
                     variant="outline"
                     className="flex-1 rounded-xl"
+                    disabled={isSubmitting}
                     onClick={() => {
                       setShowCompletionModal(false);
                       submitLog(pendingSubmissionData);
@@ -528,12 +524,12 @@ export default function StudentPortal() {
                   <Button
                     type="button"
                     className="flex-1 rounded-xl"
-                    disabled={!nextBookIdForRollover}
+                    disabled={!nextBookIdForRollover || isSubmitting}
                     onClick={() => {
                       submitLog(pendingSubmissionData, pendingSubmissionData.remainingPages);
                     }}
                   >
-                    {createLog.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "نعم، ابدأ الكتاب الجديد"}
+                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "نعم، ابدأ الكتاب الجديد"}
                   </Button>
                 </div>
               </div>
