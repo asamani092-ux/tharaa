@@ -209,20 +209,25 @@ export default function StudentPortal() {
   const submitCustomProgress = async () => {
     setIsSubmittingCustom(true);
     try {
-      const response = await fetch('/api/custom_progress', {
+      // التعديل هنا: أضفنا .php للرابط، وأضفنا credentials: 'include'
+      const response = await fetch('/api/custom_progress.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // مهم جداً: هذا السطر يرسل بيانات تسجيل الدخول للسيرفر
         body: JSON.stringify({ book_ids: selectedCustomBooks })
       });
 
-      if (!response.ok) throw new Error("فشل في تحديث البيانات");
+      if (!response.ok) {
+        const errData = await response.json().catch(() => null);
+        throw new Error(errData?.error || "فشل في تحديث البيانات");
+      }
 
       toast.success("تم اعتماد الكتب السابقة بنجاح!");
       setShowCustomProgress(false);
       setSelectedCustomBooks([]);
       queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
     } catch (error: any) {
-      toast.error("حدث خطأ أثناء حفظ الإنجاز السابق");
+      toast.error(error.message || "حدث خطأ أثناء حفظ الإنجاز السابق");
     } finally {
       setIsSubmittingCustom(false);
     }
