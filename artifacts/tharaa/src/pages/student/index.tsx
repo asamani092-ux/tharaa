@@ -38,16 +38,25 @@ export default function StudentPortal() {
 
   // If currentBook is completed, use first available instead
   const userCurrentBook = user?.currentBookId ? phaseBooks.find(b => b.id === user.currentBookId) : null;
-  const currentBook = (userCurrentBook && !completedBookIds.includes(userCurrentBook.id))
+  
+  // هل الكتاب الحالي للمستخدم لا يزال سارياً (لم يكتمل)؟
+  const isCurrentBookValid = userCurrentBook && !completedBookIds.includes(userCurrentBook.id);
+  
+  const currentBook = isCurrentBookValid
     ? userCurrentBook
     : availableBooks[0];
 
+  // الحل الجذري: نأخذ آخر صفحة فقط إذا كان الكتاب المعروض هو نفسه كتاب المستخدم النشط، غير ذلك نعتبرها 0
+  const effectiveLastPage = (isCurrentBookValid && currentBook?.id === userCurrentBook?.id)
+    ? (user?.lastPage || 0)
+    : 0;
+
   const remainingInCurrentBook = currentBook
-    ? Math.max(0, currentBook.totalPages - (user?.lastPage || 0))
+    ? Math.max(0, currentBook.totalPages - effectiveLastPage)
     : 0;
 
   const suggestedEndPage = currentBook
-    ? (user?.lastPage || 0) + Math.min(remainingInCurrentBook, weeklyQuota)
+    ? effectiveLastPage + Math.min(remainingInCurrentBook, weeklyQuota)
     : weeklyQuota;
 
   const nextBook = availableBooks.find(b => b.id !== currentBook?.id);
@@ -65,21 +74,21 @@ export default function StudentPortal() {
   useEffect(() => {
     if (currentBook) {
       setBookId(currentBook.id.toString());
-      setStartPage((user?.lastPage || 0) + 1);
+      setStartPage(effectiveLastPage + 1);
       setEndPage(suggestedEndPage);
     }
-  }, [currentBook?.id, user?.lastPage]);
+  }, [currentBook?.id, effectiveLastPage, suggestedEndPage]);
 
   useEffect(() => {
     const selectedId = parseInt(bookId);
     if (selectedId === currentBook?.id) {
-      setStartPage((user?.lastPage || 0) + 1);
+      setStartPage(effectiveLastPage + 1);
       setEndPage(suggestedEndPage);
     } else {
       setStartPage(1);
       setEndPage(weeklyQuota);
     }
-  }, [bookId]);
+  }, [bookId, currentBook?.id, effectiveLastPage, suggestedEndPage]);
 
   const selectedBook = phaseBooks.find(b => b.id.toString() === bookId);
   const pagesCount = Math.max(0, endPage - startPage + 1);
@@ -250,14 +259,14 @@ export default function StudentPortal() {
                 </Select>
               </div>
 
-              {/* Progress in current book */}
-              {selectedBook && parseInt(bookId) === currentBook?.id && user?.lastPage !== undefined && user.lastPage > 0 && (
+            {/* Progress in current book */}
+              {selectedBook && parseInt(bookId) === currentBook?.id && effectiveLastPage > 0 && (
                 <div className="p-3 rounded-xl text-sm" style={{ backgroundColor: 'hsl(218,47%,9%)', border: '1px solid hsl(217,36%,20%)' }}>
                   <div className="flex justify-between mb-2 text-xs text-muted-foreground">
                     <span>تقدمك في الكتاب</span>
-                    <span>{user.lastPage} / {selectedBook.totalPages} صفحة</span>
+                    <span>{effectiveLastPage} / {selectedBook.totalPages} صفحة</span>
                   </div>
-                  <Progress value={(user.lastPage / selectedBook.totalPages) * 100} className="h-1.5" />
+                  <Progress value={(effectiveLastPage / selectedBook.totalPages) * 100} className="h-1.5" />
                   <p className="text-xs text-muted-foreground mt-1.5">
                     متبقي: <strong className="text-foreground">{remainingInCurrentBook}</strong> صفحة
                   </p>
