@@ -32,8 +32,14 @@ export default function StudentPortal() {
 
   const completedBookIds: number[] = user?.completedBooks ?? [];
   
-  // استخراج المراحل المتاحة ديناميكياً
+  // استخراج المراحل المتاحة ديناميكياً مع حساب نسبة الإنجاز لكل مرحلة
   const uniquePhases = Array.from(new Set(books?.map(b => b.phaseNumber) || [1])).sort((a, b) => a - b);
+  const phaseStats = uniquePhases.map(phase => {
+    const phaseBooks = books?.filter(b => b.phaseNumber === phase) || [];
+    const completed = phaseBooks.filter(b => completedBookIds.includes(b.id)).length;
+    const percent = phaseBooks.length > 0 ? Math.round((completed / phaseBooks.length) * 100) : 0;
+    return { phase, percent };
+  });
   
   // حالات الواجهة
   const [viewPhase, setViewPhase] = useState<number>(1);
@@ -52,22 +58,21 @@ export default function StudentPortal() {
   const [selectedCustomBooks, setSelectedCustomBooks] = useState<number[]>([]);
   const [isSubmittingCustom, setIsSubmittingCustom] = useState(false);
 
+  // تعيين المرحلة المعروضة عند تحميل الصفحة
   useEffect(() => {
     if (user?.phaseNumber) setViewPhase(user.phaseNumber);
   }, [user?.phaseNumber]);
 
-  // فلترة الكتب
-  const userPhaseBooks = books?.filter(b => b.phaseNumber === user?.phaseNumber) || [];
+  // الكتب المعروضة في المرحلة المحددة حالياً من القائمة
   const displayedPhaseBooks = books?.filter(b => b.phaseNumber === viewPhase) || [];
-  const availableBooks = userPhaseBooks.filter(b => !completedBookIds.includes(b.id));
+  const availableBooks = displayedPhaseBooks.filter(b => !completedBookIds.includes(b.id));
 
-  // تحديد الكتاب الحالي
-  const userCurrentBook = user?.currentBookId ? userPhaseBooks.find(b => b.id === user.currentBookId) : null;
-  const isCurrentBookValid = userCurrentBook && !completedBookIds.includes(userCurrentBook.id);
+  // تحديد الكتاب الحالي (يجب أن يكون في نفس المرحلة المعروضة لكي تظهر أرقام الصفحات، وإلا نعتبره كتاباً جديداً)
+  const userCurrentBook = user?.currentBookId ? books?.find(b => b.id === user.currentBookId) : null;
+  const isCurrentBookValid = userCurrentBook && !completedBookIds.includes(userCurrentBook.id) && userCurrentBook.phaseNumber === viewPhase;
   const currentBook = isCurrentBookValid ? userCurrentBook : availableBooks[0];
 
-  const effectiveLastPage = (isCurrentBookValid && currentBook?.id === userCurrentBook?.id)
-    ? (user?.lastPage || 0) : 0;
+  const effectiveLastPage = isCurrentBookValid ? (user?.lastPage || 0) : 0;
 
   const remainingInCurrentBook = currentBook
     ? Math.max(0, currentBook.totalPages - effectiveLastPage) : 0;
@@ -77,31 +82,41 @@ export default function StudentPortal() {
 
   const nextBook = availableBooks.find(b => b.id !== currentBook?.id);
 
+  // تحديث الحقول عند تغيير المرحلة أو الكتاب
   useEffect(() => {
     if (currentBook) {
       setBookId(currentBook.id.toString());
       setStartPage(effectiveLastPage + 1);
       setEndPage(suggestedEndPage);
+    } else {
+      setBookId("");
+      setStartPage(1);
+      setEndPage(weeklyQuota);
     }
-  }, [currentBook?.id, effectiveLastPage, suggestedEndPage]);
+  }, [currentBook?.id, effectiveLastPage, suggestedEndPage, viewPhase]);
 
   useEffect(() => {
     const selectedId = parseInt(bookId);
     if (selectedId === currentBook?.id) {
       setStartPage(effectiveLastPage + 1);
       setEndPage(suggestedEndPage);
-    } else {
+    } else if (bookId) {
       setStartPage(1);
       setEndPage(weeklyQuota);
     }
   }, [bookId, currentBook?.id, effectiveLastPage, suggestedEndPage]);
 
-  const selectedBook = userPhaseBooks.find(b => b.id.toString() === bookId);
+  const selectedBook = displayedPhaseBooks.find(b => b.id.toString() === bookId);
   const pagesCount = Math.max(0, endPage - startPage + 1);
   const isOverQuota = pagesCount > weeklyQuota;
   const isWillFinishBook = selectedBook ? endPage >= selectedBook.totalPages : false;
 
-  const totalPagesRead = logs?.reduce((sum, log) => sum + log.pagesRead, 0) || 0;
+  // حساب دقيق وشامل للصفحات (الكتب المكتملة + الإنجاز في الكتاب الحالي + مقارنة بالسجلات)
+  const completedPages = books?.filter(b => completedBookIds.includes(b.id)).reduce((sum, b) => sum + b.totalPages, 0) || 0;
+  const activeBookPages = (userCurrentBook && !completedBookIds.includes(userCurrentBook.id)) ? (user?.lastPage || 0) : 0;
+  const calculatedTotalPages = completedPages + activeBookPages;
+  const loggedPages = logs?.reduce((sum, log) => sum + log.pagesRead, 0) || 0;
+  const totalPagesRead = Math.max(calculatedTotalPages, loggedPages); // يأخذ الرقم الأدق دائماً
 
   const shareViaWhatsApp = () => {
     if (!reflection.trim() || !selectedBook) {
@@ -157,7 +172,6 @@ export default function StudentPortal() {
       await createLog.mutateAsync({ data });
       toast.success("تم تسجيل النصاب بنجاح 🎉");
       setReflection("");
-      setBookId("");
       setShowCompletionModal(false);
       setPendingSubmissionData(null);
 
@@ -231,9 +245,11 @@ export default function StudentPortal() {
         {/* ═══════════ SUBMISSION FORM CARD ═══════════ */}
         <Card className="rounded-2xl border shadow-lg" style={{ ...cardStyle, borderColor: 'hsl(46,65%,40%,0.4)' }}>
           <CardHeader style={{ borderBottom: '1px solid hsl(217,36%,20%)' }}>
-            <CardTitle className="text-lg flex items-center gap-2" style={{ fontFamily: 'Cairo, sans-serif' }}>
-              <BookOpen className="w-5 h-5 text-primary" />
-              الرصد الأسبوعي
+            <CardTitle className="text-lg flex items-center justify-between" style={{ fontFamily: 'Cairo, sans-serif' }}>
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-primary" />
+                الرصد الأسبوعي
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-5">
@@ -259,7 +275,12 @@ export default function StudentPortal() {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-1.5">
-                <Label className="text-sm text-muted-foreground">الكتاب</Label>
+                <div className="flex justify-between items-center mb-1">
+                  <Label className="text-sm text-muted-foreground">الكتاب المراد قراءته</Label>
+                  <span className="text-xs px-2 py-0.5 rounded-md bg-white/5 text-muted-foreground border border-white/10">
+                    يعرض كتب المرحلة {viewPhase}
+                  </span>
+                </div>
                 <Select value={bookId} onValueChange={setBookId}>
                   <SelectTrigger className="rounded-xl h-11" style={{ backgroundColor: 'hsl(217,36%,16%)', border: '1px solid hsl(217,36%,24%)' }}>
                     <SelectValue placeholder="اختر الكتاب" />
@@ -273,6 +294,9 @@ export default function StudentPortal() {
                         </span>
                       </SelectItem>
                     ))}
+                    {availableBooks.length === 0 && (
+                      <div className="p-2 text-sm text-center text-muted-foreground">لقد ختمت جميع كتب هذه المرحلة</div>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -367,8 +391,10 @@ export default function StudentPortal() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {uniquePhases.map(phase => (
-                    <SelectItem key={phase} value={phase.toString()}>المرحلة {phase}</SelectItem>
+                  {phaseStats.map(ps => (
+                    <SelectItem key={ps.phase} value={ps.phase.toString()}>
+                      المرحلة {ps.phase} (إنجاز {ps.percent}%)
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
