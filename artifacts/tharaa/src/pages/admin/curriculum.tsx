@@ -56,22 +56,30 @@ export default function AdminCurriculum() {
     }
   });
 
+  // 🌟 تعديل مسار التحديث ليتوافق مع PHP وإضافة كاشف الأخطاء
   const updateBook = useMutation({
     mutationFn: async ({ id, data }: { id: number, data: any }) => {
-      const res = await fetch(`/api/curriculum/${id}`, {
+      // إرسال الـ id في الرابط وفي الجسم لضمان قراءته من السيرفر
+      const res = await fetch(`/api/curriculum?id=${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify({ ...data, id })
       });
-      if (!res.ok) throw new Error();
-      return res.json();
+      
+      const text = await res.text();
+      let jsonData;
+      try { jsonData = JSON.parse(text); } catch(e) { throw new Error("لم يتمكن السيرفر من معالجة طلب التعديل"); }
+      
+      if (!res.ok) throw new Error(jsonData.error || "حدث خطأ أثناء التحديث");
+      return jsonData;
     }
   });
 
+  // 🌟 تعديل مسار الحذف ليتوافق مع PHP
   const deleteBook = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/curriculum/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error();
+      const res = await fetch(`/api/curriculum?id=${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error("حدث خطأ أثناء الحذف");
       return res.json();
     }
   });
@@ -86,11 +94,22 @@ export default function AdminCurriculum() {
     
     if (editBook) {
       updateBook.mutate({ id: editBook.id, data: payload }, {
-        onSuccess: () => { toast.success("تم تحديث الكتاب"); setEditBook(null); refetch(); }
+        onSuccess: () => { 
+          toast.success("تم تحديث الكتاب بنجاح ✅"); 
+          setEditBook(null); 
+          setIsAddModalOpen(false); // 🌟 إغلاق النافذة بعد التعديل
+          refetch(); 
+        },
+        onError: (err: any) => toast.error(err.message) // إظهار الخطأ الحقيقي إن وجد
       });
     } else {
       createBook.mutate(payload, {
-        onSuccess: () => { toast.success("تمت إضافة الكتاب بنجاح"); setIsAddModalOpen(false); refetch(); }
+        onSuccess: () => { 
+          toast.success("تمت إضافة الكتاب بنجاح ✅"); 
+          setIsAddModalOpen(false); 
+          refetch(); 
+        },
+        onError: (err: any) => toast.error("حدث خطأ أثناء الإضافة")
       });
     }
   };
