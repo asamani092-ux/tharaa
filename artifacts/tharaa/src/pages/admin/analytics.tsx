@@ -1,215 +1,174 @@
-import { useState } from "react";
-import { useGetAnalyticsOverview, useGetBatchAnalytics, useListBatches, useListUsers, useGetUserAnalytics } from "@workspace/api-client-react";
+import { useState, useMemo } from "react";
+import { useListUsers, useListCurriculum, useGetMyLogs, useListBatches } from "@workspace/api-client-react";
 import { AdminLayout } from "@/components/layout";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-
-const cardStyle = { backgroundColor: 'hsl(218,39%,12%)', borderColor: 'hsl(217,36%,20%)' };
-const tableRowStyle = { borderBottomColor: 'hsl(217,36%,18%)' };
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Download, TrendingUp, Users, BookCheck, Award, FileSpreadsheet, Star } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 export default function AdminAnalytics() {
+  const { data: users } = useListUsers();
   const { data: batches } = useListBatches();
-  const { data: users } = useListUsers({ status: "active" });
+  const { data: curriculum } = useListCurriculum();
+  const [selectedBatch, setSelectedBatch] = useState<string>("all");
 
-  const [selectedBatchId, setSelectedBatchId] = useState<string>("");
-  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  // 1. معالجة البيانات ذكياً (حل مشكلة الإنجاز السابق 1.1)
+  const stats = useMemo(() => {
+    if (!users || !curriculum) return [];
+    
+    return users.filter(u => u.role === 'student').map(user => {
+      const completedIds = user.completedBooks || [];
+      const completedPages = curriculum
+        .filter(b => completedIds.includes(b.id))
+        .reduce((sum, b) => sum + b.totalPages, 0);
 
-  const { data: overview, isLoading: loadingOverview } = useGetAnalyticsOverview();
+      // نسبة الإنجاز بناءً على إجمالي كتب المنهج (لنفرض المنهج الكامل 1000 صفحة)
+      const totalCurriculumPages = curriculum.reduce((sum, b) => sum + b.totalPages, 0);
+      const completionRate = totalCurriculumPages > 0 ? (completedPages / totalCurriculumPages) * 100 : 0;
 
-  const { data: batchAnalytics, isLoading: loadingBatch } = useGetBatchAnalytics(
-    parseInt(selectedBatchId),
-    { query: { enabled: !!selectedBatchId } }
-  );
+      return {
+        ...user,
+        totalReadPages: completedPages, // شامل الإنجاز السابق
+        completedCount: completedIds.length,
+        completionRate: Math.round(completionRate)
+      };
+    });
+  }, [users, curriculum]);
 
-  const { data: userAnalytics, isLoading: loadingUser } = useGetUserAnalytics(
-    parseInt(selectedUserId),
-    { query: { enabled: !!selectedUserId } }
-  );
+  const filteredStats = selectedBatch === "all" 
+    ? stats 
+    : stats.filter(s => s.batchId === parseInt(selectedBatch));
 
-  const total = (overview?.totalLogsSubmitted || 0) || 1;
-  const pct = (n: number) => Math.round((n / total) * 100);
+  // 2. إحصائيات النخبة (نقطة 5.5)
+  const topByPages = [...filteredStats].sort((a, b) => b.totalReadPages - a.totalReadPages).slice(0, 3);
+  const topByBooks = [...filteredStats].sort((a, b) => b.completedCount - a.completedCount).slice(0, 3);
+
+  // 3. دالة التصدير إلى Excel (CSV) (نقطة 5.1)
+  const exportToCSV = () => {
+    const headers = ["الاسم", "الدفعة", "الصفحات المقروءة", "الكتب المنجزة", "نسبة الإنجاز"];
+    const rows = filteredStats.map(s => [
+      s.name,
+      batches?.find(b => b.id === s.batchId)?.name || "بدون",
+      s.totalReadPages,
+      s.completedCount,
+      `${s.completionRate}%`
+    ]);
+    
+    const csvContent = "\uFEFF" + [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `احصائيات_ثراء_${new Date().toLocaleDateString()}.csv`;
+    link.click();
+  };
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold" style={{ fontFamily: 'Cairo, sans-serif' }}>الإحصائيات</h2>
+      <div className="space-y-6" dir="rtl">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-[#D4AF37] flex items-center gap-2">
+            <TrendingUp className="w-6 h-6" /> الإحصائيات
+          </h2>
+          <div className="flex gap-3">
+            <Select value={selectedBatch} onValueChange={setSelectedBatch}>
+              <SelectTrigger className="w-44 rounded-xl"><SelectValue placeholder="تصفية بالدفعة" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">جميع الدفعات</SelectItem>
+                {batches?.map(b => <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Button onClick={exportToCSV} variant="outline" className="rounded-xl gap-2 border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37]/10">
+              <FileSpreadsheet className="w-4 h-4" /> تصدير البيانات
+            </Button>
+          </div>
+        </div>
 
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="rounded-xl w-full justify-start" style={{ backgroundColor: 'hsl(218,39%,12%)', border: '1px solid hsl(217,36%,20%)' }}>
-            <TabsTrigger data-testid="tab-overview" value="overview" className="rounded-lg">نظرة عامة</TabsTrigger>
-            <TabsTrigger data-testid="tab-batch" value="batch" className="rounded-lg">حسب الدفعة</TabsTrigger>
-            <TabsTrigger data-testid="tab-student" value="student" className="rounded-lg">حسب الطالب</TabsTrigger>
-          </TabsList>
+        {/* 4. البطاقات الرئيسية (تصحيح المسميات 1.3) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="bg-[#0f172a] border-[#1e293b] rounded-2xl shadow-lg">
+            <CardContent className="pt-6 text-right">
+              <Users className="text-blue-400 mb-2" />
+              <p className="text-muted-foreground text-sm">إجمالي المشاركين</p>
+              <h3 className="text-2xl font-bold">{filteredStats.length}</h3>
+            </CardContent>
+          </Card>
+          <Card className="bg-[#0f172a] border-[#1e293b] rounded-2xl shadow-lg">
+            <CardContent className="pt-6 text-right">
+              <BookCheck className="text-emerald-400 mb-2" />
+              <p className="text-muted-foreground text-sm">عدد الكتب المنجزة</p>
+              <h3 className="text-2xl font-bold">{filteredStats.reduce((sum, s) => sum + s.completedCount, 0)}</h3>
+            </CardContent>
+          </Card>
+          <Card className="bg-[#0f172a] border-[#D4AF37]/30 rounded-2xl shadow-lg">
+            <CardContent className="pt-6 text-right">
+              <Award className="text-[#D4AF37] mb-2" />
+              <p className="text-muted-foreground text-sm">متوسط نسبة الإنجاز (للصنف)</p>
+              <h3 className="text-2xl font-bold text-[#D4AF37]">
+                {filteredStats.length > 0 ? Math.round(filteredStats.reduce((sum, s) => sum + s.completionRate, 0) / filteredStats.length) : 0}%
+              </h3>
+            </CardContent>
+          </Card>
+        </div>
 
-          {/* Overview */}
-          <TabsContent value="overview" className="space-y-4 mt-6">
-            {loadingOverview ? (
-              <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>
-            ) : (
-              <Card className="rounded-xl border" style={cardStyle}>
-                <CardHeader style={{ borderBottom: '1px solid hsl(217,36%,18%)' }}>
-                  <CardTitle className="text-base" style={{ fontFamily: 'Cairo, sans-serif' }}>الالتزام بالتسليم</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-6 space-y-5">
-                  {[
-                    { label: "في الوقت المحدد", value: overview?.onTimeSubmissions || 0, color: "bg-emerald-500", textColor: "text-emerald-400" },
-                    { label: "تسليم متأخر", value: overview?.lateSubmissions || 0, color: "bg-orange-500", textColor: "text-orange-400" },
-                    { label: "تسليم مفقود", value: overview?.missedSubmissions || 0, color: "bg-red-500", textColor: "text-red-400" },
-                  ].map(item => (
-                    <div key={item.label}>
-                      <div className="flex justify-between mb-1.5 text-sm">
-                        <span className="text-muted-foreground">{item.label}</span>
-                        <span className={`font-bold ${item.textColor}`}>{item.value} ({pct(item.value)}%)</span>
-                      </div>
-                      <div className="w-full rounded-full h-1.5" style={{ backgroundColor: 'hsl(217,36%,20%)' }}>
-                        <div className={`${item.color} h-1.5 rounded-full transition-all`} style={{ width: `${pct(item.value)}%` }} />
-                      </div>
+        {/* 5. قائمة النخبة (نقطة 5.5) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+           <Card className="bg-[#0f172a] border-[#1e293b] rounded-2xl">
+              <CardHeader className="border-b border-white/5"><CardTitle className="text-sm flex items-center gap-2"><Star className="w-4 h-4 text-[#D4AF37]"/> الأعلى قراءة (صفحات)</CardTitle></CardHeader>
+              <CardContent className="p-0">
+                {topByPages.map((s, i) => (
+                  <div key={s.id} className="flex justify-between p-4 border-b border-white/5 last:border-0">
+                    <span className="font-medium">{i+1}. {s.name}</span>
+                    <span className="text-[#D4AF37] font-bold">{s.totalReadPages} صفحة</span>
+                  </div>
+                ))}
+              </CardContent>
+           </Card>
+           <Card className="bg-[#0f172a] border-[#1e293b] rounded-2xl">
+              <CardHeader className="border-b border-white/5"><CardTitle className="text-sm flex items-center gap-2"><BookCheck className="w-4 h-4 text-emerald-400"/> الأكثر إنجازاً (كتب)</CardTitle></CardHeader>
+              <CardContent className="p-0">
+                {topByBooks.map((s, i) => (
+                  <div key={s.id} className="flex justify-between p-4 border-b border-white/5 last:border-0">
+                    <span className="font-medium">{i+1}. {s.name}</span>
+                    <span className="text-emerald-400 font-bold">{s.completedCount} كتب</span>
+                  </div>
+                ))}
+              </CardContent>
+           </Card>
+        </div>
+
+        {/* 6. جدول الرصد التفصيلي (نقطة 5.2 و 5.4) */}
+        <div className="rounded-xl border border-[#1e293b] bg-[#0f172a] overflow-hidden shadow-xl">
+          <Table>
+            <TableHeader className="bg-[#161e2f]">
+              <TableRow className="border-[#1e293b]">
+                <TableHead className="text-right text-[#94a3b8] font-bold px-6">اسم المشارك</TableHead>
+                <TableHead className="text-right text-[#94a3b8] font-bold">الدفعة</TableHead>
+                <TableHead className="text-right text-[#94a3b8] font-bold">إجمالي الصفحات</TableHead>
+                <TableHead className="text-right text-[#94a3b8] font-bold">الكتب المنجزة</TableHead>
+                <TableHead className="text-right text-[#94a3b8] font-bold w-[200px]">نسبة الإنجاز</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredStats.map((s) => (
+                <TableRow key={s.id} className="border-[#1e293b] hover:bg-white/[0.02]">
+                  <TableCell className="text-right px-6 font-medium">{s.name}</TableCell>
+                  <TableCell className="text-right">{batches?.find(b => b.id === s.batchId)?.name || "-"}</TableCell>
+                  <TableCell className="text-right font-bold text-[#D4AF37]">{s.totalReadPages}</TableCell>
+                  <TableCell className="text-right">{s.completedCount}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center gap-2">
+                      <Progress value={s.completionRate} className="h-1.5 flex-1" />
+                      <span className="text-xs w-8">{s.completionRate}%</span>
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          {/* Batch */}
-          <TabsContent value="batch" className="space-y-6 mt-6">
-            <div className="max-w-xs">
-              <Select value={selectedBatchId} onValueChange={setSelectedBatchId}>
-                <SelectTrigger data-testid="select-analytics-batch" className="rounded-xl"><SelectValue placeholder="اختر الدفعة" /></SelectTrigger>
-                <SelectContent>
-                  {batches?.map(b => <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {loadingBatch && <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>}
-
-            {batchAnalytics && !loadingBatch && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {[
-                    { label: "عدد الطلاب", value: batchAnalytics.totalUsers },
-                    { label: "الصفحات المقروءة", value: batchAnalytics.totalPagesRead },
-                    { label: "متوسط القراءة", value: Math.round(batchAnalytics.avgPagesPerUser) },
-                    { label: "نسبة الالتزام", value: `${batchAnalytics.onTimeRate}%`, colored: true },
-                  ].map(s => (
-                    <Card key={s.label} className="rounded-xl border" style={cardStyle}>
-                      <CardContent className="p-4">
-                        <p className="text-xs text-muted-foreground mb-1">{s.label}</p>
-                        <p className={`text-2xl font-bold ${s.colored ? 'text-emerald-400' : ''}`}>{s.value}</p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-
-                <Card className="rounded-xl border" style={cardStyle}>
-                  <CardHeader style={{ borderBottom: '1px solid hsl(217,36%,18%)' }}>
-                    <CardTitle className="text-base" style={{ fontFamily: 'Cairo, sans-serif' }}>أبرز القراء في الدفعة</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow style={{ backgroundColor: 'hsl(218,42%,10%)', borderBottomColor: 'hsl(217,36%,20%)' }}>
-                          <TableHead className="text-xs text-muted-foreground">الطالب</TableHead>
-                          <TableHead className="text-xs text-muted-foreground">الصفحات</TableHead>
-                          <TableHead className="text-xs text-muted-foreground">الكتب</TableHead>
-                          <TableHead className="text-xs text-muted-foreground">الالتزام</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {batchAnalytics.topReaders.map(reader => (
-                          <TableRow key={reader.userId} style={tableRowStyle} className="hover:bg-white/[0.02]">
-                            <TableCell className="font-medium text-sm">{reader.name}</TableCell>
-                            <TableCell className="text-sm">{reader.totalPagesRead}</TableCell>
-                            <TableCell className="text-sm">{reader.completedBooks}</TableCell>
-                            <TableCell>
-                              <Badge className={`text-xs ${reader.complianceRate > 80 ? 'bg-emerald-600/20 text-emerald-400' : 'bg-muted text-muted-foreground'}`}>
-                                {reader.complianceRate}%
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Student */}
-          <TabsContent value="student" className="space-y-6 mt-6">
-            <div className="max-w-sm">
-              <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                <SelectTrigger data-testid="select-analytics-student" className="rounded-xl"><SelectValue placeholder="ابحث واختر الطالب" /></SelectTrigger>
-                <SelectContent>
-                  {users?.map(u => <SelectItem key={u.id} value={u.id.toString()}>{u.name} — {u.phone}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {loadingUser && <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>}
-
-            {userAnalytics && !loadingUser && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {[
-                    { label: "الصفحات المقروءة", value: userAnalytics.totalPagesRead },
-                    { label: "الكتب المكتملة", value: userAnalytics.completedBooks },
-                    { label: "سلسلة الالتزام (أسابيع)", value: userAnalytics.currentStreak, colored: true },
-                    { label: "نسبة الالتزام", value: `${userAnalytics.complianceRate}%` },
-                  ].map(s => (
-                    <Card key={s.label} className="rounded-xl border" style={cardStyle}>
-                      <CardContent className="p-4">
-                        <p className="text-xs text-muted-foreground mb-1">{s.label}</p>
-                        <p className={`text-2xl font-bold ${s.colored ? 'text-primary' : ''}`}>{s.value}</p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-
-                <Card className="rounded-xl border" style={cardStyle}>
-                  <CardHeader style={{ borderBottom: '1px solid hsl(217,36%,18%)' }}>
-                    <CardTitle className="text-base" style={{ fontFamily: 'Cairo, sans-serif' }}>سجل الأوراد الأخيرة</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow style={{ backgroundColor: 'hsl(218,42%,10%)', borderBottomColor: 'hsl(217,36%,20%)' }}>
-                          <TableHead className="text-xs text-muted-foreground">التاريخ</TableHead>
-                          <TableHead className="text-xs text-muted-foreground">الكتاب</TableHead>
-                          <TableHead className="text-xs text-muted-foreground">الصفحات</TableHead>
-                          <TableHead className="text-xs text-muted-foreground">حالة التسليم</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {userAnalytics.recentLogs.map(log => (
-                          <TableRow key={log.id} style={tableRowStyle} className="hover:bg-white/[0.02]">
-                            <TableCell className="text-sm">{new Date(log.date).toLocaleDateString('ar-SA')}</TableCell>
-                            <TableCell className="text-sm">{log.bookTitle}</TableCell>
-                            <TableCell className="text-sm">{log.pagesRead}</TableCell>
-                            <TableCell>
-                              {log.submissionStatus === 'on_time' && <Badge className="bg-emerald-600/20 text-emerald-400 text-xs">في الوقت</Badge>}
-                              {log.submissionStatus === 'late' && <Badge className="bg-orange-600/20 text-orange-400 text-xs">متأخر</Badge>}
-                              {log.submissionStatus === 'missed' && <Badge className="bg-red-600/20 text-red-400 text-xs">مفقود</Badge>}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                        {userAnalytics.recentLogs.length === 0 && (
-                          <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">لا توجد أوراد مسجلة</TableCell></TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </AdminLayout>
   );
