@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useLogin, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import bgPath from "@assets/لقطة_شاشة_2026-03-23_233921_1774925020030.png";
+import logoPath from "@assets/لقطة_شاشة_2026-03-23_233921_1774925020030.png"; 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,22 +52,33 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden" dir="rtl" style={{ backgroundColor: 'hsl(218,47%,8%)' }}>
-      {/* الخلفية */}
+      
+      {/* 2. طبقة الخلفية الأساسية (النقوش) */}
       <div className="absolute inset-0 z-0">
         <img src={bgPath} alt="" className="w-full h-full object-cover" style={{ opacity: 0.08 }} />
         <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, hsl(218,47%,6%) 0%, hsl(218,47%,10%) 100%)' }} />
       </div>
 
-      {/* الهوية النصية الكبيرة في الخلفية */}
+      {/* 3. 🌟 إضافة الشعار كخلفية شفافة (العلامة المائية) */}
+      <div 
+        className="absolute inset-0 z-0 pointer-events-none opacity-[0.04]" 
+        style={{
+          backgroundImage: `url(${logoPath})`,
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: '450px' // يمكنك تغيير الحجم من هنا
+        }}
+      />
+
+      {/* الهوية النصية الكبيرة في الخلفية (يمكنك إزالتها إذا أصبح المكان مزدحماً) */}
       <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none overflow-hidden">
-        <span className="text-[25vw] font-black select-none" style={{ color: 'hsl(46,65%,52%)', opacity: 0.03, fontFamily: 'Cairo, sans-serif' }}>ثراء</span>
+        <span className="text-[25vw] font-black select-none" style={{ color: 'hsl(46,65%,52%)', opacity: 0.02, fontFamily: 'Cairo, sans-serif' }}>ثراء</span>
       </div>
 
       <div className="relative z-10 w-full max-w-sm mx-4">
         <div className="flex flex-col items-center mb-10">
-          {/* تم حذف الشعار بناءً على الطلب */}
           <h2 className="text-2xl font-black mb-2" style={{ color: 'hsl(46,65%,52%)', fontFamily: 'Cairo, sans-serif' }}>ثراء المعرفة</h2>
-          <p className="text-muted-foreground text-sm text-center">أهلاً بك    </p>
+          <p className="text-muted-foreground text-sm text-center">أهلاً بك</p>
         </div>
 
         <div className="rounded-2xl p-8 shadow-2xl" style={{ backgroundColor: 'hsl(218,39%,12%)', border: '1px solid hsl(217,36%,20%)' }}>
