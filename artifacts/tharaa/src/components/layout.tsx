@@ -9,7 +9,7 @@ import {
   Home,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import logoPath from "@assets/لقطة_شاشة_2026-03-24_055723_1774925020035.png";
+import logoPath from "@assets/لقطة_شاشة_2026-03-23_233921_1774925020030.png";
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
