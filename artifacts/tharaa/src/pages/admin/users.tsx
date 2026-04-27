@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   useListUsers,
-  useDeleteUser,
   useUpdateUser,
   useBulkCreateUsers,
   useListBatches,
@@ -18,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { Loader2, Plus, Check, Trash2, Search, Pencil, AlertTriangle } from "lucide-react";
 
 export default function AdminUsers() {
@@ -49,13 +48,28 @@ export default function AdminUsers() {
   });
 
   const { data: batches } = useListBatches();
-  const deleteUser = useDeleteUser();
+  
+  // 🌟 الدالة المطورة للحذف (بدلاً من useDeleteUser الجاهزة)
+  const deleteUser = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/users.php?id=${id}`, { 
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }) 
+      });
+      const text = await res.text();
+      let jsonData;
+      try { jsonData = JSON.parse(text); } catch(e) { throw new Error("لم يتمكن السيرفر من معالجة طلب الحذف"); }
+      if (!res.ok) throw new Error(jsonData.error || "حدث خطأ أثناء الحذف");
+      return jsonData;
+    }
+  });
+
   const updateUser = useUpdateUser();
   const bulkCreate = useBulkCreateUsers();
 
   const filteredUsers = users?.filter((u) => u.role === 'student' && (u.name.includes(search) || u.phone.includes(search))) || [];
 
-  // إصلاح 2.6: التفعيل المباشر عبر الزر الأخضر
   const handleDirectApprove = (id: number) => {
     updateUser.mutate({ id, data: { status: 'active' } }, {
       onSuccess: () => {
@@ -65,15 +79,19 @@ export default function AdminUsers() {
     });
   };
 
+  // 🌟 تعديل دالة تأكيد الحذف لتتوافق مع الدالة الجديدة
   const confirmDelete = () => {
     if (!isDeleteModalOpen) return;
-    deleteUser.mutate({ id: isDeleteModalOpen }, {
+    deleteUser.mutate(isDeleteModalOpen, {
       onSuccess: () => {
-        toast.success("تم حذف المشارك بنجاح");
+        toast.success("تم حذف المشارك بنجاح 🗑️");
         setIsDeleteModalOpen(null);
         queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetAnalyticsOverviewQueryKey() });
       },
+      onError: (err: any) => {
+        toast.error(err.message);
+      }
     });
   };
 
@@ -184,7 +202,7 @@ export default function AdminUsers() {
           </Table>
         </div>
 
-        {/* Delete Confirmation Modal (2.4) */}
+        {/* Delete Confirmation Modal */}
         <Dialog open={!!isDeleteModalOpen} onOpenChange={() => setIsDeleteModalOpen(null)}>
           <DialogContent className="sm:max-w-[400px] rounded-2xl bg-[#0d1425] border-red-500/20 text-center">
             <div className="flex flex-col items-center pt-4">
@@ -193,30 +211,32 @@ export default function AdminUsers() {
               <p className="text-muted-foreground text-sm mt-2">هل أنت متأكد من حذف هذا المشارك نهائياً؟</p>
             </div>
             <DialogFooter className="gap-2 mt-6 flex-row">
-              <Button variant="outline" onClick={() => setIsDeleteModalOpen(null)} className="flex-1 rounded-xl">تراجع</Button>
-              <Button variant="destructive" onClick={confirmDelete} className="flex-1 rounded-xl">حذف نهائي</Button>
+              <Button variant="outline" onClick={() => setIsDeleteModalOpen(null)} className="flex-1 rounded-xl border-[#1e293b] hover:bg-white/5">تراجع</Button>
+              <Button variant="destructive" onClick={confirmDelete} className="flex-1 rounded-xl bg-red-600 hover:bg-red-700" disabled={deleteUser.isPending}>
+                {deleteUser.isPending ? <Loader2 className="animate-spin w-5 h-5"/> : "حذف نهائي"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* Edit Modal (2.3) */}
+        {/* Edit Modal */}
         <Dialog open={!!editUser} onOpenChange={() => setEditUser(null)}>
           <DialogContent className="sm:max-w-[500px] rounded-2xl bg-[#0d1425] border-[#1e293b] text-right">
             <DialogHeader><DialogTitle className="text-right">تعديل بيانات المشارك</DialogTitle></DialogHeader>
             <form onSubmit={handleEditSave} className="space-y-4 pt-2">
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5"><Label>الاسم</Label><Input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="rounded-xl"/></div>
-                <div className="space-y-1.5"><Label>رقم الجوال</Label><Input value={editForm.phone} onChange={e => setEditForm({...editForm, phone: e.target.value})} className="rounded-xl"/></div>
+                <div className="space-y-1.5"><Label>الاسم</Label><Input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="rounded-xl bg-[#161e2f] border-[#1e293b]"/></div>
+                <div className="space-y-1.5"><Label>رقم الجوال</Label><Input value={editForm.phone} onChange={e => setEditForm({...editForm, phone: e.target.value})} className="rounded-xl bg-[#161e2f] border-[#1e293b]"/></div>
               </div>
-              <div className="space-y-1.5"><Label>كلمة المرور الجديدة (اختياري)</Label><Input type="password" value={editForm.password} onChange={e => setEditForm({...editForm, password: e.target.value})} className="rounded-xl" placeholder="اتركه فارغاً لعدم التغيير"/></div>
+              <div className="space-y-1.5"><Label>كلمة المرور الجديدة (اختياري)</Label><Input type="password" value={editForm.password} onChange={e => setEditForm({...editForm, password: e.target.value})} className="rounded-xl bg-[#161e2f] border-[#1e293b]" placeholder="اتركه فارغاً لعدم التغيير"/></div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5"><Label>الدفعة</Label>
-                  <Select value={editForm.batchId} onValueChange={v => setEditForm({...editForm, batchId: v})}><SelectTrigger className="rounded-xl"><SelectValue/></SelectTrigger><SelectContent>{batches?.map(b => <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>)}</SelectContent></Select>
+                  <Select value={editForm.batchId} onValueChange={v => setEditForm({...editForm, batchId: v})}><SelectTrigger className="rounded-xl bg-[#161e2f] border-[#1e293b]"><SelectValue/></SelectTrigger><SelectContent>{batches?.map(b => <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>)}</SelectContent></Select>
                 </div>
-                <div className="space-y-1.5"><Label>المرحلة</Label><Input type="number" value={editForm.phaseNumber} onChange={e => setEditForm({...editForm, phaseNumber: e.target.value})} className="rounded-xl"/></div>
+                <div className="space-y-1.5"><Label>المرحلة</Label><Input type="number" value={editForm.phaseNumber} onChange={e => setEditForm({...editForm, phaseNumber: e.target.value})} className="rounded-xl bg-[#161e2f] border-[#1e293b]"/></div>
               </div>
-              <div className="space-y-1.5"><Label>الحالة</Label><Select value={editForm.status} onValueChange={v => setEditForm({...editForm, status: v})}><SelectTrigger className="rounded-xl"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="active">نشط</SelectItem><SelectItem value="pending">معلق</SelectItem></SelectContent></Select></div>
-              <Button type="submit" className="w-full rounded-xl font-bold h-11">حفظ التعديلات</Button>
+              <div className="space-y-1.5"><Label>الحالة</Label><Select value={editForm.status} onValueChange={v => setEditForm({...editForm, status: v})}><SelectTrigger className="rounded-xl bg-[#161e2f] border-[#1e293b]"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="active">نشط</SelectItem><SelectItem value="pending">معلق</SelectItem></SelectContent></Select></div>
+              <Button type="submit" className="w-full rounded-xl font-bold h-11 bg-[#D4AF37] hover:bg-[#D4AF37]/90 text-black">حفظ التعديلات</Button>
             </form>
           </DialogContent>
         </Dialog>
