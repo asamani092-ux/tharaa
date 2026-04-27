@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { useLogin, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import bgPath from "@assets/لقطة_شاشة_2026-03-23_233921_1774925020030.png";
-import logoPath from "@assets/لقطة_شاشة_2026-03-23_233921_1774925020030.png"; 
+import logoPath from "@assets/لقطة_شاشة_2026-03-24_055723_1774925020035.png"; 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,27 +53,24 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden" dir="rtl" style={{ backgroundColor: 'hsl(218,47%,8%)' }}>
       
-      {/* 2. طبقة الخلفية الأساسية (النقوش) */}
+      {/* 1. طبقة النقوش الخلفية */}
       <div className="absolute inset-0 z-0">
         <img src={bgPath} alt="" className="w-full h-full object-cover" style={{ opacity: 0.08 }} />
         <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, hsl(218,47%,6%) 0%, hsl(218,47%,10%) 100%)' }} />
       </div>
 
-      {/* 3. 🌟 إضافة الشعار كخلفية شفافة (العلامة المائية) */}
+      {/* 2. الشعار كخلفية شفافة (تم ضبطه ليظهر مكتملاً) */}
       <div 
         className="absolute inset-0 z-0 pointer-events-none opacity-[0.04]" 
         style={{
           backgroundImage: `url(${logoPath})`,
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          backgroundSize: '450px' // يمكنك تغيير الحجم من هنا
+          backgroundSize: '80%', // يجعل الشعار يأخذ مساحة واسعة من الشاشة دون أن يُقص
+          maxWidth: '600px', // يضمن عدم تضخمه في الشاشات الكبيرة جداً
+          margin: 'auto'
         }}
       />
-
-      {/* الهوية النصية الكبيرة في الخلفية (يمكنك إزالتها إذا أصبح المكان مزدحماً) */}
-      <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none overflow-hidden">
-        <span className="text-[25vw] font-black select-none" style={{ color: 'hsl(46,65%,52%)', opacity: 0.02, fontFamily: 'Cairo, sans-serif' }}>ثراء</span>
-      </div>
 
       <div className="relative z-10 w-full max-w-sm mx-4">
         <div className="flex flex-col items-center mb-10">
@@ -91,7 +88,7 @@ export default function Login() {
                 id="phone"
                 type="tel"
                 dir="ltr"
-                className="text-right h-12 rounded-xl focus:ring-primary/20"
+                className="text-right h-12 rounded-xl"
                 placeholder="05XXXXXXXX"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
@@ -107,7 +104,7 @@ export default function Login() {
                 id="password"
                 type="password"
                 dir="ltr"
-                className="h-12 rounded-xl focus:ring-primary/20"
+                className="h-12 rounded-xl"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
