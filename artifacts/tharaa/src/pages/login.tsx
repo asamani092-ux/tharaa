@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { useLogin, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import bgPath from "@assets/لقطة_شاشة_2026-03-23_233921_1774925020030.png";
-import logoPath from "@assets/لقطة_شاشة_2026-03-24_055723_1774925020035.png"; 
+import logoPath from "@assets/لقطة_شاشة_2026-03-23_233921_1774925020030.png"; 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
