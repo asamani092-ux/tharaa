@@ -45,13 +45,12 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       icon: BarChart3,
       id: "analytics",
     },
-    // تم إخفاء رابط الإعدادات لتنظيف القائمة الجانبية
-    // {
-    //   href: "/admin/settings",
-    //   label: "الإعدادات",
-    //   icon: Settings,
-    //   id: "settings",
-    // },
+    {
+       href: "/admin/settings",
+       label: "الإعدادات",
+       icon: Settings,
+       id: "settings",
+     },
   ];
 
   return (
