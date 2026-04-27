@@ -31,10 +31,13 @@ export default function AdminBatches() {
       const res = await fetch('/api/batches.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...data, status: 'active' }) // إرسال الحالة افتراضياً بالخلفية فقط
+        body: JSON.stringify(data)
       });
-      if (!res.ok) throw new Error();
-      return res.json();
+      const text = await res.text();
+      let jsonData;
+      try { jsonData = JSON.parse(text); } catch(e) { throw new Error("لم يتمكن السيرفر من معالجة الطلب"); }
+      if (!res.ok) throw new Error(jsonData.error || "فشل الإضافة");
+      return jsonData;
     }
   });
 
@@ -43,10 +46,13 @@ export default function AdminBatches() {
       const res = await fetch(`/api/batches.php?id=${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...data, id, status: 'active' }) // إرسال الحالة افتراضياً
+        body: JSON.stringify({ ...data, id })
       });
-      if (!res.ok) throw new Error();
-      return res.json();
+      const text = await res.text();
+      let jsonData;
+      try { jsonData = JSON.parse(text); } catch(e) { throw new Error("لم يتمكن السيرفر من معالجة التحديث"); }
+      if (!res.ok) throw new Error(jsonData.error || "فشل التحديث");
+      return jsonData;
     }
   });
 
@@ -64,15 +70,17 @@ export default function AdminBatches() {
     }
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+ const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editBatch) {
       updateBatch.mutate({ id: editBatch.id, data: form }, {
-        onSuccess: () => { toast.success("تم التحديث بنجاح ✅"); setIsModalOpen(false); refetch(); }
+        onSuccess: () => { toast.success("تم التحديث بنجاح ✅"); setIsModalOpen(false); refetch(); },
+        onError: (err: any) => toast.error(err.message) // 🌟 إظهار الخطأ الدقيق
       });
     } else {
       createBatch.mutate(form, {
-        onSuccess: () => { toast.success("تمت الإضافة بنجاح ✅"); setIsModalOpen(false); refetch(); }
+        onSuccess: () => { toast.success("تمت الإضافة بنجاح ✅"); setIsModalOpen(false); refetch(); },
+        onError: (err: any) => toast.error(err.message) // 🌟 إظهار الخطأ الدقيق
       });
     }
   };
