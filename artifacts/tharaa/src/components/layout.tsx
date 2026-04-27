@@ -72,9 +72,11 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           style={{ borderBottom: "1px solid hsl(217,36%,18%)" }}
         >
           {/* تم استبدال الشعار بنص واضح وأنيق */}
-          <h1 className="text-2xl font-bold text-primary" style={{ fontFamily: 'Cairo, sans-serif' }}>
-            ثراء المعرفة
-          </h1>
+          <h1 className="text-2xl font-bold" style={{ 
+    color: '#D4AF37', 
+    fontFamily: 'Cairo, sans-serif',
+    textShadow: '0px 2px 4px rgba(0,0,0,0.5)' 
+}}>ثراء المعرفة</h1>
         </div>
 
         <nav className="flex-1 p-3 space-y-1">
@@ -175,7 +177,10 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
         <div className="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div>
-              <h1 className="text-lg font-bold text-primary" style={{ fontFamily: 'Cairo, sans-serif' }}>ثراء المعرفة</h1>
+             <h1 className="text-xl font-bold" style={{ 
+    color: '#D4AF37', 
+    fontFamily: 'Cairo, sans-serif' 
+}}>ثراء المعرفة</h1>
               <p className="text-xs text-muted-foreground">بوابة المشارك</p>
             </div>
           </div>
