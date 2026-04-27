@@ -43,9 +43,13 @@ export default function Login() {
             window.location.href = "/student";
           }
         },
-        onError: () => {
-          toast.error("رقم الهاتف أو كلمة المرور غير صحيحة");
-        }
+        onError: (error: any) => {
+        // 🌟 استخراج رسالة السيرفر الدقيقة بذكاء (سواء كانت المكتبة Axios أو Fetch)
+        const serverMessage = error?.response?.data?.error || error?.info?.error || error?.message;
+
+        // إظهار الرسالة القادمة من السيرفر (والتي كتبناها في PHP)، أو رسالة افتراضية
+        toast.error(serverMessage || "تأكد من صحة البيانات أو تواصل مع الإدارة");
+      }
       }
     );
   };
