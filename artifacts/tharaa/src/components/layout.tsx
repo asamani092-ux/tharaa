@@ -7,9 +7,10 @@ import {
   BarChart3,
   Layers,
   Home,
+  Settings, // تأكد من استيراد أيقونة الإعدادات
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import logoPath from "@assets/لقطة_شاشة_2026-03-23_233921_1774925020030.png";
+import logoPath from "@assets/لقطة_شاشة_2026-03-24_055723_1774925020035.png";
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -45,12 +46,13 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       icon: BarChart3,
       id: "analytics",
     },
+    // إعادة إظهار تبويب الإعدادات
     {
-       href: "/admin/settings",
-       label: "الإعدادات",
-       icon: Settings,
-       id: "settings",
-     },
+      href: "/admin/settings",
+      label: "الإعدادات",
+      icon: Settings,
+      id: "settings",
+    },
   ];
 
   return (
@@ -70,12 +72,12 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           className="p-5 flex justify-center items-center h-[97px]"
           style={{ borderBottom: "1px solid hsl(217,36%,18%)" }}
         >
-          {/* تم استبدال الشعار بنص واضح وأنيق */}
+          {/* العنوان باللون الذهبي الفخم */}
           <h1 className="text-2xl font-bold" style={{ 
-    color: '#D4AF37', 
-    fontFamily: 'Cairo, sans-serif',
-    textShadow: '0px 2px 4px rgba(0,0,0,0.5)' 
-}}>ثراء المعرفة</h1>
+            color: '#D4AF37', 
+            fontFamily: 'Cairo, sans-serif',
+            textShadow: '0px 2px 4px rgba(0,0,0,0.5)' 
+          }}>ثراء المعرفة</h1>
         </div>
 
         <nav className="flex-1 p-3 space-y-1">
@@ -131,7 +133,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
       {/* Main Content */}
-      <main className="flex-1 p-6 md:p-8 overflow-y-auto min-w-0 text-center">
+      <main className="flex-1 p-6 md:p-8 overflow-y-auto min-w-0 text-right">
         <div className="max-w-6xl mx-auto">{children}</div>
       </main>
     </div>
@@ -155,14 +157,14 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
       className="min-h-screen bg-background text-foreground flex flex-col relative"
       dir="rtl"
     >
-      {/* 🌟 كود إضافة الخلفية الشفافة (العلامة المائية) */}
+      {/* الخلفية الشفافة (العلامة المائية) */}
       <div 
         className="fixed inset-0 z-0 pointer-events-none opacity-[0.04]" 
         style={{
           backgroundImage: `url(${logoPath})`,
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          backgroundSize: '400px' // يمكنك تكبير أو تصغير الشعار بتغيير هذا الرقم
+          backgroundSize: '400px'
         }}
       />
 
@@ -176,10 +178,10 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
         <div className="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div>
-             <h1 className="text-xl font-bold" style={{ 
-    color: '#D4AF37', 
-    fontFamily: 'Cairo, sans-serif' 
-}}>ثراء المعرفة</h1>
+              <h1 className="text-xl font-bold" style={{ 
+                color: '#D4AF37', 
+                fontFamily: 'Cairo, sans-serif' 
+              }}>ثراء المعرفة</h1>
               <p className="text-xs text-muted-foreground">بوابة المشارك</p>
             </div>
           </div>
