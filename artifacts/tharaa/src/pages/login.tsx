@@ -74,7 +74,7 @@ export default function Login() {
 
       <div className="relative z-10 w-full max-w-sm mx-4">
         <div className="flex flex-col items-center mb-10">
-          <h2 className="text-2xl font-black mb-2" style={{ color: 'hsl(46,65%,52%)', fontFamily: 'Cairo, sans-serif' }}>ثراء المعرفة</h2>
+          <h2 className="text-3xl font-black mb-2" style={{ color: '#D4AF37',fontFamily: 'Cairo, sans-serif',textShadow: '0px 2px 10px rgba(212, 175, 55, 0.3)', letterSpacing: '1px' }}>ثراء المعرفة</h2>
           <p className="text-muted-foreground text-sm text-center">أهلاً بك</p>
         </div>
 
