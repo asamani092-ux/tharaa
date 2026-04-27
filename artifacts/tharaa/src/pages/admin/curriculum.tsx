@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { useListCurriculum, useCreateCurriculum, useUpdateCurriculum, useDeleteCurriculum } from "@workspace/api-client-react";
+import { useListCurriculum } from "@workspace/api-client-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -12,10 +13,43 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 
 export default function AdminCurriculum() {
+  const queryClient = useQueryClient();
   const { data: curriculum, isLoading, refetch } = useListCurriculum();
-  const createBook = useCreateCurriculum();
-  const updateBook = useUpdateCurriculum();
-  const deleteBook = useDeleteCurriculum();
+  
+  // تعريف دوال الإضافة والتعديل والحذف يدوياً لتجاوز خطأ الـ API Client
+  const createBook = useMutation({
+    mutationFn: async ({ data }: { data: any }) => {
+      const res = await fetch('/api/curriculum', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) throw new Error("حدث خطأ أثناء الإضافة");
+      return res.json();
+    }
+  });
+
+  const updateBook = useMutation({
+    mutationFn: async ({ id, data }: { id: number, data: any }) => {
+      const res = await fetch(`/api/curriculum/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) throw new Error("حدث خطأ أثناء التحديث");
+      return res.json();
+    }
+  });
+
+  const deleteBook = useMutation({
+    mutationFn: async ({ id }: { id: number }) => {
+      const res = await fetch(`/api/curriculum/${id}`, {
+        method: 'DELETE'
+      });
+      if (!res.ok) throw new Error("حدث خطأ أثناء الحذف");
+      return res.json();
+    }
+  });
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editBook, setEditBook] = useState<any>(null);
