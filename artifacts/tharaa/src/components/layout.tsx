@@ -9,6 +9,7 @@ import {
   Home,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import logoPath from "@assets/لقطة_شاشة_2026-03-24_055723_1774925020035.png";
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -150,10 +151,22 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className="min-h-screen bg-background text-foreground flex flex-col"
+      className="min-h-screen bg-background text-foreground flex flex-col relative"
       dir="rtl"
     >
+      {/* 🌟 كود إضافة الخلفية الشفافة (العلامة المائية) */}
+      <div 
+        className="fixed inset-0 z-0 pointer-events-none opacity-[0.04]" 
+        style={{
+          backgroundImage: `url(${logoPath})`,
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: '400px' // يمكنك تكبير أو تصغير الشعار بتغيير هذا الرقم
+        }}
+      />
+
       <header
+        className="relative z-10"
         style={{
           backgroundColor: "hsl(218,42%,10%)",
           borderBottom: "1px solid hsl(217,36%,18%)",
@@ -161,7 +174,6 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
       >
         <div className="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            {/* تم إزالة صورة الشعار من هنا */}
             <div>
               <h1 className="text-lg font-bold text-primary" style={{ fontFamily: 'Cairo, sans-serif' }}>ثراء المعرفة</h1>
               <p className="text-xs text-muted-foreground">بوابة المشارك</p>
@@ -187,7 +199,7 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-      <main className="flex-1 max-w-5xl mx-auto w-full p-4 md:p-6">
+      <main className="flex-1 max-w-5xl mx-auto w-full p-4 md:p-6 relative z-10">
         {children}
       </main>
     </div>
