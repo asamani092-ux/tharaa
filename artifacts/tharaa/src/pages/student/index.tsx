@@ -123,7 +123,7 @@ export default function StudentPortal() {
       toast.error("أكتب فائدة لكي تتمكن من المشاركة");
       return;
     }
-    const message = `*فائدة من كتاب ${selectedBook.title}*\n\n${reflection.trim()}`;
+    const message = `📚 *فائدة من كتاب: ${selectedBook.title}*\n\n"${reflection.trim()}"\n\n✨ تمت المشاركة عبر منصة ثراء المعرفة`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, "_blank");
   };
