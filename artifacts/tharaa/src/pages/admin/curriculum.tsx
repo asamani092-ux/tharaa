@@ -16,7 +16,7 @@ export default function AdminCurriculum() {
   const queryClient = useQueryClient();
   const { data: curriculum, isLoading, refetch } = useListCurriculum();
   
-  // تعريف دوال الإضافة والتعديل والحذف يدوياً لتجاوز خطأ الـ API Client
+  // تعريف دوال الإضافة والتعديل والحذف يدوياً لتجاوز مشكلة الـ API Client
   const createBook = useMutation({
     mutationFn: async ({ data }: { data: any }) => {
       const res = await fetch('/api/curriculum', {
