@@ -240,10 +240,10 @@ export default function StudentPortal() {
         {/* Greeting */}
         <div>
           <h2 className="text-2xl font-bold" style={{ fontFamily: 'Cairo, sans-serif' }}>
-            مرحباً، {user?.name}
+            مرحباً، <span style={{ color: '#D4AF37' }}>{user?.name}</span>
           </h2>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            المرحلة {user?.phaseNumber} · النصاب الأسبوعي: {weeklyQuota} صفحة
+          <p className="text-sm mt-0.5" style={{ color: '#C5A059' }}>
+            النصاب الأسبوعي المطلوب: <strong className="text-foreground">{weeklyQuota} صفحة</strong>
           </p>
         </div>
 
