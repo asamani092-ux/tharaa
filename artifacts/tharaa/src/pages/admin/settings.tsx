@@ -141,20 +141,26 @@ export default function AdminSettings() {
 
           {/* مواعيد الرصد */}
           <Card className="bg-[#0f172a] border-[#1e293b] rounded-2xl shadow-xl border-t-4 border-t-emerald-500">
-            <CardHeader><div className="flex items-center gap-3"><Calendar className="w-5 h-5 text-emerald-400" /><CardTitle className="text-lg">مواعيد الرصد</CardTitle></div></CardHeader>
+            <CardHeader>
+              <div className="flex items-center gap-3"><Calendar className="w-5 h-5 text-emerald-400" /><CardTitle className="text-lg">مواعيد الرصد</CardTitle></div>
+            </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
-                <div className="space-y-0.5">
-                  <Label className="text-sm font-bold">تفعيل الرصد طوال الأسبوع</Label>
-                  <p className="text-[10px] text-muted-foreground">فتح التسجيل في أي يوم بدلاً من يوم محدد.</p>
+              <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10">
+                <div className="space-y-1">
+                  <Label className="text-sm font-bold block text-right">تفعيل الرصد طوال الأسبوع</Label>
+                  <p className="text-[11px] text-muted-foreground text-right">فتح التسجيل في أي يوم بدلاً من يوم محدد.</p>
                 </div>
-                <div className="px-1"><Switch checked={allDaysActive} onCheckedChange={setAllDaysActive} className="data-[state=checked]:bg-emerald-500 scale-90" /></div>
+                <div dir="ltr" className="shrink-0 ml-2">
+                  <Switch checked={allDaysActive} onCheckedChange={setAllDaysActive} className="data-[state=checked]:bg-emerald-500" />
+                </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-sm text-[#94a3b8]">اليوم الأساسي للرصد (التسليم)</Label>
+                <Label className="text-sm text-[#94a3b8] block text-right">اليوم الأساسي للرصد (التسليم)</Label>
                 <Select value={primaryDay} onValueChange={setPrimaryDay}>
                   <SelectTrigger className="h-11 rounded-xl bg-[#161e2f] border-[#1e293b]"><SelectValue /></SelectTrigger>
-                  <SelectContent>{days.map(day => <SelectItem key={day.value} value={day.value}>{day.label}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    {days.map(day => <SelectItem key={day.value} value={day.value}>{day.label}</SelectItem>)}
+                  </SelectContent>
                 </Select>
               </div>
               <Button onClick={handleSaveSettings} className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11" disabled={updateSettings.isPending}>تحديث المواعيد</Button>
@@ -192,10 +198,12 @@ export default function AdminSettings() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between p-4 rounded-2xl bg-red-500/5 border border-red-500/10">
                 <div className="space-y-1">
-                  <Label className="text-base flex items-center gap-2 text-red-400">وضع الصيانة <ShieldCheck className="w-5 h-5"/></Label>
+                  <Label className="text-base flex items-center gap-2 text-red-400 font-bold">وضع الصيانة <ShieldCheck className="w-5 h-5"/></Label>
                   <p className="text-xs text-muted-foreground">عند التفعيل، سيتم إغلاق واجهة الطلاب تماماً للصيانة.</p>
                 </div>
-                <div className="px-1"><Switch checked={isMaintenanceMode} onCheckedChange={(val) => { setIsMaintenanceMode(val); }} className="data-[state=checked]:bg-red-500 scale-90" /></div>
+                <div dir="ltr" className="shrink-0 ml-2">
+                  <Switch checked={isMaintenanceMode} onCheckedChange={(val) => { setIsMaintenanceMode(val); }} className="data-[state=checked]:bg-red-500" />
+                </div>
               </div>
               <Button onClick={handleSaveSettings} variant="destructive" className="w-full mt-4 rounded-xl font-bold h-11" disabled={updateSettings.isPending}>تحديث حالة النظام</Button>
             </CardContent>
