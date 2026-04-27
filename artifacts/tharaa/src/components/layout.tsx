@@ -7,10 +7,12 @@ import {
   BarChart3,
   Layers,
   Home,
-  Settings, // تأكد من استيراد أيقونة الإعدادات
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logoPath from "@assets/لقطة_شاشة_2026-03-23_233921_1774925020030.png";
+import { useGetSettings } from "@workspace/api-client-react";
+import { ShieldAlert } from "lucide-react"; // أيقونة التحذير
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -143,6 +145,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 export function StudentLayout({ children }: { children: React.ReactNode }) {
   const logout = useLogout();
   const { data: session } = useGetMe();
+  
+  // 1. جلب إعدادات المنصة لمعرفة حالة وضع الصيانة
+  const { data: settings, isLoading: isSettingsLoading } = useGetSettings();
 
   const handleLogout = () => {
     logout.mutate(undefined, {
@@ -152,12 +157,40 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
     });
   };
 
+  // 2. شاشة التحميل ريثما يتم التحقق من وضع الصيانة
+  if (isSettingsLoading) {
+    return <div className="min-h-screen bg-background flex items-center justify-center" dir="rtl"><span className="animate-pulse text-muted-foreground">جاري التحميل...</span></div>;
+  }
+
+  // 3. 🌟 الجدار المانع: إذا كان وضع الصيانة مفعلاً، اظهر هذه الشاشة بدلاً من الموقع
+  if (settings?.maintenanceMode) {
+    return (
+      <div className="min-h-screen bg-[#0d1425] flex flex-col items-center justify-center p-4 text-center relative overflow-hidden" dir="rtl">
+        {/* خلفية جمالية للصيانة */}
+        <div className="absolute inset-0 z-0 opacity-10" style={{ backgroundImage: `url(${logoPath})`, backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundSize: '600px' }} />
+        
+        <div className="relative z-10 max-w-md w-full bg-[#0f172a] border border-[#1e293b] p-8 rounded-3xl shadow-2xl flex flex-col items-center">
+          <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mb-6">
+            <ShieldAlert className="w-10 h-10 text-red-500" />
+          </div>
+          <h1 className="text-3xl font-bold mb-3" style={{ color: '#D4AF37', fontFamily: 'Cairo, sans-serif' }}>المنصة تحت الصيانة</h1>
+          <p className="text-muted-foreground text-sm leading-relaxed mb-8">
+            نعتذر منك يا {session?.user?.name}، المنصة تخضع لبعض التحديثات التقنية حالياً لتحسين تجربتكم. يرجى العودة لاحقاً!
+          </p>
+          <Button onClick={handleLogout} variant="outline" className="w-full rounded-xl border-[#1e293b] hover:bg-white/5">
+            تسجيل الخروج
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // 4. إذا لم يكن وضع الصيانة مفعلاً، اظهر واجهة الطالب الطبيعية
   return (
     <div
       className="min-h-screen bg-background text-foreground flex flex-col relative"
       dir="rtl"
     >
-      {/* الخلفية الشفافة (العلامة المائية) */}
       <div 
         className="fixed inset-0 z-0 pointer-events-none opacity-[0.04]" 
         style={{
@@ -169,7 +202,7 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
       />
 
       <header
-        className="relative z-10"
+        className="relative z-10 shadow-sm"
         style={{
           backgroundColor: "hsl(218,42%,10%)",
           borderBottom: "1px solid hsl(217,36%,18%)",
@@ -182,7 +215,7 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
                 color: '#D4AF37', 
                 fontFamily: 'Cairo, sans-serif' 
               }}>ثراء المعرفة</h1>
-              <p className="text-xs text-muted-foreground">بوابة المشارك</p>
+              <p className="text-xs text-muted-foreground mt-0.5">بوابة المشارك</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -196,7 +229,7 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
               data-testid="button-logout"
               variant="ghost"
               size="sm"
-              className="gap-2 text-muted-foreground hover:text-foreground"
+              className="gap-2 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg"
               onClick={handleLogout}
             >
               <LogOut className="h-4 w-4" />
