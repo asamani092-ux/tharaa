@@ -79,20 +79,31 @@ export default function AdminSettings() {
       const res = await fetch('/api/add_admin.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // مهم جداً للسماح بمرور الجلسة
+        credentials: 'include',
         body: JSON.stringify(data)
       });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || "فشل الاتصال بالسيرفر");
+      
+      // قراءة الرد كنص أولاً لمعرفة سبب الخطأ الحقيقي
+      const text = await res.text();
+      let jsonData;
+      try {
+        jsonData = JSON.parse(text);
+      } catch (e) {
+        // إذا لم يكن الرد بصيغة JSON فهذا يعني أن الملف غير موجود أو المسار خاطئ
+        throw new Error("خطأ في السيرفر: تأكد من رفع ملف add_admin.php في المسار الصحيح");
       }
-      return res.json();
+
+      if (!res.ok) {
+        throw new Error(jsonData.error || "حدث خطأ غير معروف");
+      }
+      return jsonData;
     },
     onSuccess: () => {
       toast.success("تمت إضافة المشرف الجديد بنجاح 🎉");
       setNewAdmin({ name: "", phone: "", password: "" });
+      queryClient.invalidateQueries({ queryKey: ['list-users'] });
     },
-    onError: (err: any) => toast.error(err.message)
+    onError: (err: any) => toast.error(err.message) // هنا ستظهر رسالة الخطأ الحقيقية
   });
 
   const days = [
