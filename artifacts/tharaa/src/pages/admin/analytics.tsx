@@ -45,9 +45,9 @@ export default function AdminAnalytics() {
   const topByPages = [...filteredStats].sort((a, b) => b.totalReadPages - a.totalReadPages).slice(0, 3);
   const topByBooks = [...filteredStats].sort((a, b) => b.completedCount - a.completedCount).slice(0, 3);
 
-  // 3. دالة التصدير إلى Excel (CSV) (نقطة 5.1)
-  const exportToCSV = () => {
-    const headers = ["الاسم", "الدفعة", "الصفحات المقروءة", "الكتب المنجزة", "نسبة الإنجاز"];
+// دالة التصدير الذكية إلى إكسل (تضمن توزيع الأعمدة بشكل مثالي)
+  const exportToExcel = () => {
+    const headers = ["اسم المشارك", "الدفعة", "إجمالي الصفحات", "الكتب المنجزة", "نسبة الإنجاز"];
     const rows = filteredStats.map(s => [
       s.name,
       batches?.find(b => b.id === s.batchId)?.name || "بدون",
@@ -55,12 +55,29 @@ export default function AdminAnalytics() {
       s.completedCount,
       `${s.completionRate}%`
     ]);
-    
-    const csvContent = "\uFEFF" + [headers, ...rows].map(e => e.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+
+    // بناء هيكل ملف إكسل متوافق تماماً مع جميع الأجهزة
+    const tableHtml = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40" dir="rtl">
+        <head><meta charset="UTF-8"></head>
+        <body>
+          <table border="1">
+            <thead>
+              <tr>${headers.map(h => `<th style="background-color:#161e2f; color:#D4AF37; font-weight:bold; height:40px;">${h}</th>`).join("")}</tr>
+            </thead>
+            <tbody>
+              ${rows.map(row => `<tr>${row.map(cell => `<td style="text-align:center; height:30px;">${cell}</td>`).join("")}</tr>`).join("")}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+
+    const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `احصائيات_ثراء_${new Date().toLocaleDateString()}.csv`;
+    // حفظ الملف بصيغة إكسل رسمية
+    link.download = `إحصائيات_الرصد_${new Date().toLocaleDateString('en-GB')}.xls`;
     link.click();
   };
 
@@ -80,8 +97,8 @@ export default function AdminAnalytics() {
                 {batches?.map(b => <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Button onClick={exportToCSV} variant="outline" className="rounded-xl gap-2 border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37]/10">
-              <FileSpreadsheet className="w-4 h-4" /> تصدير البيانات
+           <Button onClick={exportToExcel} variant="outline" className="rounded-xl gap-2 border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37]/10 h-11">
+              <FileSpreadsheet className="w-4 h-4" /> تصدير لإكسل
             </Button>
           </div>
         </div>
