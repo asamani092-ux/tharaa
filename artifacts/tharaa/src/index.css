@@ -6,6 +6,39 @@
 @custom-variant dark (&:is(.dark *));
 @custom-variant light (&:is([data-theme="light"] *));
 
+/* 🌟 هذا الجزء ضروري جداً لـ Tailwind v4 ليتعرف على كلاسات Shadcn */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --font-sans: var(--app-font-sans);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+}
+
 :root {
   /* ══════ Typography & Radius ══════ */
   --app-font-sans: 'IBM Plex Arabic', sans-serif;
@@ -15,68 +48,61 @@
   --radius-xl: 24px;
   --radius: 12px;
 
-  /* ══════ Elevation / Shadows ══════ */
-  --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
-  --shadow-md: 0 8px 24px rgba(0,0,0,0.12);
-  --shadow-lg: 0 16px 32px rgba(0,0,0,0.16);
-
   /* ══════ Dark Mode (Default Thraa Theme) ══════ */
-  --background: 227 42% 9%; /* 0d1120 */
-  --foreground: 225 31% 94%; /* eceef4 */
-  --border: 223 29% 25%; /* 2d3752 */
+  --background: #0d1120;
+  --foreground: #eceef4;
+  --border: rgba(255, 255, 255, 0.1);
   
-  --card: 225 34% 15%; /* 1a2136 */
-  --card-foreground: 225 31% 94%;
-  --card-border: 223 29% 25%;
+  --card: #1a2136;
+  --card-foreground: #eceef4;
 
   /* 🌟 الزر الذهبي والنص الأبيض */
-  --primary: 36 49% 59%; /* الذهبي caa264 */
-  --primary-foreground: 0 0% 100%; /* أبيض ناصع */
+  --primary: #caa264; 
+  --primary-foreground: #ffffff; 
   
   /* الزر الثانوي / الكحلي */
-  --secondary: 223 29% 25%; /* 2d3752 */
-  --secondary-foreground: 36 49% 59%; /* نص ذهبي */
+  --secondary: #2d3752; 
+  --secondary-foreground: #caa264; 
   
-  --muted: 225 34% 15%;
-  --muted-foreground: 226 24% 62%; /* 9ea6c8 */
+  --muted: #1a2136;
+  --muted-foreground: #9ea6c8; 
   
   /* Semantic Colors */
-  --success: 152 69% 31%; /* أخضر 10b981 */
-  --success-foreground: 0 0% 100%;
-  --destructive: 0 84% 60%; /* أحمر ef4444 */
-  --destructive-foreground: 0 0% 100%;
-  --warning: 38 92% 50%; /* برتقالي f59e0b */
+  --success: #10b981; 
+  --success-foreground: #ffffff;
+  --destructive: #ef4444; 
+  --destructive-foreground: #ffffff;
+  --warning: #f59e0b; 
 
-  --input: 223 29% 25%;
-  --ring: 36 49% 59%;
+  --input: rgba(255, 255, 255, 0.1);
+  --ring: #caa264;
 }
 
 [data-theme="light"], .light {
   /* ══════ Light Mode ══════ */
-  --background: 225 31% 94%; /* eceef4 */
-  --foreground: 227 42% 9%; /* 0d1120 */
-  --border: 226 31% 83%; /* c5cade */
+  --background: #eceef4; 
+  --foreground: #0d1120; 
+  --border: rgba(0, 0, 0, 0.08); 
   
-  --card: 0 0% 100%; /* أبيض ناصع للبطاقات */
-  --card-foreground: 227 42% 9%;
-  --card-border: 226 31% 83%;
+  --card: #ffffff; 
+  --card-foreground: #0d1120;
 
-  --primary: 36 49% 59%; /* ذهبي */
-  --primary-foreground: 0 0% 100%; /* أبيض */
+  --primary: #caa264; 
+  --primary-foreground: #ffffff; 
   
-  --secondary: 0 0% 100%; 
-  --secondary-foreground: 227 42% 9%; 
+  --secondary: #ffffff; 
+  --secondary-foreground: #0d1120; 
   
-  --muted: 226 31% 83%;
-  --muted-foreground: 223 29% 25%;
+  --muted: #c5cade;
+  --muted-foreground: #2d3752;
   
-  --success: 152 69% 31%;
-  --success-foreground: 0 0% 100%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 100%;
+  --success: #10b981;
+  --success-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
   
-  --input: 226 31% 83%;
-  --ring: 36 49% 59%;
+  --input: rgba(0, 0, 0, 0.08);
+  --ring: #caa264;
 }
 
 @layer base {
