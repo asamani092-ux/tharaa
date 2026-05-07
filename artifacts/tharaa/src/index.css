@@ -1,9 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&family=Tajawal:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Arabic:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant light (&:is([data-theme="light"] *));
 
 @theme inline {
   --color-background: hsl(var(--background));
@@ -62,105 +63,114 @@
 }
 
 :root {
-  --button-outline: rgba(255,255,255, .08);
-  --badge-outline: rgba(255,255,255, .05);
-
-  --opaque-button-border-intensity: -8;
-
-  --elevate-1: rgba(255,255,255, .02);
-  --elevate-2: rgba(255,255,255, .05);
-
-  /* Background: #0B121E */
-  --background: 218 47% 8%;
-  --foreground: 210 40% 92%;
-  --border: 217 36% 20%;
-
-  /* Card: #131C2B */
-  --card: 218 39% 12%;
-  --card-foreground: 210 40% 92%;
-  --card-border: 217 36% 20%;
-
-  /* Sidebar: #0F1828 - slightly lighter than bg */
-  --sidebar: 218 42% 10%;
-  --sidebar-foreground: 210 40% 85%;
-  --sidebar-border: 217 36% 18%;
-  --sidebar-primary: 46 65% 52%;
-  --sidebar-primary-foreground: 218 47% 8%;
-  --sidebar-accent: 217 36% 16%;
-  --sidebar-accent-foreground: 210 40% 92%;
-  --sidebar-ring: 46 65% 52%;
-
-  --popover: 218 39% 12%;
-  --popover-foreground: 210 40% 92%;
-  --popover-border: 217 36% 22%;
-
-  /* Gold primary #D4AF37 */
-  --primary: 46 65% 52%;
-  --primary-foreground: 218 47% 8%;
-
-  --secondary: 217 36% 18%;
-  --secondary-foreground: 210 40% 92%;
-  --muted: 217 36% 16%;
-  --muted-foreground: 210 25% 60%;
-  --accent: 46 65% 52%;
-  --accent-foreground: 218 47% 8%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 92%;
-
-  /* Input: #131C2B border: #212F45 */
-  --input: 217 36% 18%;
-  --ring: 46 65% 52%;
-
-  --chart-1: 46 65% 52%;
-  --chart-2: 210 40% 92%;
-  --chart-3: 217 36% 40%;
-  --chart-4: 218 39% 30%;
-  --chart-5: 46 80% 40%;
-
-  --app-font-sans: 'Tajawal', sans-serif;
-  --app-font-serif: 'Tajawal', serif;
+  /* ══════ تغيير الخط إلى IBM Plex Arabic ══════ */
+  --app-font-sans: 'IBM Plex Arabic', sans-serif;
+  --app-font-serif: 'IBM Plex Arabic', serif;
   --app-font-mono: Menlo, monospace;
   --radius: .75rem;
 
-  --shadow-sm: 0px 2px 4px 0px rgba(0,0,0, 0.4);
-  --shadow: 0px 4px 8px 0px rgba(0,0,0, 0.5);
-  --shadow-md: 0px 6px 12px 0px rgba(0,0,0, 0.6);
+  /* ══════ ألوان هوية ثراء (Design Tokens) ══════ */
+  --primary-50: #eceef4;
+  --primary-100: #c5cade;
+  --primary-200: #9ea6c8;
+  --primary-400: #566191;
+  --primary-600: #2d3752;
+  --primary-800: #1a2136;
+  --primary-900: #0d1120;
+
+  --secondary-50: #fdf5e8;
+  --secondary-100: #f5deb3;
+  --secondary-200: #e8c27e;
+  --secondary-400: #caa264;
+  --secondary-600: #a07840;
+  --secondary-800: #6b4f28;
+  --secondary-900: #3d2c12;
+
+  /* ══════ الوضع الداكن (الافتراضي للهوية) ══════ */
+  --background: 227 42% 9%; /* 0d1120 */
+  --foreground: 225 31% 94%; /* eceef4 */
+  --border: 223 29% 25%;
+  --card: 225 34% 15%; /* 1a2136 */
+  --card-foreground: 225 31% 94%;
+  --card-border: 223 29% 25%;
+
+  --sidebar: 227 42% 9%;
+  --sidebar-foreground: 225 31% 94%;
+  --sidebar-border: 223 29% 25%;
+  --sidebar-primary: 36 49% 59%;
+  --sidebar-primary-foreground: 227 42% 9%;
+  --sidebar-accent: 223 29% 25%;
+  --sidebar-accent-foreground: 225 31% 94%;
+  --sidebar-ring: 36 49% 59%;
+
+  --popover: 225 34% 15%;
+  --popover-foreground: 225 31% 94%;
+  --popover-border: 223 29% 25%;
+
+  --primary: 36 49% 59%; /* الذهبي caa264 */
+  --primary-foreground: 227 42% 9%;
+  --secondary: 223 29% 25%; /* الكحلي الفاتح 2d3752 */
+  --secondary-foreground: 225 31% 94%;
+  --muted: 223 29% 25%;
+  --muted-foreground: 228 27% 70%;
+  --accent: 36 49% 59%;
+  --accent-foreground: 227 42% 9%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
+
+  --input: 223 29% 25%;
+  --ring: 36 49% 59%;
+
+  /* Thraa Custom Vars */
+  --bg-primary: var(--primary-900);
+  --bg-secondary: var(--primary-800);
+  --text-primary: var(--primary-50);
+  --text-secondary: var(--primary-200);
+  --border-color: rgba(255, 255, 255, 0.1);
 }
 
-.dark {
-  --background: 218 47% 8%;
-  --foreground: 210 40% 92%;
-  --border: 217 36% 20%;
-  --card: 218 39% 12%;
-  --card-foreground: 210 40% 92%;
-  --card-border: 217 36% 20%;
+/* ══════ الوضع الفاتح (Light Mode) ══════ */
+[data-theme="light"], .light {
+  --background: 225 31% 94%; /* eceef4 */
+  --foreground: 227 42% 9%; /* 0d1120 */
+  --border: 226 31% 83%; /* c5cade */
+  --card: 0 0% 100%; /* white */
+  --card-foreground: 227 42% 9%;
+  --card-border: 226 31% 83%;
 
-  --sidebar: 218 42% 10%;
-  --sidebar-foreground: 210 40% 85%;
-  --sidebar-border: 217 36% 18%;
-  --sidebar-primary: 46 65% 52%;
-  --sidebar-primary-foreground: 218 47% 8%;
-  --sidebar-accent: 217 36% 16%;
-  --sidebar-accent-foreground: 210 40% 92%;
-  --sidebar-ring: 46 65% 52%;
+  --sidebar: 225 31% 94%;
+  --sidebar-foreground: 227 42% 9%;
+  --sidebar-border: 226 31% 83%;
+  --sidebar-primary: 36 49% 59%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 226 31% 83%;
+  --sidebar-accent-foreground: 227 42% 9%;
+  --sidebar-ring: 36 49% 59%;
 
-  --popover: 218 39% 12%;
-  --popover-foreground: 210 40% 92%;
-  --popover-border: 217 36% 22%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 227 42% 9%;
+  --popover-border: 226 31% 83%;
 
-  --primary: 46 65% 52%;
-  --primary-foreground: 218 47% 8%;
-  --secondary: 217 36% 18%;
-  --secondary-foreground: 210 40% 92%;
-  --muted: 217 36% 16%;
-  --muted-foreground: 210 25% 60%;
-  --accent: 46 65% 52%;
-  --accent-foreground: 218 47% 8%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 92%;
+  --primary: 36 49% 59%; /* الذهبي caa264 */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 226 31% 83%; /* c5cade */
+  --secondary-foreground: 227 42% 9%;
+  --muted: 226 31% 83%;
+  --muted-foreground: 223 29% 25%;
+  --accent: 36 49% 59%;
+  --accent-foreground: 227 42% 9%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
 
-  --input: 217 36% 18%;
-  --ring: 46 65% 52%;
+  --input: 226 31% 83%;
+  --ring: 36 49% 59%;
+
+  /* Thraa Custom Vars for Light Mode */
+  --bg-primary: var(--primary-50);
+  --bg-secondary: #ffffff;
+  --text-primary: var(--primary-900);
+  --text-secondary: var(--primary-600);
+  --border-color: rgba(0, 0, 0, 0.1);
 }
 
 @layer base {
@@ -169,8 +179,64 @@
   }
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    transition: background-color 0.4s ease, color 0.4s ease;
   }
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Cairo', sans-serif;
+    font-family: var(--app-font-sans);
+  }
+}
+
+@layer components {
+  /* مكونات هوية ثراء الجاهزة للاستخدام */
+  .ds-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.15);
+    overflow: hidden;
+    transition: background-color 0.4s ease, border-color 0.4s ease;
+  }
+
+  .ds-input {
+    width: 100%;
+    height: 56px;
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    padding: 0 1rem;
+    font-family: inherit;
+    transition: all 0.3s ease;
+  }
+  
+  .ds-input:focus {
+    outline: none;
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 3px rgba(202, 162, 100, 0.2);
+  }
+
+  .ds-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 56px;
+    padding: 0 2rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 1.125rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: none;
+  }
+
+  .ds-btn-primary {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+
+  .ds-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px -10px hsl(var(--primary));
   }
 }
