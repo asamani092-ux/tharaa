@@ -4,11 +4,10 @@ import { useLogin, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import bgPath from "@assets/لقطة_شاشة_2026-03-23_233921_1774925020030.png";
 import logoPath from "@assets/لقطة_شاشة_2026-03-23_233921_1774925020030.png"; 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Phone, Lock } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -20,6 +19,7 @@ export default function Login() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // 🌟 معالجة رقم الجوال الذكية (باقية كما برمجتها)
     let normalizedPhone = phone.trim();
     if (normalizedPhone.startsWith("+966")) {
       normalizedPhone = "0" + normalizedPhone.slice(4);
@@ -44,87 +44,112 @@ export default function Login() {
           }
         },
         onError: (error: any) => {
-        // 🌟 استخراج رسالة السيرفر الدقيقة بذكاء (سواء كانت المكتبة Axios أو Fetch)
-        const serverMessage = error?.response?.data?.error || error?.info?.error || error?.message;
-
-        // إظهار الرسالة القادمة من السيرفر (والتي كتبناها في PHP)، أو رسالة افتراضية
-        toast.error(serverMessage || "تأكد من صحة البيانات أو تواصل مع الإدارة");
-      }
+          // 🌟 استخراج رسالة السيرفر الدقيقة بذكاء
+          const serverMessage = error?.response?.data?.error || error?.info?.error || error?.message;
+          toast.error(serverMessage || "تأكد من صحة البيانات أو تواصل مع الإدارة");
+        }
       }
     );
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden" dir="rtl" style={{ backgroundColor: 'hsl(218,47%,8%)' }}>
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background text-foreground transition-colors duration-500" dir="rtl">
       
-      {/* 1. طبقة النقوش الخلفية */}
-      <div className="absolute inset-0 z-0">
-        <img src={bgPath} alt="" className="w-full h-full object-cover" style={{ opacity: 0.08 }} />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, hsl(218,47%,6%) 0%, hsl(218,47%,10%) 100%)' }} />
+      {/* 🌟 زر التبديل للثيم (أضفناه هنا في الزاوية العلوية) */}
+      <div className="absolute top-6 left-6 z-50">
+        <ThemeToggle />
       </div>
 
-      {/* 2. الشعار كخلفية شفافة (تم ضبطه ليظهر مكتملاً) */}
+      {/* 1. طبقة النقوش الخلفية المدمجة مع النظام */}
+      <div className="absolute inset-0 z-0">
+        <img src={bgPath} alt="" className="w-full h-full object-cover opacity-5" />
+        <div className="absolute inset-0 bg-background/90" />
+        {/* تأثيرات الإضاءة الخلفية المستوحاة من نظام التصميم */}
+        <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full blur-[120px] opacity-20 pointer-events-none bg-[var(--secondary-400)]"></div>
+        <div className="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full blur-[150px] opacity-20 pointer-events-none bg-[var(--primary-400)]"></div>
+      </div>
+
+      {/* 2. الشعار كخلفية شفافة */}
       <div 
-        className="absolute inset-0 z-0 pointer-events-none opacity-[0.04]" 
+        className="absolute inset-0 z-0 pointer-events-none opacity-[0.03]" 
         style={{
           backgroundImage: `url(${logoPath})`,
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          backgroundSize: '80%', // يجعل الشعار يأخذ مساحة واسعة من الشاشة دون أن يُقص
-          maxWidth: '600px', // يضمن عدم تضخمه في الشاشات الكبيرة جداً
+          backgroundSize: '80%',
+          maxWidth: '600px',
           margin: 'auto'
         }}
       />
 
-      <div className="relative z-10 w-full max-w-sm mx-4">
+      {/* محتوى الدخول */}
+      <div className="relative z-10 w-full max-w-md mx-4">
+        
+        {/* العناوين بالخط الجديد */}
         <div className="flex flex-col items-center mb-10">
-          <h2 className="text-3xl font-black mb-2" style={{ color: '#D4AF37',fontFamily: 'Cairo, sans-serif',textShadow: '0px 2px 10px rgba(212, 175, 55, 0.3)', letterSpacing: '1px' }}>ثراء المعرفة</h2>
-          <p className="text-muted-foreground text-sm text-center">أهلاً بك</p>
+          <h2 className="text-4xl font-bold mb-2 text-[hsl(var(--primary))]" style={{ textShadow: '0px 2px 10px rgba(202, 162, 100, 0.2)', letterSpacing: '1px' }}>
+            ثراء المعرفة
+          </h2>
+          <p className="text-[var(--text-secondary)] text-sm text-center">
+            أهلاً بك مجدداً في منصتك المعرفية
+          </p>
         </div>
 
-        <div className="rounded-2xl p-8 shadow-2xl" style={{ backgroundColor: 'hsl(218,39%,12%)', border: '1px solid hsl(217,36%,20%)' }}>
-          <h1 className="text-xl font-bold text-center mb-8 text-foreground" style={{ fontFamily: 'Cairo, sans-serif' }}>تسجيل الدخول</h1>
+        {/* 🌟 استخدام مكون البطاقة الجديد (.ds-card) */}
+        <div className="ds-card w-full">
+          <div className="p-8 space-y-6">
+            <h1 className="text-2xl font-bold text-center mb-4 text-[var(--text-primary)]">تسجيل الدخول</h1>
 
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground mr-1">رقم الهاتف</Label>
-              <Input
-                id="phone"
-                type="tel"
-                dir="ltr"
-                className="text-right h-12 rounded-xl"
-                placeholder="05XXXXXXXX"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                required
+            <form onSubmit={handleLogin} className="space-y-6">
+              
+              {/* حقل رقم الجوال مع تصميم .ds-input */}
+              <div className="space-y-2 relative">
+                <Label className="text-[var(--text-primary)] font-medium ml-1">رقم الهاتف</Label>
+                <div className="relative">
+                  <Phone className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 opacity-50 text-[var(--text-secondary)] pointer-events-none" />
+                  <input
+                    id="phone"
+                    type="tel"
+                    dir="ltr"
+                    className="ds-input pr-12 text-lg font-mono placeholder-[var(--text-secondary)]/50"
+                    placeholder="05XXXXXXXX"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    required
+                    disabled={login.isPending}
+                  />
+                </div>
+              </div>
+
+              {/* حقل كلمة المرور مع تصميم .ds-input */}
+              <div className="space-y-2 relative">
+                <Label className="text-[var(--text-primary)] font-medium ml-1">كلمة المرور</Label>
+                <div className="relative">
+                  <Lock className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 opacity-50 text-[var(--text-secondary)] pointer-events-none" />
+                  <input
+                    id="password"
+                    type="password"
+                    dir="ltr"
+                    className="ds-input pr-12 text-lg placeholder-[var(--text-secondary)]/50"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={login.isPending}
+                  />
+                </div>
+              </div>
+
+              {/* 🌟 استخدام زر النظام الأساسي (.ds-btn) */}
+              <button
+                type="submit"
+                className="ds-btn ds-btn-primary w-full mt-4"
                 disabled={login.isPending}
-                style={{ backgroundColor: 'hsl(217,36%,16%)', border: '1px solid hsl(217,36%,24%)' }}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground mr-1">كلمة المرور</Label>
-              <Input
-                id="password"
-                type="password"
-                dir="ltr"
-                className="h-12 rounded-xl"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={login.isPending}
-                style={{ backgroundColor: 'hsl(217,36%,16%)', border: '1px solid hsl(217,36%,24%)' }}
-              />
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full h-12 font-bold text-base rounded-xl mt-4 bg-primary hover:bg-primary/90 transition-all shadow-lg shadow-primary/10"
-              disabled={login.isPending}
-            >
-              {login.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "دخول للنظام"}
-            </Button>
-          </form>
+              >
+                {login.isPending ? <Loader2 className="w-6 h-6 animate-spin" /> : "دخول للنظام"}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>
