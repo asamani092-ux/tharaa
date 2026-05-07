@@ -6,30 +6,40 @@ import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-md)] text-base font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] [&_svg]:pointer-events-none [&_svg]:size-5 [&_svg]:shrink-0",
+  [
+    "inline-flex items-center justify-center gap-2 whitespace-nowrap",
+    "rounded-[var(--radius-md)] border-[1.5px] border-transparent",
+    "text-[var(--font-base)] font-medium",
+    "transition-all duration-[var(--dur-normal)] ease-[var(--ease-out)]",
+    "focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[var(--secondary-400)] focus-visible:outline-offset-2",
+    "disabled:pointer-events-none disabled:opacity-[.45]",
+    "active:scale-[0.97]",
+    "[&_svg]:pointer-events-none [&_svg]:size-5 [&_svg]:shrink-0",
+  ].join(" "),
   {
     variants: {
       variant: {
+        // Safe Migration: keep variant key as "default", visually map to primary button
         default:
-          "bg-primary text-primary-foreground hover:brightness-110 shadow-lg shadow-primary/20 border border-transparent",
+          "bg-[var(--primary-600)] text-white hover:bg-[var(--primary-800)] shadow-[var(--shadow-sm)]",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border shadow-sm",
+          "bg-[var(--secondary-400)] text-white hover:bg-[var(--secondary-600)] shadow-[var(--shadow-sm)]",
         outline:
-          "border-2 border-primary text-primary bg-transparent hover:bg-primary hover:text-primary-foreground",
+          "bg-transparent border-[1.5px] border-[var(--secondary-400)] text-[var(--secondary-600)] hover:bg-[var(--secondary-50)]",
         ghost:
-          "hover:bg-accent hover:text-accent-foreground text-muted-foreground border border-transparent",
+          "bg-transparent border-[1.5px] border-transparent text-[var(--primary-600)] hover:bg-[var(--primary-50)] hover:border-[var(--primary-400)]",
         destructive:
-          "bg-destructive text-destructive-foreground hover:brightness-110 shadow-lg shadow-destructive/20 border border-transparent",
+          "bg-[var(--error-400)] text-white hover:bg-[var(--error-600)] shadow-[var(--shadow-sm)]",
         success:
-          "bg-success text-success-foreground hover:brightness-110 shadow-lg shadow-success/20 border border-transparent",
-        link: 
-          "text-primary underline-offset-4 hover:underline",
+          "bg-[var(--success-600)] text-white hover:bg-[#1b5e20] shadow-[var(--shadow-sm)]",
+        link: "border-transparent bg-transparent text-[var(--primary-600)] underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-12 px-6 py-2", // حجم أكبر ومريح للعين واللمس
-        sm: "h-10 rounded-[var(--radius-sm)] px-4 text-sm",
-        lg: "h-14 rounded-[var(--radius-lg)] px-8 text-lg",
-        icon: "h-12 w-12",
+        // Matches design system sizing closer to btn-md/sm/lg
+        default: "h-11 px-5 py-2",
+        sm: "h-9 rounded-[var(--radius-sm)] px-3.5 text-[var(--font-sm)]",
+        lg: "h-12 rounded-[var(--radius-lg)] px-7 text-[var(--font-md)]",
+        icon: "h-10 w-10 p-0",
       },
     },
     defaultVariants: {
@@ -43,13 +53,35 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
-  isLoading?: boolean // 🌟 إضافة خاصية التحميل الذكية
+  isLoading?: boolean
+}
+
+const spinnerClassByVariant = (variant?: ButtonProps["variant"]) => {
+  if (variant === "ghost" || variant === "outline" || variant === "link") {
+    return "animate-spin text-[var(--primary-600)]"
+  }
+
+  if (variant === "secondary") {
+    return "animate-spin text-white"
+  }
+
+  return "animate-spin text-white"
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, isLoading, children, disabled, ...props }, ref) => {
-    
-    // إذا كان المكون يستخدم asChild (مثل استخدامه داخل Link)
+  (
+    {
+      className,
+      variant,
+      size,
+      asChild = false,
+      isLoading = false,
+      children,
+      disabled,
+      ...props
+    },
+    ref
+  ) => {
     if (asChild) {
       return (
         <Slot
@@ -62,7 +94,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       )
     }
 
-    // الزر الطبيعي
     return (
       <button
         className={cn(buttonVariants({ variant, size, className }))}
@@ -70,12 +101,13 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={isLoading || disabled}
         {...props}
       >
-        {isLoading && <Loader2 className="animate-spin" />}
+        {isLoading && <Loader2 className={spinnerClassByVariant(variant)} />}
         {children}
       </button>
     )
   }
 )
+
 Button.displayName = "Button"
 
 export { Button, buttonVariants }
