@@ -1,3 +1,4 @@
+/* 1. استدعاء الخط في أول سطر لضمان التحميل المبكر */
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Arabic:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -6,109 +7,106 @@
 @custom-variant dark (&:is(.dark *));
 @custom-variant light (&:is([data-theme="light"] *));
 
-/* 🌟 هذا الجزء ضروري جداً لـ Tailwind v4 ليتعرف على كلاسات Shadcn */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
+  /* 🌟 تعريف الخط لـ Tailwind v4 */
+  --font-sans: "IBM Plex Arabic", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "IBM Plex Arabic", serif;
 
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  
-  --color-success: var(--success);
-  --color-success-foreground: var(--success-foreground);
-  
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
 
-  --font-sans: var(--app-font-sans);
-  --radius-sm: var(--radius-sm);
-  --radius-md: var(--radius-md);
-  --radius-lg: var(--radius-lg);
-  --radius-xl: var(--radius-xl);
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-card-border: hsl(var(--card-border));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
 :root {
-  /* ══════ Typography & Radius ══════ */
+  /* ══════ المتغيرات اللونية (HSL) ══════ */
+  --background: 227 42% 9%; 
+  --foreground: 225 31% 94%; 
+  --border: 225 34% 15%; 
+
+  --card: 225 34% 15%;
+  --card-foreground: 225 31% 94%;
+  --card-border: 223 29% 25%;
+
+  --primary: 36 49% 59%; 
+  --primary-foreground: 0 0% 100%; 
+
+  --secondary: 223 29% 25%; 
+  --secondary-foreground: 36 49% 59%; 
+  
+  --muted: 225 34% 15%;
+  --muted-foreground: 226 24% 62%;
+  
+  --success: 152 69% 31%;
+  --success-foreground: 0 0% 100%;
+  
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --input: 225 34% 15%;
+  --ring: 36 49% 59%;
+  --radius: .75rem;
+
+  /* 🌟 تعريف الخط كمتغير CSS احتياطي */
   --app-font-sans: 'IBM Plex Arabic', sans-serif;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  --radius: 12px;
-
-  /* ══════ Dark Mode (Default Thraa Theme) ══════ */
-  --background: #0d1120;
-  --foreground: #eceef4;
-  --border: rgba(255, 255, 255, 0.1);
-  
-  --card: #1a2136;
-  --card-foreground: #eceef4;
-
-  /* 🌟 الزر الذهبي والنص الأبيض */
-  --primary: #caa264; 
-  --primary-foreground: #ffffff; 
-  
-  /* الزر الثانوي / الكحلي */
-  --secondary: #2d3752; 
-  --secondary-foreground: #caa264; 
-  
-  --muted: #1a2136;
-  --muted-foreground: #9ea6c8; 
-  
-  /* Semantic Colors */
-  --success: #10b981; 
-  --success-foreground: #ffffff;
-  --destructive: #ef4444; 
-  --destructive-foreground: #ffffff;
-  --warning: #f59e0b; 
-
-  --input: rgba(255, 255, 255, 0.1);
-  --ring: #caa264;
 }
 
 [data-theme="light"], .light {
-  /* ══════ Light Mode ══════ */
-  --background: #eceef4; 
-  --foreground: #0d1120; 
-  --border: rgba(0, 0, 0, 0.08); 
-  
-  --card: #ffffff; 
-  --card-foreground: #0d1120;
-
-  --primary: #caa264; 
-  --primary-foreground: #ffffff; 
-  
-  --secondary: #ffffff; 
-  --secondary-foreground: #0d1120; 
-  
-  --muted: #c5cade;
-  --muted-foreground: #2d3752;
-  
-  --success: #10b981;
-  --success-foreground: #ffffff;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  
-  --input: rgba(0, 0, 0, 0.08);
-  --ring: #caa264;
+  --background: 225 31% 94%; 
+  --foreground: 227 42% 9%; 
+  --border: 226 31% 83%; 
+  --card: 0 0% 100%; 
+  --card-foreground: 227 42% 9%;
+  --card-border: 226 31% 83%;
+  --primary: 36 49% 59%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 100%;
+  --secondary-foreground: 227 42% 9%;
+  --muted: 226 31% 83%;
+  --muted-foreground: 223 29% 25%;
+  --input: 226 31% 83%;
 }
 
 @layer base {
-  * { @apply border-border; }
+  * {
+    @apply border-border;
+    /* 🌟 إجبار جميع العناصر على استخدام الخط */
+    font-family: var(--app-font-sans);
+  }
+  
   body {
-    @apply font-sans antialiased bg-background text-foreground;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    @apply antialiased bg-background text-foreground transition-colors duration-300;
+    font-family: var(--app-font-sans) !important;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--app-font-sans) !important;
+    font-weight: 700;
+  }
+  
+  button, input, optgroup, select, textarea {
+    font-family: inherit;
   }
 }
