@@ -1,5 +1,3 @@
-/* 1. استدعاء الخط في أول سطر لضمان التحميل المبكر */
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Arabic:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -8,7 +6,6 @@
 @custom-variant light (&:is([data-theme="light"] *));
 
 @theme inline {
-  /* 🌟 تعريف الخط لـ Tailwind v4 */
   --font-sans: "IBM Plex Arabic", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "IBM Plex Arabic", serif;
 
@@ -24,10 +21,10 @@
 
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
-  
+
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
-  
+
   --color-muted: hsl(var(--muted));
   --color-muted-foreground: hsl(var(--muted-foreground));
 
@@ -41,76 +38,144 @@
 }
 
 :root {
-  /* ══════ المتغيرات اللونية (HSL) ══════ */
-  --background: 227 42% 9%; 
-  --foreground: 225 31% 94%; 
-  --border: 225 34% 15%; 
+  /* النظام الحالي (HSL) */
+  --background: 227 42% 9%;
+  --foreground: 225 31% 94%;
+  --border: 225 34% 15%;
 
   --card: 225 34% 15%;
   --card-foreground: 225 31% 94%;
   --card-border: 223 29% 25%;
 
-  --primary: 36 49% 59%; 
-  --primary-foreground: 0 0% 100%; 
+  --primary: 36 49% 59%;
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 223 29% 25%; 
-  --secondary-foreground: 36 49% 59%; 
-  
+  --secondary: 223 29% 25%;
+  --secondary-foreground: 36 49% 59%;
+
   --muted: 225 34% 15%;
   --muted-foreground: 226 24% 62%;
-  
+
   --success: 152 69% 31%;
   --success-foreground: 0 0% 100%;
-  
+
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
 
   --input: 225 34% 15%;
   --ring: 36 49% 59%;
-  --radius: .75rem;
+  --radius: 0.75rem;
 
-  /* 🌟 تعريف الخط كمتغير CSS احتياطي */
-  --app-font-sans: 'IBM Plex Arabic', sans-serif;
+  --app-font-sans: "IBM Plex Arabic", "Segoe UI", system-ui, sans-serif;
+
+  /* ===== Bridge لتوكنز الهوية الجديدة ===== */
+  --bg-primary: hsl(var(--card));
+  --bg-secondary: hsl(var(--background));
+  --bg-tertiary: hsl(225 34% 18%);
+
+  --text-primary: hsl(var(--foreground));
+  --text-secondary: hsl(var(--muted-foreground));
+  --text-disabled: hsl(226 16% 52%);
+
+  --border-subtle: hsl(225 34% 18%);
+  --border-default: hsl(var(--card-border));
+  --border-strong: hsl(223 29% 32%);
+
+  --primary-50: hsl(225 34% 18%);
+  --primary-400: hsl(223 25% 55%);
+  --primary-600: hsl(227 30% 25%);
+  --primary-800: hsl(227 42% 14%);
+
+  --secondary-50: hsl(40 70% 93%);
+  --secondary-400: hsl(var(--primary));
+  --secondary-600: hsl(36 45% 45%);
+
+  --success-600: hsl(var(--success));
+  --error-400: hsl(var(--destructive));
+  --error-600: hsl(0 70% 45%);
+
+  --font-sm: 13px;
+  --font-base: 15px;
+  --font-md: 17px;
+  --font-xl: 24px;
+
+  --dur-fast: 100ms;
+  --dur-normal: 200ms;
+  --ease-out: cubic-bezier(0, 0, 0.3, 1);
+
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+
+  --shadow-sm: 0 2px 8px rgba(45, 55, 82, 0.08);
+  --shadow-md: 0 4px 16px rgba(45, 55, 82, 0.1);
+  --shadow-xl: 0 16px 48px rgba(45, 55, 82, 0.15);
 }
 
-[data-theme="light"], .light {
-  --background: 225 31% 94%; 
-  --foreground: 227 42% 9%; 
-  --border: 226 31% 83%; 
-  --card: 0 0% 100%; 
+[data-theme="light"],
+.light {
+  --background: 225 31% 94%;
+  --foreground: 227 42% 9%;
+  --border: 226 31% 83%;
+
+  --card: 0 0% 100%;
   --card-foreground: 227 42% 9%;
   --card-border: 226 31% 83%;
+
   --primary: 36 49% 59%;
   --primary-foreground: 0 0% 100%;
+
   --secondary: 0 0% 100%;
   --secondary-foreground: 227 42% 9%;
+
   --muted: 226 31% 83%;
   --muted-foreground: 223 29% 25%;
   --input: 226 31% 83%;
+
+  /* bridge light */
+  --bg-primary: #ffffff;
+  --bg-secondary: #fafaf9;
+  --bg-tertiary: #fff5e9;
+  --text-primary: #1a2136;
+  --text-secondary: #5c5956;
+  --text-disabled: #b0aca5;
+  --border-subtle: #f4f3f1;
+  --border-default: #e8e6e3;
+  --border-strong: #b0aca5;
+  --primary-50: #eceef4;
+  --primary-400: #566191;
+  --primary-600: #2d3752;
+  --primary-800: #1a2136;
+  --secondary-50: #fdf5e8;
+  --secondary-400: #caa264;
+  --secondary-600: #a07840;
 }
 
 @layer base {
   * {
     @apply border-border;
-    /* 🌟 إجبار جميع العناصر على استخدام الخط */
+  }
+
+  html,
+  body,
+  #root {
     font-family: var(--app-font-sans);
   }
-  
+
   body {
     @apply antialiased bg-background text-foreground transition-colors duration-300;
-    font-family: var(--app-font-sans) !important;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--app-font-sans) !important;
+    font-family: var(--app-font-sans);
     font-weight: 700;
   }
-  
-  button, input, optgroup, select, textarea {
+
+  button,
+  input,
+  optgroup,
+  select,
+  textarea {
     font-family: inherit;
   }
-}
-/* إجبار كامل للموقع على استخدام خط ثراء */
-html, body, *, [class*="font-"] {
-    font-family: 'IBM Plex Arabic', sans-serif !important;
 }
