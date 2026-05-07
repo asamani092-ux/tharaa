@@ -110,3 +110,7 @@
     font-family: inherit;
   }
 }
+/* إجبار كامل للموقع على استخدام خط ثراء */
+html, body, *, [class*="font-"] {
+    font-family: 'IBM Plex Arabic', sans-serif !important;
+}
