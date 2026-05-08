@@ -1,4 +1,5 @@
 import * as React from "react"
+
 import { cn } from "@/lib/utils"
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
@@ -13,7 +14,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
             "h-11 px-[14px] py-[10px]",
             "rounded-[var(--radius-md)] border-[1.5px]",
             "border-[var(--border-strong)] bg-[var(--bg-primary)]",
-            "text-[var(--font-base)] text-[var(--text-primary)]",
+            "text-[15px] text-[var(--text-primary)]",
             "placeholder:text-[var(--text-secondary)] placeholder:opacity-80",
             "transition-all duration-[var(--dur-normal)] ease-[var(--ease-out)]",
             "hover:border-[var(--primary-400)]",
@@ -22,7 +23,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
             "focus-visible:shadow-[0_0_0_3px_rgba(45,55,82,.12)]",
             "disabled:cursor-not-allowed disabled:opacity-[.45]",
             "disabled:bg-[var(--neutral-100)] disabled:text-[var(--text-disabled)]",
-            "file:border-0 file:bg-transparent file:text-[var(--font-sm)] file:font-medium file:text-[var(--text-primary)]",
+            "file:border-0 file:bg-transparent file:text-[13px] file:font-medium file:text-[var(--text-primary)]",
           ].join(" "),
           className
         )}
@@ -31,7 +32,6 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
     )
   }
 )
-
 Input.displayName = "Input"
 
 export { Input }
