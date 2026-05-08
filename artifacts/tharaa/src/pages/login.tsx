@@ -18,9 +18,7 @@ export default function Login() {
 
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-
-  // بما أن الملفات داخل public/brand لا نحتاج import
-  const bgImage = "/brand/login-bg.png";
+  
   const logoFullDark = "/brand/logo-full-dark.png";
   const logoFullWhite = "/brand/logo-full-white.png";
 
@@ -80,15 +78,8 @@ export default function Login() {
         <ThemeToggle />
       </div>
 
-      <div className="absolute inset-0 z-0">
-        <img
-          src={bgImage}
-          alt=""
-          className="h-full w-full object-cover opacity-[0.14]"
-        />
-        <div className="absolute inset-0 bg-background/88" />
-      </div>
-
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.03),transparent_40%),var(--bg-secondary)]" />
+      
       <div
         className="absolute inset-0 z-0 pointer-events-none"
         style={{
