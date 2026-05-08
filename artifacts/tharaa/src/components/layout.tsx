@@ -11,8 +11,9 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import logoPath from "@assets/لقطة_شاشة_2026-03-23_233921_1774925020030.png";
 import { useGetSettings } from "@workspace/api-client-react";
+
+const logoPath = "/brand/logo-full-white.png";
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
