@@ -11,13 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
-// =====================
-// استبدل هذه المسارات بملفاتك النهائية
-// =====================
-import bgImage from "@assets/login-bg.png";
-import logoFullDark from "@assets/logo-full-dark.png";
-import logoFullWhite from "@assets/logo-full-white.png";
-
 export default function Login() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
@@ -26,13 +19,19 @@ export default function Login() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
 
+  // بما أن الملفات داخل public/brand لا نحتاج import
+  const bgImage = "/brand/login-bg.png";
+  const logoFullDark = "/brand/logo-full-dark.png";
+  const logoFullWhite = "/brand/logo-full-white.png";
+
   // اكتشاف الثيم الحالي
   const isDark =
     document.documentElement.classList.contains("dark") ||
     document.documentElement.getAttribute("data-theme") !== "light";
 
-  // الشعار الرئيسي + العلامة المائية حسب الثيم
-  const logoMain = isDark ? logoFullDark : logoFullDark;
+  // في الداكن: الشعار الأبيض/الفاتح
+  // في الفاتح: الشعار الداكن
+  const logoMain = isDark ? logoFullWhite : logoFullDark;
   const logoWatermark = isDark ? logoFullWhite : logoFullDark;
 
   const handleLogin = (e: React.FormEvent) => {
@@ -77,12 +76,10 @@ export default function Login() {
       dir="rtl"
       className="min-h-screen relative overflow-hidden bg-background text-foreground font-sans"
     >
-      {/* زر تبديل الثيم */}
       <div className="absolute top-5 left-5 z-30">
         <ThemeToggle />
       </div>
 
-      {/* الخلفية الأساسية */}
       <div className="absolute inset-0 z-0">
         <img
           src={bgImage}
@@ -92,7 +89,6 @@ export default function Login() {
         <div className="absolute inset-0 bg-background/88" />
       </div>
 
-      {/* العلامة المائية */}
       <div
         className="absolute inset-0 z-0 pointer-events-none"
         style={{
@@ -104,10 +100,8 @@ export default function Login() {
         }}
       />
 
-      {/* المحتوى */}
       <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
         <div className="w-full max-w-md">
-          {/* الشعار */}
           <div className="mb-8 flex flex-col items-center text-center">
             <img
               src={logoMain}
@@ -119,7 +113,6 @@ export default function Login() {
             </p>
           </div>
 
-          {/* بطاقة تسجيل الدخول */}
           <Card className="w-full rounded-[var(--radius-xl)] border border-[var(--border-default)] shadow-[var(--shadow-lg)]">
             <CardHeader className="text-center pb-4">
               <CardTitle className="text-[24px] font-semibold">تسجيل الدخول</CardTitle>
@@ -128,7 +121,6 @@ export default function Login() {
 
             <CardContent>
               <form onSubmit={handleLogin} className="space-y-5">
-                {/* الهاتف */}
                 <div className="space-y-2">
                   <Label htmlFor="phone">رقم الهاتف</Label>
                   <div className="relative">
@@ -147,7 +139,6 @@ export default function Login() {
                   </div>
                 </div>
 
-                {/* كلمة المرور */}
                 <div className="space-y-2">
                   <Label htmlFor="password">كلمة المرور</Label>
                   <div className="relative">
@@ -166,7 +157,6 @@ export default function Login() {
                   </div>
                 </div>
 
-                {/* زر الدخول */}
                 <Button
                   type="submit"
                   className="w-full mt-1"
