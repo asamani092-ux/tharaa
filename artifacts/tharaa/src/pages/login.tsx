@@ -27,7 +27,6 @@ export default function Login() {
     document.documentElement.classList.contains("dark") ||
     document.documentElement.getAttribute("data-theme") !== "light";
 
-  // في الداكن: الشعار الأبيض/الفاتح
   // في الفاتح: الشعار الداكن
   const logoMain = isDark ? logoFullWhite : logoFullDark;
   const logoWatermark = isDark ? logoFullWhite : logoFullDark;
