@@ -2,34 +2,50 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useLogin, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import bgPath from "@assets/لقطة_شاشة_2026-03-23_233921_1774925020030.png";
-import logoPath from "@assets/لقطة_شاشة_2026-03-23_233921_1774925020030.png";
+import { toast } from "sonner";
+import { Phone, Lock } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-
-import { toast } from "sonner";
-import { Phone, Lock } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+
+// =====================
+// استبدل هذه المسارات بملفاتك النهائية
+// =====================
+import bgImage from "@assets/login-bg.png";
+import logoFullDark from "@assets/logo-full-dark.png";
+import logoFullWhite from "@assets/logo-full-white.png";
 
 export default function Login() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const login = useLogin();
+
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+
+  // اكتشاف الثيم الحالي
+  const isDark =
+    document.documentElement.classList.contains("dark") ||
+    document.documentElement.getAttribute("data-theme") !== "light";
+
+  // الشعار الرئيسي + العلامة المائية حسب الثيم
+  const logoMain = isDark ? logoFullDark : logoFullDark;
+  const logoWatermark = isDark ? logoFullWhite : logoFullDark;
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
 
     let normalizedPhone = phone.trim();
+
     if (normalizedPhone.startsWith("+966")) {
       normalizedPhone = "0" + normalizedPhone.slice(4);
     } else if (normalizedPhone.startsWith("966") && normalizedPhone.length === 12) {
       normalizedPhone = "0" + normalizedPhone.slice(3);
     }
+
     if (!normalizedPhone.startsWith("0") && normalizedPhone.length === 9) {
       normalizedPhone = "0" + normalizedPhone;
     }
@@ -58,105 +74,110 @@ export default function Login() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background text-foreground transition-colors duration-300 font-sans"
       dir="rtl"
+      className="min-h-screen relative overflow-hidden bg-background text-foreground font-sans"
     >
       {/* زر تبديل الثيم */}
-      <div className="absolute top-6 left-6 z-50">
+      <div className="absolute top-5 left-5 z-30">
         <ThemeToggle />
       </div>
 
-      {/* خلفية كحلية + طبقة تعتيم + نقش الشعار */}
+      {/* الخلفية الأساسية */}
       <div className="absolute inset-0 z-0">
         <img
-          src={bgPath}
+          src={bgImage}
           alt=""
-          className="w-full h-full object-cover opacity-10"
+          className="h-full w-full object-cover opacity-[0.14]"
         />
-        <div className="absolute inset-0 bg-background/90" />
+        <div className="absolute inset-0 bg-background/88" />
       </div>
 
+      {/* العلامة المائية */}
       <div
-        className="absolute inset-0 z-0 pointer-events-none opacity-[0.05] flex items-center justify-center"
+        className="absolute inset-0 z-0 pointer-events-none"
         style={{
-          backgroundImage: `url(${logoPath})`,
+          backgroundImage: `url(${logoWatermark})`,
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
-          backgroundSize: "70%",
+          backgroundSize: "68%",
+          opacity: 0.05,
         }}
       />
 
-      {/* محتوى النموذج */}
-      <div className="relative z-10 w-full max-w-md mx-4">
-        <div className="flex flex-col items-center mb-8 text-center">
-          <h1 className="text-[var(--font-3xl)] font-bold text-[var(--secondary-400)] mb-1">
-            ثراء المعرفة
-          </h1>
-          <p className="text-[var(--text-secondary)] text-sm">
-            بوابة الوصول إلى منصتك المعرفية
-          </p>
+      {/* المحتوى */}
+      <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
+        <div className="w-full max-w-md">
+          {/* الشعار */}
+          <div className="mb-8 flex flex-col items-center text-center">
+            <img
+              src={logoMain}
+              alt="شعار ثراء المعرفة"
+              className="w-[220px] max-w-full h-auto object-contain"
+            />
+            <p className="mt-2 text-[13px] text-[var(--text-secondary)]">
+              بوابة الوصول إلى منصتك المعرفية
+            </p>
+          </div>
+
+          {/* بطاقة تسجيل الدخول */}
+          <Card className="w-full rounded-[var(--radius-xl)] border border-[var(--border-default)] shadow-[var(--shadow-lg)]">
+            <CardHeader className="text-center pb-4">
+              <CardTitle className="text-[24px] font-semibold">تسجيل الدخول</CardTitle>
+              <CardDescription>أهلاً بك مجدداً في منصتك المعرفية</CardDescription>
+            </CardHeader>
+
+            <CardContent>
+              <form onSubmit={handleLogin} className="space-y-5">
+                {/* الهاتف */}
+                <div className="space-y-2">
+                  <Label htmlFor="phone">رقم الهاتف</Label>
+                  <div className="relative">
+                    <Phone className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-secondary)] opacity-80 pointer-events-none" />
+                    <Input
+                      id="phone"
+                      type="tel"
+                      dir="ltr"
+                      className="pr-10"
+                      placeholder="05XXXXXXXX"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      required
+                      disabled={login.isPending}
+                    />
+                  </div>
+                </div>
+
+                {/* كلمة المرور */}
+                <div className="space-y-2">
+                  <Label htmlFor="password">كلمة المرور</Label>
+                  <div className="relative">
+                    <Lock className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-secondary)] opacity-80 pointer-events-none" />
+                    <Input
+                      id="password"
+                      type="password"
+                      dir="ltr"
+                      className="pr-10"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      disabled={login.isPending}
+                    />
+                  </div>
+                </div>
+
+                {/* زر الدخول */}
+                <Button
+                  type="submit"
+                  className="w-full mt-1"
+                  isLoading={login.isPending}
+                >
+                  دخول للنظام
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
         </div>
-
-        <Card className="w-full">
-          <CardHeader className="text-center">
-            <CardTitle className="text-[var(--font-xl)] font-semibold">
-              تسجيل الدخول
-            </CardTitle>
-            <CardDescription>أهلاً بك مجدداً في منصتك المعرفية</CardDescription>
-          </CardHeader>
-
-          <CardContent>
-            <form onSubmit={handleLogin} className="space-y-6">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-[var(--text-primary)]">
-                  رقم الهاتف
-                </Label>
-                <div className="relative">
-                  <Phone className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-secondary)] opacity-70 pointer-events-none" />
-                  <Input
-                    id="phone"
-                    type="tel"
-                    dir="ltr"
-                    className="pr-11 text-[var(--font-md)]"
-                    placeholder="05XXXXXXXX"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    required
-                    disabled={login.isPending}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-[var(--text-primary)]">
-                  كلمة المرور
-                </Label>
-                <div className="relative">
-                  <Lock className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-secondary)] opacity-70 pointer-events-none" />
-                  <Input
-                    id="password"
-                    type="password"
-                    dir="ltr"
-                    className="pr-11 text-[var(--font-md)]"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={login.isPending}
-                  />
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full mt-2 h-11 text-[var(--font-md)] font-medium"
-                isLoading={login.isPending}
-              >
-                دخول للنظام
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
