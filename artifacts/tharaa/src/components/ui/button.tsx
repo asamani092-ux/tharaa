@@ -9,7 +9,7 @@ const buttonVariants = cva(
   [
     "inline-flex items-center justify-center gap-2 whitespace-nowrap",
     "rounded-[var(--radius-md)] border-[1.5px] border-transparent",
-    "text-[var(--font-base)] font-medium",
+    "text-[15px] font-medium",
     "transition-all duration-[var(--dur-normal)] ease-[var(--ease-out)]",
     "focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[var(--secondary-400)] focus-visible:outline-offset-2",
     "disabled:pointer-events-none disabled:opacity-[.45]",
@@ -19,7 +19,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        // Safe Migration: keep variant key as "default", visually map to primary button
+        // default = primary (safe migration)
         default:
           "bg-[var(--primary-600)] text-white hover:bg-[var(--primary-800)] shadow-[var(--shadow-sm)]",
         secondary:
@@ -35,10 +35,9 @@ const buttonVariants = cva(
         link: "border-transparent bg-transparent text-[var(--primary-600)] underline-offset-4 hover:underline",
       },
       size: {
-        // Matches design system sizing closer to btn-md/sm/lg
         default: "h-11 px-5 py-2",
-        sm: "h-9 rounded-[var(--radius-sm)] px-3.5 text-[var(--font-sm)]",
-        lg: "h-12 rounded-[var(--radius-lg)] px-7 text-[var(--font-md)]",
+        sm: "h-9 rounded-[var(--radius-sm)] px-3.5 text-[13px]",
+        lg: "h-12 rounded-[var(--radius-lg)] px-7 text-[17px]",
         icon: "h-10 w-10 p-0",
       },
     },
@@ -60,11 +59,6 @@ const spinnerClassByVariant = (variant?: ButtonProps["variant"]) => {
   if (variant === "ghost" || variant === "outline" || variant === "link") {
     return "animate-spin text-[var(--primary-600)]"
   }
-
-  if (variant === "secondary") {
-    return "animate-spin text-white"
-  }
-
   return "animate-spin text-white"
 }
 
