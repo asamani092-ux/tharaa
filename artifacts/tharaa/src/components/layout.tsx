@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useLogout, useGetMe } from "@workspace/api-client-react";
 import {
@@ -13,7 +14,26 @@ import {
 import { Button } from "@/components/ui/button";
 import { useGetSettings } from "@workspace/api-client-react";
 
-const logoPath = "/brand/logo-full-white.png";
+function useIsDarkTheme() {
+  const [isDark, setIsDark] = useState(() =>
+    typeof document !== "undefined"
+      ? document.documentElement.classList.contains("dark")
+      : false
+  );
+
+  useEffect(() => {
+    const el = document.documentElement;
+    const sync = () => setIsDark(el.classList.contains("dark"));
+    sync();
+
+    const mo = new MutationObserver(sync);
+    mo.observe(el, { attributes: true, attributeFilter: ["class"] });
+
+    return () => mo.disconnect();
+  }, []);
+
+  return isDark;
+}
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -36,6 +56,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { href: "/admin/analytics", label: "الإحصائيات", icon: BarChart3, id: "analytics" },
     { href: "/admin/settings", label: "الإعدادات", icon: Settings, id: "settings" },
   ];
+
   return (
     <div className="flex min-h-screen bg-background text-foreground flex-col md:flex-row font-sans" dir="rtl">
       <aside className="w-full md:w-64 flex flex-col shrink-0 bg-[var(--bg-primary)] border-l border-[var(--border-default)]">
@@ -70,7 +91,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="p-4 border-t border-[var(--border-default)]">
-          <div className="mb-3 px-2 text-sm text-[var(--text-secondary)] font-medium" data-testid="text-username">
+          <div
+            className="mb-3 px-2 text-sm text-[var(--text-secondary)] font-medium"
+            data-testid="text-username"
+          >
             {session?.user?.name}
           </div>
           <Button
@@ -96,6 +120,11 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
   const logout = useLogout();
   const { data: session } = useGetMe();
   const { data: settings, isLoading: isSettingsLoading } = useGetSettings();
+  const isDark = useIsDarkTheme();
+
+  const iconColored = "/brand/thraa_icon_colored.png";
+  const iconWhite = "/brand/thraa_icon_white.png";
+  const logoPath = isDark ? iconWhite : iconColored;
 
   const handleLogout = () => {
     logout.mutate(undefined, {
@@ -115,7 +144,10 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
 
   if (settings?.maintenanceMode) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-center relative overflow-hidden font-sans" dir="rtl">
+      <div
+        className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-center relative overflow-hidden font-sans"
+        dir="rtl"
+      >
         <div
           className="absolute inset-0 z-0 opacity-10 pointer-events-none"
           style={{
@@ -171,7 +203,10 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-[var(--text-primary)]/80 hidden sm:block" data-testid="text-username">
+            <span
+              className="text-sm font-medium text-[var(--text-primary)]/80 hidden sm:block"
+              data-testid="text-username"
+            >
               {session?.user?.name}
             </span>
 
@@ -182,7 +217,7 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
               className="gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] rounded-[var(--radius-md)]"
               onClick={handleLogout}
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-4 h-4" />
               <span className="hidden sm:inline">خروج</span>
             </Button>
           </div>
