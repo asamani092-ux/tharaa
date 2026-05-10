@@ -36,7 +36,6 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { href: "/admin/analytics", label: "الإحصائيات", icon: BarChart3, id: "analytics" },
     { href: "/admin/settings", label: "الإعدادات", icon: Settings, id: "settings" },
   ];
-
   return (
     <div className="flex min-h-screen bg-background text-foreground flex-col md:flex-row font-sans" dir="rtl">
       <aside className="w-full md:w-64 flex flex-col shrink-0 bg-[var(--bg-primary)] border-l border-[var(--border-default)]">
