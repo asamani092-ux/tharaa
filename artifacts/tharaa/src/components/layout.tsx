@@ -203,10 +203,20 @@ const logoFull = isDark ? "/brand/logo-full-white.png" : "/brand/logo-full-dark.
         alt="ثراء المعرفة"
         className="h-9 w-auto object-contain"
       />
-      <div>
-        <h1 className="text-xl font-bold text-[var(--secondary-400)]">ثراء المعرفة</h1>
-        <p className="text-xs text-[var(--text-secondary)] mt-0.5">بوابة المشارك</p>
-      </div>
+      <div className="flex items-center gap-3 min-w-0">
+  <img
+    src={isDark ? "/brand/logo-full-white.png" : "/brand/logo-full-dark.png"}
+    alt="ثراء المعرفة"
+    className="h-10 sm:h-11 w-auto shrink-0 object-contain"
+  />
+  <p
+    className="min-w-0 text-lg sm:text-2xl font-semibold leading-snug text-[var(--text-primary)]"
+    style={{ fontFeatureSettings: '"ss01"' }}
+  >
+    {/* ضع هنا نص الشعار الفعلي من الهوية */}
+    بوابة المشارك
+  </p>
+</div>
     </div>
 
     <div className="flex items-center gap-3">
