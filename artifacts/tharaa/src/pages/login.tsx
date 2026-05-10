@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useLogin, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -11,25 +11,46 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
+function useIsDarkTheme() {
+  const [isDark, setIsDark] = useState(() =>
+    typeof document !== "undefined"
+      ? document.documentElement.classList.contains("dark")
+      : false
+  );
+
+  useEffect(() => {
+    const el = document.documentElement;
+    const sync = () => setIsDark(el.classList.contains("dark"));
+    sync();
+
+    const mo = new MutationObserver(sync);
+    mo.observe(el, { attributes: true, attributeFilter: ["class"] });
+
+    return () => mo.disconnect();
+  }, []);
+
+  return isDark;
+}
+
 export default function Login() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const login = useLogin();
+  const isDark = useIsDarkTheme();
 
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  
+
+  // شعار كامل: داكن للفاتح، أبيض/فاتح للداكن
   const logoFullDark = "/brand/logo-full-dark.png";
   const logoFullWhite = "/brand/logo-full-white.png";
 
-  // اكتشاف الثيم الحالي
-  const isDark =
-    document.documentElement.classList.contains("dark") ||
-    document.documentElement.getAttribute("data-theme") !== "light";
+  // أيقونات للعلامة المائية (أخف من الشعار الكامل)
+  const iconColored = "/brand/thraa_icon_colored.png";
+  const iconWhite = "/brand/thraa_icon_white.png";
 
-  // في الفاتح: الشعار الداكن
   const logoMain = isDark ? logoFullWhite : logoFullDark;
-  const logoWatermark = isDark ? logoFullWhite : logoFullDark;
+  const logoWatermark = isDark ? iconWhite : iconColored;
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,15 +99,15 @@ export default function Login() {
       </div>
 
       <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.03),transparent_40%),var(--bg-secondary)]" />
-      
+
       <div
         className="absolute inset-0 z-0 pointer-events-none"
         style={{
           backgroundImage: `url(${logoWatermark})`,
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
-          backgroundSize: "68%",
-          opacity: 0.05,
+          backgroundSize: "42%",
+          opacity: 0.06,
         }}
       />
 
@@ -98,14 +119,12 @@ export default function Login() {
               alt="شعار ثراء المعرفة"
               className="w-[220px] max-w-full h-auto object-contain"
             />
-            <p className="mt-2 text-[13px] text-[var(--text-secondary)]">
-            </p>
           </div>
 
           <Card className="w-full rounded-[var(--radius-xl)] border border-[var(--border-default)] shadow-[var(--shadow-lg)]">
             <CardHeader className="text-center pb-4">
               <CardTitle className="text-[24px] font-semibold">تسجيل الدخول</CardTitle>
-              <CardDescription>أهلاً بك مجدداً في ثراء المعرفة </CardDescription>
+              <CardDescription>أهلاً بك مجدداً في ثراء المعرفة</CardDescription>
             </CardHeader>
 
             <CardContent>
@@ -146,11 +165,7 @@ export default function Login() {
                   </div>
                 </div>
 
-                <Button
-                  type="submit"
-                  className="w-full mt-1"
-                  isLoading={login.isPending}
-                >
+                <Button type="submit" className="w-full mt-1" isLoading={login.isPending}>
                   دخول للنظام
                 </Button>
               </form>
