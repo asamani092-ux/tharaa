@@ -46,8 +46,8 @@ export default function Login() {
    const logoFullWhite = "/brand/logo-full-white.png";
 
   // أيقونات للعلامة المائية (أخف من الشعار الكامل)
-  // const iconColored = "/brand/thraa_icon_colored.png";
-  // const iconWhite = "/brand/thraa_icon_white.png";
+   const iconColored = "/brand/thraa_icon_colored.png";
+   const iconWhite = "/brand/thraa_icon_white.png";
 
   const logoMain = isDark ? logoFullWhite : logoFullDark;
   const logoWatermark = isDark ? iconWhite : iconColored;
