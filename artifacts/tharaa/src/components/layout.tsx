@@ -196,35 +196,39 @@ const logoFull = isDark ? "/brand/logo-full-white.png" : "/brand/logo-full-dark.
       />
 
       <header className="relative z-10 bg-[var(--bg-primary)] border-b border-[var(--border-default)]">
-        <div className="flex items-center gap-3">
-  <img src={logoFull} alt="ثراء المعرفة" className="h-9 w-auto object-contain" />
-  <div>
-    <h1 className="text-xl font-bold text-[var(--secondary-400)]">ثراء المعرفة</h1>
-    <p className="text-xs text-[var(--text-secondary)] mt-0.5">بوابة المشارك</p>
+  <div className="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+    <div className="flex items-center gap-3">
+      <img
+        src={isDark ? "/brand/logo-full-white.png" : "/brand/logo-full-dark.png"}
+        alt="ثراء المعرفة"
+        className="h-9 w-auto object-contain"
+      />
+      <div>
+        <h1 className="text-xl font-bold text-[var(--secondary-400)]">ثراء المعرفة</h1>
+        <p className="text-xs text-[var(--text-secondary)] mt-0.5">بوابة المشارك</p>
+      </div>
+    </div>
+
+    <div className="flex items-center gap-3">
+      <span
+        className="text-sm font-medium text-[var(--text-primary)]/80 hidden sm:block"
+        data-testid="text-username"
+      >
+        {session?.user?.name}
+      </span>
+      <Button
+        data-testid="button-logout"
+        variant="ghost"
+        size="sm"
+        className="gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] rounded-[var(--radius-md)]"
+        onClick={handleLogout}
+      >
+        <LogOut className="h-4 w-4" />
+        <span className="hidden sm:inline">خروج</span>
+      </Button>
+    </div>
   </div>
-</div>
-
-          <div className="flex items-center gap-3">
-            <span
-              className="text-sm font-medium text-[var(--text-primary)]/80 hidden sm:block"
-              data-testid="text-username"
-            >
-              {session?.user?.name}
-            </span>
-
-            <Button
-              data-testid="button-logout"
-              variant="ghost"
-              size="sm"
-              className="gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] rounded-[var(--radius-md)]"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-4 h-4" />
-              <span className="hidden sm:inline">خروج</span>
-            </Button>
-          </div>
-        </div>
-      </header>
+</header>
 
       <main className="flex-1 max-w-5xl mx-auto w-full p-4 md:p-6 relative z-10">
         {children}
