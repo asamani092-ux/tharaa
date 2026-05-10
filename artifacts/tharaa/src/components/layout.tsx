@@ -125,7 +125,9 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
   const iconColored = "/brand/thraa_icon_colored.png";
   const iconWhite = "/brand/thraa_icon_white.png";
   const logoPath = isDark ? iconWhite : iconColored;
-
+  
+const logoFull = isDark ? "/brand/logo-full-white.png" : "/brand/logo-full-dark.png";
+  
   const handleLogout = () => {
     logout.mutate(undefined, {
       onSuccess: () => {
@@ -151,7 +153,7 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
         <div
           className="absolute inset-0 z-0 opacity-10 pointer-events-none"
           style={{
-            backgroundImage: `url(${logoPath})`,
+         //   backgroundImage: `url(${logoPath})`,
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
             backgroundSize: "600px",
@@ -186,7 +188,7 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
       <div
         className="fixed inset-0 z-0 pointer-events-none opacity-[0.04]"
         style={{
-          backgroundImage: `url(${logoPath})`,
+         // backgroundImage: `url(${logoPath})`,
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
           backgroundSize: "400px",
@@ -194,13 +196,13 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
       />
 
       <header className="relative z-10 bg-[var(--bg-primary)] border-b border-[var(--border-default)]">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-xl font-bold text-[var(--secondary-400)]">ثراء المعرفة</h1>
-              <p className="text-xs text-[var(--text-secondary)] mt-0.5">بوابة المشارك</p>
-            </div>
-          </div>
+        <div className="flex items-center gap-3">
+  <img src={logoFull} alt="ثراء المعرفة" className="h-9 w-auto object-contain" />
+  <div>
+    <h1 className="text-xl font-bold text-[var(--secondary-400)]">ثراء المعرفة</h1>
+    <p className="text-xs text-[var(--text-secondary)] mt-0.5">بوابة المشارك</p>
+  </div>
+</div>
 
           <div className="flex items-center gap-3">
             <span
