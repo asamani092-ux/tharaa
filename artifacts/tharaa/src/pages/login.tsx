@@ -99,14 +99,13 @@ export default function Login() {
               className="w-[220px] max-w-full h-auto object-contain"
             />
             <p className="mt-2 text-[13px] text-[var(--text-secondary)]">
-              بوابة الوصول إلى منصتك المعرفية
             </p>
           </div>
 
           <Card className="w-full rounded-[var(--radius-xl)] border border-[var(--border-default)] shadow-[var(--shadow-lg)]">
             <CardHeader className="text-center pb-4">
               <CardTitle className="text-[24px] font-semibold">تسجيل الدخول</CardTitle>
-              <CardDescription>أهلاً بك مجدداً في منصتك المعرفية</CardDescription>
+              <CardDescription>أهلاً بك مجدداً في ثراء المعرفة </CardDescription>
             </CardHeader>
 
             <CardContent>
