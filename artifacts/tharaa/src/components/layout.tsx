@@ -197,25 +197,21 @@ const logoFull = isDark ? "/brand/logo-full-white.png" : "/brand/logo-full-dark.
 
       <header className="relative z-10 bg-[var(--bg-primary)] border-b border-[var(--border-default)]">
   <div className="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
-    <div className="flex items-center gap-3">
-      <img
-        src={isDark ? "/brand/logo-full-white.png" : "/brand/logo-full-dark.png"}
-        alt="ثراء المعرفة"
-        className="h-9 w-auto object-contain"
-      />
-      <div className="flex items-center gap-3 min-w-0">
+    <div className="flex items-center gap-3 min-w-0">
   <img
     src={isDark ? "/brand/logo-full-white.png" : "/brand/logo-full-dark.png"}
     alt="ثراء المعرفة"
     className="h-10 sm:h-11 w-auto shrink-0 object-contain"
   />
-  <p
-    className="min-w-0 text-lg sm:text-2xl font-semibold leading-snug text-[var(--text-primary)]"
-    style={{ fontFeatureSettings: '"ss01"' }}
-  >
-    {/* ضع هنا نص الشعار الفعلي من الهوية */}
-    بوابة المشارك
-  </p>
+  <div className="min-w-0 flex flex-col gap-0.5">
+    <p className="text-xl sm:text-2xl font-bold leading-tight text-[var(--secondary-400)]">
+      {/* الشعار — ضع النص الرسمي هنا */}
+      ثراء
+    </p>
+    <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
+      بوابة المشارك
+    </p>
+  </div>
 </div>
     </div>
 
