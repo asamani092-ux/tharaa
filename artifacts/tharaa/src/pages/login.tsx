@@ -42,8 +42,8 @@ export default function Login() {
   const [password, setPassword] = useState("");
 
   // شعار كامل: داكن للفاتح، أبيض/فاتح للداكن
-  const logoFullDark = "/brand/logo-full-dark.png";
-  const logoFullWhite = "/brand/logo-full-white.png";
+ // const logoFullDark = "/brand/logo-full-dark.png";
+  // const logoFullWhite = "/brand/logo-full-white.png";
 
   // أيقونات للعلامة المائية (أخف من الشعار الكامل)
   const iconColored = "/brand/thraa_icon_colored.png";
