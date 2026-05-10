@@ -103,7 +103,7 @@ export default function Login() {
       <div
         className="absolute inset-0 z-0 pointer-events-none"
         style={{
-          backgroundImage: `url(${logoWatermark})`,
+        //  backgroundImage: `url(${logoWatermark})`,
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
           backgroundSize: "42%",
