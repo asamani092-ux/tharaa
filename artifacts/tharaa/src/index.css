@@ -183,4 +183,8 @@
   textarea {
     font-family: inherit;
   }
+  [data-sonner-toaster],
+[data-sonner-toast] {
+  font-family: var(--font-sans), "IBM Plex Arabic", ui-sans-serif, system-ui, sans-serif !important;
+}
 }
