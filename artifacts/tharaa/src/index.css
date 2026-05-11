@@ -159,15 +159,20 @@
   html,
   body,
   #root {
-    font-family: var(--app-font-sans);
+    font-family: var(--font-sans), "IBM Plex Arabic", ui-sans-serif, system-ui, sans-serif;
   }
 
   body {
     @apply antialiased bg-background text-foreground transition-colors duration-300;
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    font-family: var(--app-font-sans);
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-sans), "IBM Plex Arabic", ui-sans-serif, system-ui, sans-serif;
     font-weight: 700;
   }
 
