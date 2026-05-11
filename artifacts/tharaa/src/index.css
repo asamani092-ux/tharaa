@@ -156,14 +156,17 @@
     @apply border-border;
   }
 
-  html,
-  body,
-  #root {
-    font-family: var(--font-sans), "IBM Plex Arabic", ui-sans-serif, system-ui, sans-serif;
+  html {
+    font-family: "IBM Plex Arabic", ui-sans-serif, system-ui, sans-serif;
   }
 
   body {
-    @apply antialiased bg-background text-foreground transition-colors duration-300;
+    @apply font-sans antialiased bg-background text-foreground transition-colors duration-300;
+    font-family: "IBM Plex Arabic", ui-sans-serif, system-ui, sans-serif;
+  }
+
+  #root {
+    font-family: "IBM Plex Arabic", ui-sans-serif, system-ui, sans-serif;
   }
 
   h1,
@@ -172,7 +175,7 @@
   h4,
   h5,
   h6 {
-    font-family: var(--font-sans), "IBM Plex Arabic", ui-sans-serif, system-ui, sans-serif;
+    font-family: "IBM Plex Arabic", ui-sans-serif, system-ui, sans-serif;
     font-weight: 700;
   }
 
@@ -183,8 +186,4 @@
   textarea {
     font-family: inherit;
   }
-  [data-sonner-toaster],
-[data-sonner-toast] {
-  font-family: var(--font-sans), "IBM Plex Arabic", ui-sans-serif, system-ui, sans-serif !important;
-}
 }
