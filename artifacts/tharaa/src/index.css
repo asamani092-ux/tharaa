@@ -6,7 +6,7 @@
 @custom-variant light (&:is([data-theme="light"] *));
 
 @theme inline {
-  --font-sans: "IBM Plex Arabic", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "IBM Plex Arabic", serif;
 
   --color-background: hsl(var(--background));
@@ -157,16 +157,16 @@
   }
 
   html {
-    font-family: "IBM Plex Arabic", ui-sans-serif, system-ui, sans-serif;
+     font-family: "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
   }
 
   body {
     @apply font-sans antialiased bg-background text-foreground transition-colors duration-300;
-    font-family: "IBM Plex Arabic", ui-sans-serif, system-ui, sans-serif;
+    font-family: "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
   }
 
   #root {
-    font-family: "IBM Plex Arabic", ui-sans-serif, system-ui, sans-serif;
+    font-family: "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
   }
 
   h1,
@@ -175,7 +175,7 @@
   h4,
   h5,
   h6 {
-    font-family: "IBM Plex Arabic", ui-sans-serif, system-ui, sans-serif;
+    font-family: "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
     font-weight: 700;
   }
 
