@@ -60,8 +60,17 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-background text-foreground flex-col md:flex-row font-sans" dir="rtl">
       <aside className="w-full md:w-64 flex flex-col shrink-0 bg-[var(--bg-primary)] border-l border-[var(--border-default)]">
-        <div className="p-5 flex justify-center items-center h-[97px] border-b border-[var(--border-default)]">
-          <h1 className="text-2xl font-bold text-[var(--secondary-400)]">ثراء المعرفة</h1>
+                <div className="p-5 border-b border-[var(--border-default)]">
+          <div className="flex flex-col items-center gap-1 min-w-0">
+            <img
+              src={isDark ? "/brand/logo-full-white.png" : "/brand/logo-full-dark.png"}
+              alt="ثراء المعرفة"
+              className="h-12 sm:h-14 w-auto max-w-[220px] object-contain"
+            />
+            <p className="text-[11px] sm:text-xs text-[var(--text-secondary)] leading-none">
+              لوحة المشرف
+            </p>
+          </div>
         </div>
 
         <nav className="flex-1 p-3 flex flex-col gap-1">
