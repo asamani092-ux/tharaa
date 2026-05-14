@@ -39,6 +39,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const logout = useLogout();
   const { data: session } = useGetMe();
+  const isDark = useIsDarkTheme();
 
   const handleLogout = () => {
     logout.mutate(undefined, {
