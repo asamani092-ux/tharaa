@@ -8,6 +8,7 @@ import "@fontsource/ibm-plex-sans-arabic/600.css";
 import "@fontsource/ibm-plex-sans-arabic/700.css";
 import { Toaster } from "sonner";
 
+
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <App />
