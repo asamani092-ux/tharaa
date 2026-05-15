@@ -131,7 +131,7 @@ export default function AdminCurriculum() {
         <div className="flex justify-between items-center gap-4 flex-wrap">
           <h2 className="text-2xl font-bold text-[var(--secondary-400)]">المنهج الدراسي</h2>
           <Button
-            variant="primary"
+            variant="secondary"
             className="gap-2"
             onClick={() => {
               setEditBook(null);
@@ -154,17 +154,35 @@ export default function AdminCurriculum() {
 
         <div className="rounded-[var(--radius-xl)] overflow-hidden border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-[var(--shadow-md)]">
           <div className="overflow-x-auto">
-            <Table className="min-w-[900px]">
+            <Table className="min-w-[900px] table-fixed">
+              <colgroup>
+                <col className="w-[32%]" />
+                <col className="w-[12%]" />
+                <col className="w-[12%]" />
+                <col className="w-[14%]" />
+                <col className="w-[12%]" />
+                <col className="w-[18%]" />
+              </colgroup>
               <TableHeader className="bg-[var(--bg-secondary)]">
                 <TableRow className="border-[var(--border-default)] hover:bg-transparent">
-                  <TableHead className="text-right text-[var(--text-secondary)] font-semibold px-6 py-4">
+                  <TableHead className="align-middle text-right text-[var(--text-secondary)] font-semibold px-6 py-4">
                     اسم الكتاب
                   </TableHead>
-                  <TableHead className="text-center text-[var(--text-secondary)] font-semibold">الرمز</TableHead>
-                  <TableHead className="text-center text-[var(--text-secondary)] font-semibold">المرحلة</TableHead>
-                  <TableHead className="text-center text-[var(--text-secondary)] font-semibold">المستوى</TableHead>
-                  <TableHead className="text-center text-[var(--text-secondary)] font-semibold">عدد الصفحات</TableHead>
-                  <TableHead className="text-left text-[var(--text-secondary)] font-semibold px-6">الإجراءات</TableHead>
+                  <TableHead className="align-middle text-center text-[var(--text-secondary)] font-semibold px-4 py-4">
+                    الرمز
+                  </TableHead>
+                  <TableHead className="align-middle text-center text-[var(--text-secondary)] font-semibold px-4 py-4">
+                    المرحلة
+                  </TableHead>
+                  <TableHead className="align-middle text-center text-[var(--text-secondary)] font-semibold px-4 py-4">
+                    المستوى
+                  </TableHead>
+                  <TableHead className="align-middle text-center text-[var(--text-secondary)] font-semibold px-4 py-4">
+                    عدد الصفحات
+                  </TableHead>
+                  <TableHead className="align-middle text-left text-[var(--text-secondary)] font-semibold px-6 py-4">
+                    الإجراءات
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -180,34 +198,38 @@ export default function AdminCurriculum() {
                       key={book.id}
                       className="border-[var(--border-subtle)] hover:bg-[var(--bg-tertiary)] transition-colors"
                     >
-                      <TableCell className="text-right px-6 py-4">
-                        <div className="flex items-center gap-3 justify-end">
-                          <span className="font-semibold text-[var(--text-primary)]">{book.title}</span>
-                          <div className="w-8 h-8 rounded-[var(--radius-md)] bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0">
-                            <BookOpen className="w-4 h-4 text-[var(--secondary-400)]" />
+                      <TableCell className="align-middle px-6 py-4 text-right">
+                        <div className="flex flex-row-reverse items-center gap-3">
+                          <span className="min-w-0 flex-1 truncate font-semibold text-[var(--text-primary)]">
+                            {book.title}
+                          </span>
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
+                            <BookOpen className="h-4 w-4 text-[var(--secondary-400)]" />
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="align-middle px-4 py-4 text-center">
                         <span className="inline-flex rounded-full px-3 py-1 text-sm font-mono font-semibold bg-[var(--bg-tertiary)] text-[var(--secondary-400)] border border-[var(--border-subtle)] light:bg-white light:border-[var(--border-default)]">
                           {book.bookCode}
                         </span>
                       </TableCell>
-                      <TableCell className="text-center text-[var(--text-primary)]">
+                      <TableCell className="align-middle px-4 py-4 text-center text-[var(--text-primary)]">
                         المرحلة {book.phaseNumber}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="align-middle px-4 py-4 text-center">
                         <Badge className={levelBadgeClass}>
                           {book.levelType === "basic" ? "أساسي" : "اختياري"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-center font-mono text-[var(--text-primary)]">{book.totalPages}</TableCell>
-                      <TableCell className="text-left px-6">
-                        <div className="flex justify-start gap-2">
+                      <TableCell className="align-middle px-4 py-4 text-center font-mono text-[var(--text-primary)]">
+                        {book.totalPages}
+                      </TableCell>
+                      <TableCell className="align-middle px-6 py-4 text-left">
+                        <div className="flex justify-start gap-1">
                           <Button
                             size="icon"
                             variant="outline"
-                            className="h-9 w-9 border-[hsl(var(--primary))] text-[hsl(var(--primary))]"
+                            className="h-8 w-8"
                             onClick={() => {
                               setEditBook(book);
                               setForm({
@@ -227,7 +249,7 @@ export default function AdminCurriculum() {
                           <Button
                             size="icon"
                             variant="outline"
-                            className="h-9 w-9 border-[var(--primary-400)] text-[var(--primary-400)] hover:bg-[var(--primary-50)]"
+                            className="h-8 w-8 text-[var(--error-400)] border-[var(--error-400)]/40 hover:bg-[var(--error-400)]/10"
                             onClick={() => openDeleteBook(book)}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -344,7 +366,7 @@ export default function AdminCurriculum() {
               setDeleteTarget(null);
               await refetch();
             } catch (e: any) {
-              toast.error(e?.message ?? "تعذر حذف الكتاب");
+              toast.error(e)?.message ?? "تعذر حذف الكتاب");
             } finally {
               setDeleteLoading(false);
             }
