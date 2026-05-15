@@ -365,11 +365,11 @@ export default function AdminCurriculum() {
               setDeleteOpen(false);
               setDeleteTarget(null);
               await refetch();
-            } catch (e: any) {
-              toast.error(e)?.message ?? "تعذر حذف الكتاب");
-            } finally {
-              setDeleteLoading(false);
-            }
+              } catch (e: any) {
+                toast.error(e?.message ?? "تعذر حذف الكتاب");
+              } finally {
+                    setDeleteLoading(false);
+               }
           }}
         />
       </div>
