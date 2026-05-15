@@ -5,130 +5,175 @@ import { AdminLayout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, Users, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Users } from "lucide-react";
+import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
 
 export default function AdminBatches() {
   const queryClient = useQueryClient();
   const { data: batches, isLoading, refetch } = useListBatches();
-  
-  // حالات الإضافة والتعديل
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editBatch, setEditBatch] = useState<any>(null);
-  const [form, setForm] = useState({ name: "" }); // إزالة الحالة والاكتفاء بالاسم فقط
+  const [form, setForm] = useState({ name: "" });
 
-  // حالة رسالة تأكيد الحذف الأنيقة
-  const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; id: number | null; name: string }>({
-    isOpen: false,
-    id: null,
-    name: ""
-  });
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; label: string } | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const createBatch = useMutation({
     mutationFn: async (data: any) => {
-      const res = await fetch('/api/batches.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+      const res = await fetch("/api/batches.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
       });
       const text = await res.text();
       let jsonData;
-      try { jsonData = JSON.parse(text); } catch(e) { throw new Error("لم يتمكن السيرفر من معالجة الطلب"); }
+      try {
+        jsonData = JSON.parse(text);
+      } catch {
+        throw new Error("لم يتمكن السيرفر من معالجة الطلب");
+      }
       if (!res.ok) throw new Error(jsonData.error || "فشل الإضافة");
       return jsonData;
-    }
+    },
   });
 
   const updateBatch = useMutation({
-    mutationFn: async ({ id, data }: { id: number, data: any }) => {
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
       const res = await fetch(`/api/batches.php?id=${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...data, id })
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, id }),
       });
       const text = await res.text();
       let jsonData;
-      try { jsonData = JSON.parse(text); } catch(e) { throw new Error("لم يتمكن السيرفر من معالجة التحديث"); }
+      try {
+        jsonData = JSON.parse(text);
+      } catch {
+        throw new Error("لم يتمكن السيرفر من معالجة التحديث");
+      }
       if (!res.ok) throw new Error(jsonData.error || "فشل التحديث");
       return jsonData;
-    }
+    },
   });
 
   const deleteBatch = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/batches.php?id=${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/batches.php?id=${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("فشل الحذف");
       return res.json();
     },
-    onSuccess: () => {
-      toast.success("تم حذف الدفعة وجميع المشاركين فيها بنجاح 🗑️");
-      setDeleteDialog({ isOpen: false, id: null, name: "" }); // إغلاق رسالة الحذف
-      refetch();
-      queryClient.invalidateQueries({ queryKey: ['list-users'] });
-    }
   });
 
- const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editBatch) {
-      updateBatch.mutate({ id: editBatch.id, data: form }, {
-        onSuccess: () => { toast.success("تم التحديث بنجاح ✅"); setIsModalOpen(false); refetch(); },
-        onError: (err: any) => toast.error(err.message) // 🌟 إظهار الخطأ الدقيق
-      });
-    } else {
-      createBatch.mutate(form, {
-        onSuccess: () => { toast.success("تمت الإضافة بنجاح ✅"); setIsModalOpen(false); refetch(); },
-        onError: (err: any) => toast.error(err.message) // 🌟 إظهار الخطأ الدقيق
-      });
-    }
+  const openDeleteBatch = (batch: { id: number; name: string }) => {
+    setDeleteTarget({ id: batch.id, label: batch.name });
+    setDeleteOpen(true);
   };
 
-  const confirmDelete = () => {
-    if (deleteDialog.id) {
-      deleteBatch.mutate(deleteDialog.id);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editBatch) {
+      updateBatch.mutate(
+        { id: editBatch.id, data: form },
+        {
+          onSuccess: () => {
+            toast.success("تم التحديث بنجاح ✅");
+            setIsModalOpen(false);
+            refetch();
+          },
+          onError: (err: any) => toast.error(err.message),
+        }
+      );
+    } else {
+      createBatch.mutate(form, {
+        onSuccess: () => {
+          toast.success("تمت الإضافة بنجاح ✅");
+          setIsModalOpen(false);
+          refetch();
+        },
+        onError: (err: any) => toast.error(err.message),
+      });
     }
   };
 
   return (
     <AdminLayout>
-      <div className="space-y-6" dir="rtl">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-[#D4AF37] flex items-center gap-2" style={{ fontFamily: 'Cairo, sans-serif' }}>
-            <Users className="w-6 h-6" /> إدارة الدفعات
+      <div  className="space-y-6" dir="rtl">
+        <div className="flex justify-between items-center gap-4 flex-wrap">
+          <h2 className="text-2xl font-bold text-[var(--secondary-400)] flex items-center gap-2">
+            <Users className="w-6 h-6" />
+            إدارة الدفعات
           </h2>
-          <Button 
-            onClick={() => { setEditBatch(null); setForm({ name: "" }); setIsModalOpen(true); }} 
-            className="rounded-xl gap-2 font-bold h-11 bg-[#D4AF37] hover:bg-[#D4AF37]/90 text-black"
+          <Button
+            variant="secondary"
+            className="gap-2"
+            onClick={() => {
+              setEditBatch(null);
+              setForm({ name: "" });
+              setIsModalOpen(true);
+            }}
           >
-            <Plus className="w-4 h-4"/> إضافة دفعة جديدة
+            <Plus className="w-4 h-4" />
+            إضافة دفعة جديدة
           </Button>
         </div>
 
-        {/* الجدول مع المحاذاة المضبوطة (اليمين للاسم، واليسار للإجراءات) */}
-        <div className="rounded-2xl overflow-hidden border border-[#1e293b] bg-[#0f172a] shadow-2xl">
+        <div className="rounded-[var(--radius-xl)] overflow-hidden border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-[var(--shadow-md)]">
           <Table>
-            <TableHeader className="bg-[#161e2f]">
-              <TableRow className="border-[#1e293b]">
-                <TableHead className="text-right text-[#94a3b8] font-bold px-6 py-4">اسم الدفعة</TableHead>
-                <TableHead className="text-left text-[#94a3b8] font-bold px-6">الإجراءات</TableHead>
+            <TableHeader className="bg-[var(--bg-secondary)]">
+              <TableRow className="border-[var(--border-default)] hover:bg-transparent">
+                <TableHead className="text-right text-[var(--text-secondary)] font-semibold px-6 py-4">
+                  اسم الدفعة
+                </TableHead>
+                <TableHead className="text-left text-[var(--text-secondary)] font-semibold px-6">
+                  الإجراءات
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={2} className="text-center py-12"><Loader2 className="animate-spin mx-auto text-[#D4AF37] w-6 h-6"/></TableCell></TableRow>
+                <TableRow>
+                  <TableCell colSpan={2} className="text-center py-12">
+                    <Loader2 className="animate-spin mx-auto text-[var(--secondary-400)] w-6 h-6" />
+                  </TableCell>
+                </TableRow>
               ) : (
                 batches?.map((batch) => (
-                  <TableRow key={batch.id} className="border-[#1e293b] hover:bg-white/[0.02] transition-colors">
-                    <TableCell className="text-right px-6 font-bold text-white py-4 text-lg">
+                  <TableRow
+                    key={batch.id}
+                    className="border-[var(--border-subtle)] hover:bg-[var(--bg-tertiary)] transition-colors"
+                  >
+                    <TableCell className="text-right px-6 font-semibold text-[var(--text-primary)] py-4 text-lg">
                       {batch.name}
                     </TableCell>
                     <TableCell className="text-left px-6 w-32">
-                      <div className="flex justify-start gap-2">
-                        <Button size="icon" variant="ghost" onClick={() => { setEditBatch(batch); setForm({ name: batch.name }); setIsModalOpen(true); }} className="text-blue-400 hover:bg-blue-400/10 h-9 w-9"><Pencil className="w-4 h-4"/></Button>
-                        <Button size="icon" variant="ghost" onClick={() => setDeleteDialog({ isOpen: true, id: batch.id, name: batch.name })} className="text-red-400 hover:bg-red-400/10 h-9 w-9" disabled={deleteBatch.isPending}><Trash2 className="w-4 h-4"/></Button>
-                      </div>
+                      <div  className="flex justify-start gap-2">
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="h-9 w-9"
+                          onClick={() => {
+                            setEditBatch(batch);
+                            setForm({ name: batch.name });
+                            setIsModalOpen(true);
+                          }}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="h-9 w-9 text-[var(--error-400)] border-[var(--error-400)]/40 hover:bg-[var(--error-400)]/10"
+                          onClick={() => openDeleteBatch(batch)}
+                          disabled={deleteBatch.isPending}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div >
                     </TableCell>
                   </TableRow>
                 ))
@@ -137,46 +182,73 @@ export default function AdminBatches() {
           </Table>
         </div>
 
-        {/* نافذة الإضافة والتعديل المصغرة */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="sm:max-w-[400px] rounded-3xl bg-[#0d1425] border-[#1e293b] text-right" dir="rtl">
-            <DialogHeader><DialogTitle className="text-right text-xl font-bold text-white">{editBatch ? "تعديل اسم الدفعة" : "إنشاء دفعة جديدة"}</DialogTitle></DialogHeader>
+          <DialogContent className="sm:max-w-[400px] text-right" dir="rtl">
+            <DialogHeader>
+              <DialogTitle className="text-right">
+                {editBatch ? "تعديل اسم الدفعة" : "إنشاء دفعة جديدة"}
+              </DialogTitle>
+            </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-5 pt-4">
               <div className="space-y-2">
-                <Label className="text-[#94a3b8]">اسم الدفعة</Label>
-                <Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="rounded-xl bg-[#161e2f] border-[#1e293b] h-12 text-lg" required autoFocus/>
+                <Label className="text-[var(--text-secondary)]">اسم الدفعة</Label>
+                <Input
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  className="text-lg"
+                  required
+                  autoFocus
+                />
               </div>
-              <Button type="submit" className="w-full rounded-2xl font-bold h-12 mt-2 bg-[#D4AF37] hover:bg-[#D4AF37]/90 text-black" disabled={createBatch.isPending || updateBatch.isPending}>
-                {createBatch.isPending || updateBatch.isPending ? <Loader2 className="animate-spin w-5 h-5"/> : (editBatch ? "حفظ التعديل" : "إضافة الدفعة")}
+              <Button
+                type="submit"
+                variant="secondary"
+                className="w-full"
+                disabled={createBatch.isPending || updateBatch.isPending}
+              >
+                {createBatch.isPending || updateBatch.isPending ? (
+                  <Loader2 className="animate-spin w-5 h-5" />
+                ) : editBatch ? (
+                  "حفظ التعديل"
+                ) : (
+                  "إضافة الدفعة"
+                )}
               </Button>
             </form>
           </DialogContent>
         </Dialog>
 
-        {/* 🌟 رسالة الحذف الأنيقة (بديل window.confirm المزعج) */}
-        <Dialog open={deleteDialog.isOpen} onOpenChange={(isOpen) => !deleteBatch.isPending && setDeleteDialog(prev => ({ ...prev, isOpen }))}>
-          <DialogContent className="sm:max-w-[400px] rounded-3xl bg-[#0f172a] border border-red-500/20 text-center flex flex-col items-center pt-8 pb-6 px-6" dir="rtl">
-            <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
-              <AlertTriangle className="w-8 h-8 text-red-500" />
-            </div>
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-white text-center">تحذير الحذف النهائي!</DialogTitle>
-              <DialogDescription className="text-muted-foreground text-center mt-2 leading-relaxed">
-                هل أنت متأكد من رغبتك في حذف دفعة <strong className="text-white">"{deleteDialog.name}"</strong>؟ <br/>
-                هذا الإجراء سيقوم أيضاً بحذف جميع المشاركين المرتبطين بها ولا يمكن التراجع عنه.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex gap-3 w-full mt-6">
-              <Button onClick={() => setDeleteDialog({ isOpen: false, id: null, name: "" })} variant="outline" className="flex-1 rounded-xl h-11 border-[#1e293b] hover:bg-white/5" disabled={deleteBatch.isPending}>
-                إلغاء
-              </Button>
-              <Button onClick={confirmDelete} variant="destructive" className="flex-1 rounded-xl h-11 font-bold bg-red-600 hover:bg-red-700" disabled={deleteBatch.isPending}>
-                {deleteBatch.isPending ? <Loader2 className="animate-spin w-5 h-5" /> : "نعم، احذف الدفعة"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
+        <ConfirmDeleteDialog
+          open={deleteOpen}
+          onOpenChange={(open) => {
+            setDeleteOpen(open);
+            if (!open) setDeleteTarget(null);
+          }}
+          title="تأكيد حذف الدفعة"
+          description={
+            deleteTarget
+              ? `سيتم حذف دفعة «${deleteTarget.label}» وجميع المشاركين المرتبطين بها نهائياً. هل تريد المتابعة؟`
+              : undefined
+          }
+          entityLabel={deleteTarget?.label ?? ""}
+          isLoading={deleteLoading}
+          onConfirm={async () => {
+            if (!deleteTarget) return;
+            setDeleteLoading(true);
+            try {
+              await deleteBatch.mutateAsync(deleteTarget.id);
+              toast.success("تم حذف الدفعة وجميع المشاركين فيها بنجاح");
+              setDeleteOpen(false);
+              setDeleteTarget(null);
+              await refetch();
+              queryClient.invalidateQueries({ queryKey: ["list-users"] });
+            } catch (e: any) {
+              toast.error(e?.message ?? "تعذر حذف الدفعة");
+            } finally {
+              setDeleteLoading(false);
+            }
+          }}
+        />
       </div>
     </AdminLayout>
   );
