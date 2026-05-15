@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useListCurriculum } from "@workspace/api-client-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,6 @@ import { Plus, Pencil, Trash2, Loader2, BookOpen } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
 
 export default function AdminCurriculum() {
-  const queryClient = useQueryClient();
   const { data: curriculum, isLoading, refetch } = useListCurriculum();
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -39,7 +38,6 @@ export default function AdminCurriculum() {
         const booksInPhase = curriculum.filter((b) => b.phaseNumber === parseInt(form.phaseNumber)).length;
         const nextSequence = booksInPhase + 1;
         const generatedCode = `P${form.phaseNumber}-${nextSequence}`;
-
         setForm((prev) => ({ ...prev, bookCode: generatedCode }));
       }
     }
@@ -64,7 +62,6 @@ export default function AdminCurriculum() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data, id }),
       });
-
       const text = await res.text();
       let jsonData;
       try {
@@ -72,7 +69,6 @@ export default function AdminCurriculum() {
       } catch {
         throw new Error("لم يتمكن السيرفر من معالجة طلب التعديل");
       }
-
       if (!res.ok) throw new Error(jsonData.error || "حدث خطأ أثناء التحديث");
       return jsonData;
     },
@@ -124,14 +120,19 @@ export default function AdminCurriculum() {
     }
   };
 
+  const levelBadgeClass =
+    "rounded-full border-0 font-medium " +
+    "bg-[var(--bg-tertiary)] text-[var(--text-primary)] " +
+    "light:bg-white light:text-[var(--primary-600)] light:border light:border-[var(--border-default)]";
+
   return (
     <AdminLayout>
       <div className="space-y-6" dir="rtl">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-[#D4AF37]" style={{ fontFamily: "Cairo, sans-serif" }}>
-            المنهج الدراسي
-          </h2>
+        <div className="flex justify-between items-center gap-4 flex-wrap">
+          <h2 className="text-2xl font-bold text-[var(--secondary-400)]">المنهج الدراسي</h2>
           <Button
+            variant="primary"
+            className="gap-2"
             onClick={() => {
               setEditBook(null);
               setForm({
@@ -145,54 +146,68 @@ export default function AdminCurriculum() {
               });
               setIsAddModalOpen(true);
             }}
-            className="rounded-xl gap-2 font-bold h-11 bg-primary hover:bg-primary/90"
           >
-            <Plus className="w-4 h-4" /> إضافة كتاب جديد
+            <Plus className="w-4 h-4" />
+            إضافة كتاب جديد
           </Button>
         </div>
 
-        <div className="rounded-2xl overflow-hidden border border-[#1e293b] bg-[#0f172a] shadow-2xl">
+        <div className="rounded-[var(--radius-xl)] overflow-hidden border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-[var(--shadow-md)]">
           <div className="overflow-x-auto">
             <Table className="min-w-[900px]">
-              <TableHeader className="bg-[#161e2f]">
-                <TableRow className="border-[#1e293b] hover:bg-transparent">
-                  <TableHead className="text-right text-[#94a3b8] font-bold px-6 py-4">اسم الكتاب</TableHead>
-                  <TableHead className="text-center text-[#94a3b8] font-bold">الرمز</TableHead>
-                  <TableHead className="text-center text-[#94a3b8] font-bold">المرحلة</TableHead>
-                  <TableHead className="text-center text-[#94a3b8] font-bold">المستوى</TableHead>
-                  <TableHead className="text-center text-[#94a3b8] font-bold">عدد الصفحات</TableHead>
-                  <TableHead className="text-left text-[#94a3b8] font-bold px-6">الإجراءات</TableHead>
+              <TableHeader className="bg-[var(--bg-secondary)]">
+                <TableRow className="border-[var(--border-default)] hover:bg-transparent">
+                  <TableHead className="text-right text-[var(--text-secondary)] font-semibold px-6 py-4">
+                    اسم الكتاب
+                  </TableHead>
+                  <TableHead className="text-center text-[var(--text-secondary)] font-semibold">الرمز</TableHead>
+                  <TableHead className="text-center text-[var(--text-secondary)] font-semibold">المرحلة</TableHead>
+                  <TableHead className="text-center text-[var(--text-secondary)] font-semibold">المستوى</TableHead>
+                  <TableHead className="text-center text-[var(--text-secondary)] font-semibold">عدد الصفحات</TableHead>
+                  <TableHead className="text-left text-[var(--text-secondary)] font-semibold px-6">الإجراءات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-12">
-                      <Loader2 className="animate-spin mx-auto text-[#D4AF37]" />
+                      <Loader2 className="animate-spin mx-auto text-[var(--secondary-400)]" />
                     </TableCell>
                   </TableRow>
                 ) : (
                   curriculum?.map((book) => (
-                    <TableRow key={book.id} className="border-[#1e293b] hover:bg-white/[0.02] transition-colors">
-                      <TableCell className="text-right px-6 font-bold text-white flex items-center gap-3 py-4">
-                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <BookOpen className="w-4 h-4 text-primary" />
+                    <TableRow
+                      key={book.id}
+                      className="border-[var(--border-subtle)] hover:bg-[var(--bg-tertiary)] transition-colors"
+                    >
+                      <TableCell className="text-right px-6 py-4">
+                        <div className="flex items-center gap-3 justify-end">
+                          <span className="font-semibold text-[var(--text-primary)]">{book.title}</span>
+                          <div className="w-8 h-8 rounded-[var(--radius-md)] bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0">
+                            <BookOpen className="w-4 h-4 text-[var(--secondary-400)]" />
+                          </div>
                         </div>
-                        {book.title}
                       </TableCell>
-                      <TableCell className="text-center font-mono text-[#D4AF37] font-bold">{book.bookCode}</TableCell>
-                      <TableCell className="text-center">المرحلة {book.phaseNumber}</TableCell>
                       <TableCell className="text-center">
-                        <Badge variant="outline" className="border-white/10 font-medium">
+                        <span className="inline-flex rounded-full px-3 py-1 text-sm font-mono font-semibold bg-[var(--bg-tertiary)] text-[var(--secondary-400)] border border-[var(--border-subtle)] light:bg-white light:border-[var(--border-default)]">
+                          {book.bookCode}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center text-[var(--text-primary)]">
+                        المرحلة {book.phaseNumber}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge className={levelBadgeClass}>
                           {book.levelType === "basic" ? "أساسي" : "اختياري"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-center font-mono">{book.totalPages}</TableCell>
+                      <TableCell className="text-center font-mono text-[var(--text-primary)]">{book.totalPages}</TableCell>
                       <TableCell className="text-left px-6">
-                        <div className="flex justify-start gap-1">
+                        <div className="flex justify-start gap-2">
                           <Button
                             size="icon"
-                            variant="ghost"
+                            variant="outline"
+                            className="h-9 w-9 border-[hsl(var(--primary))] text-[hsl(var(--primary))]"
                             onClick={() => {
                               setEditBook(book);
                               setForm({
@@ -206,15 +221,14 @@ export default function AdminCurriculum() {
                               });
                               setIsAddModalOpen(true);
                             }}
-                            className="text-blue-400 hover:bg-blue-400/10 h-9 w-9"
                           >
                             <Pencil className="w-4 h-4" />
                           </Button>
                           <Button
                             size="icon"
-                            variant="ghost"
+                            variant="outline"
+                            className="h-9 w-9 border-[var(--primary-400)] text-[var(--primary-400)] hover:bg-[var(--primary-50)]"
                             onClick={() => openDeleteBook(book)}
-                            className="text-red-400 hover:bg-red-400/10 h-9 w-9"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -229,59 +243,52 @@ export default function AdminCurriculum() {
         </div>
 
         <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-          <DialogContent className="sm:max-w-[550px] rounded-3xl bg-[#0d1425] border-[#1e293b] text-right" dir="rtl">
+          <DialogContent className="sm:max-w-[550px] text-right" dir="rtl">
             <DialogHeader>
-              <DialogTitle className="text-right text-xl font-bold text-white">
+              <DialogTitle className="text-right">
                 {editBook ? "تعديل بيانات الكتاب" : "إضافة كتاب جديد للمنهج"}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-5 pt-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label className="text-[#94a3b8]">اسم الكتاب</Label>
+                  <Label className="text-[var(--text-secondary)]">اسم الكتاب</Label>
                   <Input
                     value={form.title}
                     onChange={(e) => setForm({ ...form, title: e.target.value })}
-                    className="rounded-xl bg-[#161e2f] border-[#1e293b] h-11"
                     required
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-[#94a3b8]">المؤلف</Label>
-                  <Input
-                    value={form.author}
-                    onChange={(e) => setForm({ ...form, author: e.target.value })}
-                    className="rounded-xl bg-[#161e2f] border-[#1e293b] h-11"
-                  />
+                  <Label className="text-[var(--text-secondary)]">المؤلف</Label>
+                  <Input value={form.author} onChange={(e) => setForm({ ...form, author: e.target.value })} />
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-1.5">
-                  <Label className="text-[#94a3b8]">رقم المرحلة</Label>
+                  <Label className="text-[var(--text-secondary)]">رقم المرحلة</Label>
                   <Input
                     type="number"
-                    min="1"
+                    min={1}
                     value={form.phaseNumber}
                     onChange={(e) => setForm({ ...form, phaseNumber: e.target.value })}
-                    className="rounded-xl bg-[#161e2f] border-[#1e293b] h-11"
                     required
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-[#94a3b8]">عدد الصفحات</Label>
+                  <Label className="text-[var(--text-secondary)]">عدد الصفحات</Label>
                   <Input
                     type="number"
-                    min="1"
+                    min={1}
                     value={form.totalPages}
                     onChange={(e) => setForm({ ...form, totalPages: e.target.value })}
-                    className="rounded-xl bg-[#161e2f] border-[#1e293b] h-11"
                     required
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-[#94a3b8]">المستوى</Label>
+                  <Label className="text-[var(--text-secondary)]">المستوى</Label>
                   <Select value={form.levelType} onValueChange={(v) => setForm({ ...form, levelType: v })}>
-                    <SelectTrigger className="rounded-xl bg-[#161e2f] border-[#1e293b] h-11">
+                    <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -292,25 +299,20 @@ export default function AdminCurriculum() {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[#94a3b8]">رابط الكتاب (PDF / Drive)</Label>
+                <Label className="text-[var(--text-secondary)]">رابط الكتاب (PDF / Drive)</Label>
                 <Input
                   value={form.pdfUrl}
                   onChange={(e) => setForm({ ...form, pdfUrl: e.target.value })}
-                  className="rounded-xl bg-[#161e2f] border-[#1e293b] h-11"
                   dir="ltr"
                 />
               </div>
-
-              <div className="bg-[#D4AF37]/5 p-4 rounded-2xl border border-[#D4AF37]/20 flex justify-between items-center">
-                <span className="text-sm text-[#94a3b8]">رمز الكتاب المولد تلقائياً:</span>
-                <span className="font-mono text-[#D4AF37] text-lg font-black tracking-widest">{form.bookCode}</span>
+              <div className="p-4 rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-secondary)] flex justify-between items-center gap-3">
+                <span className="text-sm text-[var(--text-secondary)]">رمز الكتاب المولّد:</span>
+                <span className="font-mono text-lg font-bold text-[var(--secondary-400)] tracking-wide">
+                  {form.bookCode}
+                </span>
               </div>
-
-              <Button
-                type="submit"
-                className="w-full rounded-2xl font-bold h-12 mt-2 shadow-lg"
-                disabled={createBook.isPending || updateBook.isPending}
-              >
+              <Button type="submit" variant="secondary" className="w-full" disabled={createBook.isPending || updateBook.isPending}>
                 {createBook.isPending || updateBook.isPending ? (
                   <Loader2 className="animate-spin w-5 h-5" />
                 ) : editBook ? (
