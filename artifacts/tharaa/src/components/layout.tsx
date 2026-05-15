@@ -13,25 +13,20 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useGetSettings } from "@workspace/api-client-react";
+import { isDarkTheme } from "@/lib/theme";
 
 function useIsDarkTheme() {
   const [isDark, setIsDark] = useState(() =>
-    typeof document !== "undefined"
-      ? document.documentElement.classList.contains("dark")
-      : false
+    typeof document !== "undefined" ? isDarkTheme() : true
   );
-
   useEffect(() => {
     const el = document.documentElement;
-    const sync = () => setIsDark(el.classList.contains("dark"));
+    const sync = () => setIsDark(isDarkTheme());
     sync();
-
     const mo = new MutationObserver(sync);
-    mo.observe(el, { attributes: true, attributeFilter: ["class"] });
-
+    mo.observe(el, { attributes: true, attributeFilter: ["class", "data-theme"] });
     return () => mo.disconnect();
   }, []);
-
   return isDark;
 }
 
