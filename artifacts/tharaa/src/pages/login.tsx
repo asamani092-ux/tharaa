@@ -10,21 +10,21 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useEffect, useState } from "react";
+import { isDarkTheme } from "@/lib/theme";
 
 function useIsDarkTheme() {
   const [isDark, setIsDark] = useState(() =>
-    typeof document !== "undefined"
-      ? document.documentElement.classList.contains("dark")
-      : false
+    typeof document !== "undefined" ? isDarkTheme() : true
   );
 
   useEffect(() => {
     const el = document.documentElement;
-    const sync = () => setIsDark(el.classList.contains("dark"));
+    const sync = () => setIsDark(isDarkTheme());
     sync();
 
     const mo = new MutationObserver(sync);
-    mo.observe(el, { attributes: true, attributeFilter: ["class"] });
+    mo.observe(el, { attributes: true, attributeFilter: ["class", "data-theme"] });
 
     return () => mo.disconnect();
   }, []);
