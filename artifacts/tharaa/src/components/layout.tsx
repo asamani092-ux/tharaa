@@ -61,7 +61,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-background text-foreground flex-col md:flex-row font-sans" dir="rtl">
       <aside className="w-full md:w-64 flex flex-col shrink-0 bg-[var(--bg-primary)] border-l border-[var(--border-default)]">
-                <div className="p-5 border-b border-[var(--border-default)]">
+        <div className="p-5 border-b border-[var(--border-default)]">
           <div className="flex flex-col items-center gap-1 min-w-0">
             <img
               src={isDark ? "/brand/logo-full-white.png" : "/brand/logo-full-dark.png"}
@@ -74,30 +74,43 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <nav className="flex-1 p-3 flex flex-col gap-1">
-          {navItems.map((item) => {
-            const isActive =
-              location === item.href ||
-              (location.startsWith(item.href + "/") && item.href !== "/admin");
+        <nav className="flex-1 p-3 flex flex-col gap-3">
+          <div className="px-2 pt-1">
+            <p className="text-[11px] font-semibold tracking-wide text-[var(--text-secondary)] opacity-90">
+              القائمة الرئيسية
+            </p>
+          </div>
 
-            return (
-              <Link key={item.href} href={item.href}>
-                <div
-                  data-testid={`link-admin-${item.id}`}
-                  className={[
-                    "flex items-center gap-3 px-4 py-2.5 rounded-[var(--radius-md)] cursor-pointer",
-                    "transition-all duration-[var(--dur-fast)] text-sm font-medium",
-                    isActive
-                      ? "text-[var(--primary-600)] bg-[var(--primary-50)] border-r-[3px] border-r-[var(--primary-600)]"
-                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-r-[3px] border-r-transparent",
-                  ].join(" ")}
-                >
-                  <item.icon className="h-4 w-4 shrink-0" />
-                  <span>{item.label}</span>
-                </div>
-              </Link>
-            );
-          })}
+          <div className="flex flex-col gap-1">
+            {navItems.map((item) => {
+              const isActive =
+                location === item.href ||
+                (location.startsWith(item.href + "/") && item.href !== "/admin");
+
+              return (
+                <Link key={item.href} href={item.href}>
+                  <div
+                    data-testid={`link-admin-${item.id}`}
+                    className={[
+                      "flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-lg)] cursor-pointer",
+                      "transition-all duration-[var(--dur-fast)] text-sm font-medium border-r-[3px]",
+                      isActive
+                        ? "bg-card text-card-foreground shadow-[var(--shadow-sm)] border-r-[hsl(var(--primary))]"
+                        : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-r-transparent",
+                    ].join(" ")}
+                  >
+                    <item.icon
+                      className={[
+                        "h-4 w-4 shrink-0",
+                        isActive ? "text-[hsl(var(--primary))]" : "opacity-90",
+                      ].join(" ")}
+                    />
+                    <span className="min-w-0 truncate">{item.label}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         </nav>
 
         <div className="p-4 border-t border-[var(--border-default)]">
@@ -135,9 +148,7 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
   const iconColored = "/brand/thraa_icon_colored.png";
   const iconWhite = "/brand/thraa_icon_white.png";
   const logoPath = isDark ? iconWhite : iconColored;
-  
-const logoFull = isDark ? "/brand/logo-full-white.png" : "/brand/logo-full-dark.png";
-  
+    
   const handleLogout = () => {
     logout.mutate(undefined, {
       onSuccess: () => {
