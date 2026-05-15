@@ -5,8 +5,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet, TrendingUp, Users, BookCheck, Award, Star } from "lucide-react";
+import { FileSpreadsheet, TrendingUp, Star } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+
+function StatCard({
+  label,
+  value,
+  valueClassName = "text-[var(--text-primary)]",
+}: {
+  label: string;
+  value: React.ReactNode;
+  valueClassName?: string;
+}) {
+  return (
+    <Card>
+      <CardContent className="pt-6 pb-6 px-6 text-right">
+        <p className="text-[var(--font-sm)] text-[var(--text-secondary)] mb-2">{label}</p>
+        <p className={`text-3xl font-bold ${valueClassName}`}>{value}</p>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function AdminAnalytics() {
   const { data: users } = useListUsers();
@@ -14,7 +33,6 @@ export default function AdminAnalytics() {
   const { data: curriculum } = useListCurriculum();
   const [selectedBatch, setSelectedBatch] = useState<string>("all");
 
-  // O(U * C) for stats (U=number of users, C=number of curriculum items)
   const stats = useMemo(() => {
     if (!users || !curriculum) return [];
 
@@ -42,11 +60,8 @@ export default function AdminAnalytics() {
   }, [users, curriculum]);
 
   const filteredStats =
-    selectedBatch === "all"
-      ? stats
-      : stats.filter((s: any) => s.batchId === parseInt(selectedBatch));
+    selectedBatch === "all" ? stats : stats.filter((s: any) => s.batchId === parseInt(selectedBatch));
 
-  // O(N log N) where N is filteredStats length
   const topByPages = [...filteredStats]
     .sort((a: any, b: any) => b.totalReadPages - a.totalReadPages)
     .slice(0, 3);
@@ -54,6 +69,15 @@ export default function AdminAnalytics() {
   const topByBooks = [...filteredStats]
     .sort((a: any, b: any) => b.completedCount - a.completedCount)
     .slice(0, 3);
+
+  const avgCompletion =
+    filteredStats.length > 0
+      ? Math.round(
+          filteredStats.reduce((sum: number, s: any) => sum + s.completionRate, 0) / filteredStats.length
+        )
+      : 0;
+
+  const totalBooksCompleted = filteredStats.reduce((sum: number, s: any) => sum + s.completedCount, 0);
 
   const exportToExcel = () => {
     const headers = ["اسم المشارك", "الدفعة", "إجمالي الصفحات", "الكتب المنجزة", "نسبة الإنجاز"];
@@ -65,9 +89,8 @@ export default function AdminAnalytics() {
       `${s.completionRate}%`,
     ]);
 
-    // ألوان متوافقة مع الهوية (بدون الاعتماد على tokens داخل html)
-    const excelBg = "#1a2136"; // primary-800
-    const excelGold = "#caa264"; // secondary-400
+    const excelBg = "#1a2136";
+    const excelGold = "#caa264";
 
     const tableHtml = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40" dir="rtl">
@@ -109,16 +132,20 @@ export default function AdminAnalytics() {
   return (
     <AdminLayout>
       <div className="space-y-6" dir="rtl">
-        {/* Header */}
-        <div className="flex justify-between items-center gap-4">
-          <h2 className="text-[var(--font-xl)] font-bold text-[var(--secondary-400)] flex items-center gap-2">
-            <TrendingUp className="w-6 h-6" />
-            الإحصائيات
-          </h2>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h2 className="text-[var(--font-xl)] font-bold text-[var(--secondary-400)] flex items-center gap-2">
+              <TrendingUp className="w-6 h-6" />
+              الإحصائيات
+            </h2>
+            <p className="text-[var(--text-secondary)] text-sm mt-1">
+              تقارير تفصيلية مع تصفية حسب الدفعة وتصدير إكسل.
+            </p>
+          </div>
 
-          <div className="flex gap-3 items-center">
+          <div className="flex flex-wrap gap-3 items-center">
             <Select value={selectedBatch} onValueChange={setSelectedBatch}>
-              <SelectTrigger className="w-44 rounded-[var(--radius-lg)]">
+              <SelectTrigger className="w-44">
                 <SelectValue placeholder="تصفية بالدفعة" />
               </SelectTrigger>
               <SelectContent>
@@ -131,138 +158,118 @@ export default function AdminAnalytics() {
               </SelectContent>
             </Select>
 
-            <Button
-              onClick={exportToExcel}
-              variant="outline"
-              className="rounded-[var(--radius-lg)] gap-2 h-11"
-            >
+            <Button variant="secondary" className="gap-2" onClick={exportToExcel}>
               <FileSpreadsheet className="w-4 h-4" />
               تصدير لإكسل
             </Button>
           </div>
         </div>
 
-        {/* Main cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="rounded-[var(--radius-xl)]">
-            <CardContent className="pt-6 text-right">
-              <Users className="text-[var(--primary-600)] mb-2" />
-              <p className="text-[var(--text-secondary)] text-sm">إجمالي المشاركين</p>
-              <h3 className="text-2xl font-bold">{filteredStats.length}</h3>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-[var(--radius-xl)]">
-            <CardContent className="pt-6 text-right">
-              <BookCheck className="text-[var(--success-600)] mb-2" />
-              <p className="text-[var(--text-secondary)] text-sm">عدد الكتب المنجزة</p>
-              <h3 className="text-2xl font-bold">
-                {filteredStats.reduce((sum: number, s: any) => sum + s.completedCount, 0)}
-              </h3>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-[var(--radius-xl)]">
-            <CardContent className="pt-6 text-right">
-              <Award className="text-[var(--secondary-400)] mb-2" />
-              <p className="text-[var(--text-secondary)] text-sm">متوسط نسبة الإنجاز (للصنف)</p>
-              <h3 className="text-2xl font-bold text-[var(--secondary-400)]">
-                {filteredStats.length > 0
-                  ? Math.round(
-                      filteredStats.reduce((sum: number, s: any) => sum + s.completionRate, 0) /
-                        filteredStats.length
-                    )
-                  : 0}
-                %
-              </h3>
-            </CardContent>
-          </Card>
+          <StatCard label="إجمالي المشاركين" value={filteredStats.length} />
+          <StatCard label="عدد الكتب المنجزة" value={totalBooksCompleted} />
+          <StatCard
+            label="متوسط نسبة الإنجاز (للصنف)"
+            value={`${avgCompletion}%`}
+            valueClassName="text-[var(--secondary-400)]"
+          />
         </div>
 
-        {/* Elite */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="rounded-[var(--radius-xl)]">
-            <CardHeader className="border-b border-[var(--border-subtle)]">
-              <CardTitle className="text-sm flex items-center gap-2">
+          <Card>
+            <CardHeader className="border-b border-[var(--border-subtle)] py-4">
+              <CardTitle className="text-base font-semibold flex items-center gap-2 text-[var(--text-primary)]">
                 <Star className="w-4 h-4 text-[var(--secondary-400)]" />
                 الأعلى قراءة (صفحات)
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              {topByPages.map((s: any, i: number) => (
-                <div
-                  key={s.id}
-                  className="flex justify-between p-4 border-b border-[var(--border-subtle)] last:border-0"
-                >
-                  <span className="font-medium">
-                    {i + 1}. {s.name}
-                  </span>
-                  <span className="text-[var(--secondary-400)] font-bold">{s.totalReadPages} صفحة</span>
-                </div>
-              ))}
+              {topByPages.length === 0 ? (
+                <p className="p-4 text-sm text-[var(--text-secondary)] text-center">لا توجد بيانات</p>
+              ) : (
+                topByPages.map((s: any, i: number) => (
+                  <div
+                    key={s.id}
+                    className="flex justify-between items-center p-4 border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-tertiary)]"
+                  >
+                    <span className="font-medium text-[var(--text-primary)]">
+                      {i + 1}. {s.name}
+                    </span>
+                    <span className="text-[var(--secondary-400)] font-bold">{s.totalReadPages} صفحة</span>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
 
-          <Card className="rounded-[var(--radius-xl)]">
-            <CardHeader className="border-b border-[var(--border-subtle)]">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <BookCheck className="w-4 h-4 text-[var(--success-600)]" />
+          <Card>
+            <CardHeader className="border-b border-[var(--border-subtle)] py-4">
+              <CardTitle className="text-base font-semibold flex items-center gap-2 text-[var(--text-primary)]">
+                <Star className="w-4 h-4 text-[var(--secondary-400)]" />
                 الأكثر إنجازاً (كتب)
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              {topByBooks.map((s: any, i: number) => (
-                <div
-                  key={s.id}
-                  className="flex justify-between p-4 border-b border-[var(--border-subtle)] last:border-0"
-                >
-                  <span className="font-medium">
-                    {i + 1}. {s.name}
-                  </span>
-                  <span className="text-[var(--success-600)] font-bold">{s.completedCount} كتب</span>
-                </div>
-              ))}
+              {topByBooks.length === 0 ? (
+                <p className="p-4 text-sm text-[var(--text-secondary)] text-center">لا توجد بيانات</p>
+              ) : (
+                topByBooks.map((s: any, i: number) => (
+                  <div
+                    key={s.id}
+                    className="flex justify-between items-center p-4 border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-tertiary)]"
+                  >
+                    <span className="font-medium text-[var(--text-primary)]">
+                      {i + 1}. {s.name}
+                    </span>
+                    <span className="text-[var(--secondary-400)] font-bold">{s.completedCount} كتب</span>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Table */}
-        <Card className="rounded-[var(--radius-xl)] overflow-hidden">
+        <Card className="overflow-hidden">
           <CardContent className="p-0">
-            <div className="p-4">
-              <Table>
-                <TableHeader className="bg-[var(--bg-tertiary)]">
-                  <TableRow>
-                    <TableHead>اسم المشارك</TableHead>
-                    <TableHead>الدفعة</TableHead>
-                    <TableHead>إجمالي الصفحات</TableHead>
-                    <TableHead>الكتب المنجزة</TableHead>
-                    <TableHead className="w-[200px]">نسبة الإنجاز</TableHead>
+            <Table>
+              <TableHeader className="bg-[var(--bg-secondary)]">
+                <TableRow className="border-[var(--border-default)] hover:bg-transparent">
+                  <TableHead className="text-right text-[var(--text-secondary)] font-semibold">
+                    اسم المشارك
+                  </TableHead>
+                  <TableHead className="text-right text-[var(--text-secondary)] font-semibold">الدفعة</TableHead>
+                  <TableHead className="text-right text-[var(--text-secondary)] font-semibold">
+                    إجمالي الصفحات
+                  </TableHead>
+                  <TableHead className="text-right text-[var(--text-secondary)] font-semibold">
+                    الكتب المنجزة
+                  </TableHead>
+                  <TableHead className="text-right text-[var(--text-secondary)] font-semibold w-[200px]">
+                    نسبة الإنجاز
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredStats.map((s: any) => (
+                  <TableRow key={s.id} className="border-[var(--border-subtle)] hover:bg-[var(--bg-tertiary)]">
+                    <TableCell className="text-right font-medium text-[var(--text-primary)]">{s.name}</TableCell>
+                    <TableCell className="text-right text-[var(--text-primary)]">
+                      {batches?.find((b: any) => b.id === s.batchId)?.name || "-"}
+                    </TableCell>
+                    <TableCell className="text-right font-bold text-[var(--secondary-400)]">
+                      {s.totalReadPages}
+                    </TableCell>
+                    <TableCell className="text-right text-[var(--text-primary)]">{s.completedCount}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center gap-2">
+                        <Progress value={s.completionRate} className="h-1.5 flex-1" />
+                        <span className="text-xs w-8 text-[var(--text-secondary)]">{s.completionRate}%</span>
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-
-                <TableBody>
-                  {filteredStats.map((s: any) => (
-                    <TableRow key={s.id} className="hover:bg-[var(--bg-tertiary)]/50">
-                      <TableCell className="text-right font-medium">{s.name}</TableCell>
-                      <TableCell className="text-right">
-                        {batches?.find((b: any) => b.id === s.batchId)?.name || "-"}
-                      </TableCell>
-                      <TableCell className="text-right font-bold text-[var(--secondary-400)]">
-                        {s.totalReadPages}
-                      </TableCell>
-                      <TableCell className="text-right">{s.completedCount}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center gap-2">
-                          <Progress value={s.completionRate} className="h-1.5 flex-1" />
-                          <span className="text-xs w-8">{s.completionRate}%</span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>
