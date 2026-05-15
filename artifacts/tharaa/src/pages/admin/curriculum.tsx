@@ -224,7 +224,7 @@ export default function AdminCurriculum() {
                       <TableCell className="align-middle px-4 py-4 text-center font-mono text-[var(--text-primary)]">
                         {book.totalPages}
                       </TableCell>
-                      <TableCell className="align-middle px-6 py-4 text-left">
+                      <TableCell className="align-middle px-6 py-4">
                         <div className="flex justify-start gap-1">
                           <Button
                             size="icon"
