@@ -225,7 +225,7 @@ export default function AdminCurriculum() {
                         {book.totalPages}
                       </TableCell>
                       <TableCell className="align-middle px-6 py-4">
-                        <div className="flex justify-start gap-1">
+                         <div className="flex items-center justify-end gap-1">
                           <Button
                             size="icon"
                             variant="outline"
