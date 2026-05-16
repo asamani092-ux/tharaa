@@ -283,19 +283,17 @@ export default function AdminUsers() {
         key={user.id}
         className="border-[var(--border-subtle)] hover:bg-[var(--bg-tertiary)]"
       >
-        <TableCell className="align-middle px-6 py-4">
-            <div className="flex justify-end">
-           <span className="font-semibold text-[var(--text-primary)] truncate max-w-full">
-               {user.name}
-             </span>
-          </div>
-           </TableCell>
-
-        <TableCell className="align-middle px-4 py-4">
-           <div className="flex justify-end">
-            <TableFieldChip tone="neutral" dir="ltr">{user.phone}</TableFieldChip>
-           </div>
-           </TableCell>
+        <TableCell className="text-center align-middle px-4 py-4">
+  <TableFieldChip tone="neutral" dir="ltr" className="mx-auto">
+    {user.phone}
+  </TableFieldChip>
+</TableCell>
+        
+<TableCell className="align-middle px-4 py-4">
+  <div className="flex w-full justify-center">
+    <TableFieldChip tone="neutral" dir="ltr">{user.phone}</TableFieldChip>
+  </div>
+</TableCell>
         
         <TableCell className="align-middle px-4 py-4">
           <div className="flex justify-center">
