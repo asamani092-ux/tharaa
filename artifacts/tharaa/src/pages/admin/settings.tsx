@@ -21,9 +21,11 @@ import {
 import { toast } from "sonner";
 import { Settings, Loader2, Calendar, BookOpen, ShieldCheck, UserCog } from "lucide-react";
 
-/** سويتش: كحلي/أبيض عند الإيقاف، ذهبي/أبيض عند التفعيل */
 const settingsSwitchClass =
   "data-[state=unchecked]:bg-[var(--primary-600)] data-[state=checked]:bg-[hsl(var(--primary))]";
+
+const cardShellClass =
+  "flex flex-col h-full rounded-[var(--radius-xl)] border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-[var(--shadow-md)]";
 
 export default function AdminSettings() {
   const { data: settings, isLoading: settingsLoading } = useGetSettings();
@@ -35,10 +37,7 @@ export default function AdminSettings() {
   const [allDaysActive, setAllDaysActive] = useState<boolean>(false);
   const [primaryDay, setPrimaryDay] = useState<string>("Friday");
   const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false);
-
-  /** الخطوة الثانية لزر الصيانة: ذهبي → أحمر للتأكيد */
   const [maintenanceSaveStep, setMaintenanceSaveStep] = useState<"idle" | "confirm">("idle");
-
   const [adminProfile, setAdminProfile] = useState({ name: "", phone: "", password: "" });
 
   useEffect(() => {
@@ -61,7 +60,7 @@ export default function AdminSettings() {
     updateSettings.mutate(
       {
         data: {
-          weeklyQuota: parseInt(weeklyQuota),
+          weeklyQuota: parseInt(weeklyQuota, 10),
           allDaysActive: allDaysActive ? 1 : 0,
           primaryDay,
           maintenanceMode: isMaintenanceMode ? 1 : 0,
@@ -136,22 +135,22 @@ export default function AdminSettings() {
 
   return (
     <AdminLayout>
-      <div className="max-w-5xl mx-auto space-y-8 text-right pb-20" dir="rtl">
+      <div className="max-w-7xl mx-auto space-y-8 text-right pb-20" dir="rtl">
         <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-3 text-[var(--secondary-400)]">
-           <Settings className="w-8 h-8 shrink-0" />
+          <Settings className="w-8 h-8 shrink-0" />
           إعدادات المنصة
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
           {/* معايير القراءة */}
-          <Card className="flex flex-col h-full rounded-[var(--radius-xl)] border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-[var(--shadow-md)]">
+          <Card className={cardShellClass}>
             <CardHeader className="pb-2">
               <div className="flex items-center gap-3">
                 <BookOpen className={cardIcon} />
                 <CardTitle className="text-lg text-[var(--text-primary)]">معايير القراءة</CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="flex flex-col flex-1 gap-4 pt-0">
+            <CardContent className="flex flex-col flex-1 gap-4">
               <div className="space-y-2">
                 <Label className={labelClass}>نصاب القراءة الأسبوعي (صفحة)</Label>
                 <Input
@@ -173,14 +172,14 @@ export default function AdminSettings() {
           </Card>
 
           {/* مواعيد الرصد */}
-            <Card className="flex flex-col h-full rounded-[var(--radius-xl)] border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-[var(--shadow-md)]">
+          <Card className={cardShellClass}>
             <CardHeader className="pb-2">
               <div className="flex items-center gap-3">
                 <Calendar className={cardIcon} />
                 <CardTitle className="text-lg text-[var(--text-primary)]">مواعيد الرصد</CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="flex flex-col flex-1 gap-4 pt-0">
+            <CardContent className="flex flex-col flex-1 gap-4">
               <div className={switchRowClass}>
                 <div className="space-y-1 flex-1 min-w-0">
                   <Label className="text-sm font-medium block text-right text-[var(--text-primary)]">
@@ -225,46 +224,58 @@ export default function AdminSettings() {
           </Card>
 
           {/* تعديل المشرف الحالي */}
-          <Card >
-            <CardHeader>
+          <Card className={cardShellClass}>
+            <CardHeader className="pb-2">
               <div className="flex items-center gap-3">
                 <UserCog className={cardIcon} />
-                <CardTitle className="text-lg">تعديل بياناتي (المشرف)</CardTitle>
+                <CardTitle className="text-lg text-[var(--text-primary)]">تعديل بياناتي (المشرف)</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="flex flex-col flex-1 gap-4">
-  <div className="space-y-2">
-    <Label className={labelClass}>الاسم</Label>
-    <Input ... />
-  </div>
-  <div className="space-y-2">
-    <Label className={labelClass}>رقم الجوال</Label>
-    <Input dir="ltr" ... />
-  </motion.div>
-  <div className="space-y-2">
-    <Label className={labelClass}>كلمة المرور الجديدة (اختياري)</Label>
-    <Input type="password" ... />
-  </div>
-  <Button
-    variant="secondary"
-    className="w-full mt-auto"
-    onClick={handleUpdateProfile}
-    disabled={updateUser.isPending}
-  >
-    {updateUser.isPending ? <Loader2 className="animate-spin" /> : "حفظ بياناتي"}
-  </Button>
-</CardContent>
+              <div className="space-y-2">
+                <Label className={labelClass}>الاسم</Label>
+                <Input
+                  value={adminProfile.name}
+                  onChange={(e) => setAdminProfile({ ...adminProfile, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className={labelClass}>رقم الجوال</Label>
+                <Input
+                  value={adminProfile.phone}
+                  onChange={(e) => setAdminProfile({ ...adminProfile, phone: e.target.value })}
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className={labelClass}>كلمة المرور الجديدة (اختياري)</Label>
+                <Input
+                  type="password"
+                  value={adminProfile.password}
+                  onChange={(e) => setAdminProfile({ ...adminProfile, password: e.target.value })}
+                  placeholder="اتركها فارغة لعدم التغيير"
+                />
+              </div>
+              <Button
+                variant="secondary"
+                className="w-full mt-auto"
+                onClick={handleUpdateProfile}
+                disabled={updateUser.isPending}
+              >
+                {updateUser.isPending ? <Loader2 className="animate-spin" /> : "حفظ بياناتي"}
+              </Button>
+            </CardContent>
           </Card>
 
-          {/* وضع الصيانة — عرض كامل أسفل الشبكة */}
-          <Card >
-            <CardHeader>
+          {/* وضع الصيانة */}
+          <Card className={cardShellClass}>
+            <CardHeader className="pb-2">
               <div className="flex items-center gap-3">
                 <ShieldCheck className={cardIcon} />
-                <CardTitle className="text-lg">وضع الصيانة</CardTitle>
+                <CardTitle className="text-lg text-[var(--text-primary)]">وضع الصيانة</CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="flex flex-col flex-1 gap-4">
               <div className={switchRowClass}>
                 <div className="space-y-1 flex-1 min-w-0">
                   <Label className="text-sm font-medium block text-right text-[var(--text-primary)]">
