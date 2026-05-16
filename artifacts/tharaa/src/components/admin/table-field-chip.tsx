@@ -29,6 +29,7 @@ export function TableFieldChip({
   className?: string;
   dir?: "rtl" | "ltr";
 }) {
+  
   return (
     <span
       dir={dir}
