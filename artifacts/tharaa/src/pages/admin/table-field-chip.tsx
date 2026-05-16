@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 type ChipTone = "neutral" | "gold" | "navy" | "mono";
@@ -23,7 +24,7 @@ export function TableFieldChip({
   className,
   dir,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   tone?: ChipTone;
   className?: string;
   dir?: "rtl" | "ltr";
