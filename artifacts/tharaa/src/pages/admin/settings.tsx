@@ -137,21 +137,21 @@ export default function AdminSettings() {
   return (
     <AdminLayout>
       <div className="max-w-5xl mx-auto space-y-8 text-right pb-20" dir="rtl">
-        <h2 className="text-3xl font-bold flex items-center gap-3 text-[var(--secondary-400)]">
-          <Settings className="w-8 h-8" />
-          إعدادات المنصة والمشرفين
+        <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-3 text-[var(--secondary-400)]">
+           <Settings className="w-8 h-8 shrink-0" />
+          إعدادات المنصة
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
           {/* معايير القراءة */}
-          <Card>
-            <CardHeader>
+          <Card className="flex flex-col h-full rounded-[var(--radius-xl)] border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-[var(--shadow-md)]">
+            <CardHeader className="pb-2">
               <div className="flex items-center gap-3">
                 <BookOpen className={cardIcon} />
-                <CardTitle className="text-lg">معايير القراءة</CardTitle>
+                <CardTitle className="text-lg text-[var(--text-primary)]">معايير القراءة</CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="flex flex-col flex-1 gap-4 pt-0">
               <div className="space-y-2">
                 <Label className={labelClass}>نصاب القراءة الأسبوعي (صفحة)</Label>
                 <Input
@@ -163,7 +163,7 @@ export default function AdminSettings() {
               </div>
               <Button
                 variant="secondary"
-                className="w-full"
+                className="w-full mt-auto"
                 onClick={handleSaveSettings}
                 disabled={updateSettings.isPending}
               >
@@ -173,14 +173,14 @@ export default function AdminSettings() {
           </Card>
 
           {/* مواعيد الرصد */}
-          <Card>
-            <CardHeader>
+            <Card className="flex flex-col h-full rounded-[var(--radius-xl)] border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-[var(--shadow-md)]">
+            <CardHeader className="pb-2">
               <div className="flex items-center gap-3">
                 <Calendar className={cardIcon} />
-                <CardTitle className="text-lg">مواعيد الرصد</CardTitle>
+                <CardTitle className="text-lg text-[var(--text-primary)]">مواعيد الرصد</CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="flex flex-col flex-1 gap-4 pt-0">
               <div className={switchRowClass}>
                 <div className="space-y-1 flex-1 min-w-0">
                   <Label className="text-sm font-medium block text-right text-[var(--text-primary)]">
@@ -215,7 +215,7 @@ export default function AdminSettings() {
               </div>
               <Button
                 variant="secondary"
-                className="w-full"
+                className="w-full mt-auto"
                 onClick={handleSaveSettings}
                 disabled={updateSettings.isPending}
               >
@@ -225,53 +225,39 @@ export default function AdminSettings() {
           </Card>
 
           {/* تعديل المشرف الحالي */}
-          <Card className="md:col-span-2">
+          <Card >
             <CardHeader>
               <div className="flex items-center gap-3">
                 <UserCog className={cardIcon} />
                 <CardTitle className="text-lg">تعديل بياناتي (المشرف)</CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label className={labelClass}>الاسم</Label>
-                  <Input
-                    value={adminProfile.name}
-                    onChange={(e) => setAdminProfile({ ...adminProfile, name: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className={labelClass}>رقم الجوال</Label>
-                  <Input
-                    value={adminProfile.phone}
-                    onChange={(e) => setAdminProfile({ ...adminProfile, phone: e.target.value })}
-                    dir="ltr"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className={labelClass}>كلمة المرور الجديدة (اختياري)</Label>
-                  <Input
-                    type="password"
-                    value={adminProfile.password}
-                    onChange={(e) => setAdminProfile({ ...adminProfile, password: e.target.value })}
-                    placeholder="اتركها فارغة لعدم التغيير"
-                  />
-                </div>
-              </div>
-              <Button
-                variant="secondary"
-                className="w-full md:w-auto md:min-w-[200px]"
-                onClick={handleUpdateProfile}
-                disabled={updateUser.isPending}
-              >
-                {updateUser.isPending ? <Loader2 className="animate-spin" /> : "حفظ بياناتي"}
-              </Button>
-            </CardContent>
+            <CardContent className="flex flex-col flex-1 gap-4">
+  <div className="space-y-2">
+    <Label className={labelClass}>الاسم</Label>
+    <Input ... />
+  </div>
+  <div className="space-y-2">
+    <Label className={labelClass}>رقم الجوال</Label>
+    <Input dir="ltr" ... />
+  </motion.div>
+  <div className="space-y-2">
+    <Label className={labelClass}>كلمة المرور الجديدة (اختياري)</Label>
+    <Input type="password" ... />
+  </div>
+  <Button
+    variant="secondary"
+    className="w-full mt-auto"
+    onClick={handleUpdateProfile}
+    disabled={updateUser.isPending}
+  >
+    {updateUser.isPending ? <Loader2 className="animate-spin" /> : "حفظ بياناتي"}
+  </Button>
+</CardContent>
           </Card>
 
           {/* وضع الصيانة — عرض كامل أسفل الشبكة */}
-          <Card className="md:col-span-2">
+          <Card >
             <CardHeader>
               <div className="flex items-center gap-3">
                 <ShieldCheck className={cardIcon} />
@@ -303,7 +289,7 @@ export default function AdminSettings() {
                 variant={
                   isMaintenanceMode && maintenanceSaveStep === "confirm" ? "destructive" : "secondary"
                 }
-                className="w-full"
+                className="w-full mt-auto"
                 onClick={handleMaintenanceSaveClick}
                 disabled={updateSettings.isPending}
               >
