@@ -244,10 +244,10 @@ export default function AdminUsers() {
           <Table>
             <TableHeader className="bg-[var(--bg-secondary)]">
   <TableRow className="border-[var(--border-default)] hover:bg-transparent">
-    <TableHead className="text-right font-semibold text-[var(--text-secondary)] px-6 py-4 align-middle">
+    <TableHead className="text-center font-semibold text-[var(--text-secondary)] px-6 py-4 align-middle">
       الاسم
     </TableHead>
-    <TableHead className="text-right font-semibold text-[var(--text-secondary)] px-4 py-4 align-middle">
+    <TableHead className="text-center font-semibold text-[var(--text-secondary)] px-4 py-4 align-middle">
       رقم الجوال
     </TableHead>
     <TableHead className="text-center font-semibold text-[var(--text-secondary)] px-4 py-4 align-middle">
