@@ -243,27 +243,27 @@ export default function AdminUsers() {
         <div className="rounded-[var(--radius-xl)] overflow-hidden border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-[var(--shadow-md)]">
           <Table>
             <TableHeader className="bg-[var(--bg-secondary)]">
-              <TableRow className="border-[var(--border-default)] hover:bg-transparent">
-                <TableHead className="text-right text-[var(--text-secondary)] font-semibold w-[30%] px-6">
-                  الاسم
-                </TableHead>
-                <TableHead className="text-right text-[var(--text-secondary)] font-semibold w-[20%]">
-                  رقم الجوال
-                </TableHead>
-                <TableHead className="text-right text-[var(--text-secondary)] font-semibold w-[15%]">
-                  الدفعة
-                </TableHead>
-                <TableHead className="text-right text-[var(--text-secondary)] font-semibold w-[15%]">
-                  المرحلة
-                </TableHead>
-                <TableHead className="text-right text-[var(--text-secondary)] font-semibold w-[10%]">
-                  الحالة
-                </TableHead>
-                <TableHead className="text-center text-[var(--text-secondary)] font-semibold w-[10%]">
-                  الإجراءات
-                </TableHead>
-              </TableRow>
-            </TableHeader>
+  <TableRow className="border-[var(--border-default)] hover:bg-transparent">
+    <TableHead className="text-right font-semibold text-[var(--text-secondary)] px-6 py-4 align-middle">
+      الاسم
+    </TableHead>
+    <TableHead className="text-right font-semibold text-[var(--text-secondary)] px-4 py-4 align-middle">
+      رقم الجوال
+    </TableHead>
+    <TableHead className="text-center font-semibold text-[var(--text-secondary)] px-4 py-4 align-middle">
+      الدفعة
+    </TableHead>
+    <TableHead className="text-center font-semibold text-[var(--text-secondary)] px-4 py-4 align-middle">
+      المرحلة
+    </TableHead>
+    <TableHead className="text-center font-semibold text-[var(--text-secondary)] px-4 py-4 align-middle">
+      الحالة
+    </TableHead>
+    <TableHead className="text-center font-semibold text-[var(--text-secondary)] px-6 py-4 align-middle">
+      الإجراءات
+    </TableHead>
+  </TableRow>
+</TableHeader>
               <TableBody>
   {isLoading ? (
     <TableRow>
@@ -283,29 +283,39 @@ export default function AdminUsers() {
         key={user.id}
         className="border-[var(--border-subtle)] hover:bg-[var(--bg-tertiary)]"
       >
-        <TableCell className="align-middle px-6 py-4 text-right">
-          <TableFieldChip tone="navy">{user.name}</TableFieldChip>
+        <TableCell className="align-middle px-6 py-4">
+            <div className="flex justify-end">
+           <span className="font-semibold text-[var(--text-primary)] truncate max-w-full">
+               {user.name}
+             </span>
+          </div>
+           </TableCell>
+
+        <TableCell className="align-middle px-4 py-4">
+           <div className="flex justify-end">
+            <TableFieldChip tone="neutral" dir="ltr">{user.phone}</TableFieldChip>
+           </div>
+           </TableCell>
+        
+        <TableCell className="align-middle px-4 py-4">
+          <div className="flex justify-center">
+         <TableFieldChip tone="gold">
+          {batches?.find((b) => b.id === user.batchId)?.name ?? "-"}
+            </TableFieldChip>
+           </div>
         </TableCell>
 
-        <TableCell className="align-middle px-4 py-4 text-right">
-          <TableFieldChip tone="neutral" dir="ltr">
-            {user.phone}
-          </TableFieldChip>
-        </TableCell>
+        <TableCell className="align-middle px-4 py-4">
+            <div className="flex justify-center">
+                  <TableFieldChip tone="gold">م.{user.phaseNumber}</TableFieldChip>
+              </div>
+           </TableCell>
 
-        <TableCell className="align-middle px-4 py-4 text-center">
-          <TableFieldChip tone="gold">
-            {batches?.find((b) => b.id === user.batchId)?.name ?? "-"}
-          </TableFieldChip>
-        </TableCell>
-
-        <TableCell className="align-middle px-4 py-4 text-center">
-          <TableFieldChip tone="gold">م.{user.phaseNumber}</TableFieldChip>
-        </TableCell>
-
-        <TableCell className="align-middle px-4 py-4 text-center">
-          <StatusBadge status={user.status} />
-        </TableCell>
+        <TableCell className="align-middle px-4 py-4">
+             <div className="flex justify-center">
+            <StatusBadge status={user.status} />
+          </div>
+          </TableCell>
 
         <TableCell className="align-middle px-6 py-4">
           <div className="flex flex-col items-center justify-center gap-1">
