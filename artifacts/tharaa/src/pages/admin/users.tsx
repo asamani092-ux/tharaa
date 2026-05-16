@@ -20,6 +20,10 @@ import { toast } from "sonner";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { Loader2, Plus, Check, Trash2, Search, Pencil } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
+import { TableFieldChip } from "@/components/admin/table-field-chip";
+import { RowActions } from "@/components/admin/row-actions";
+import { StatusBadge } from "@/components/admin/status-badge";
+
 
 export default function AdminUsers() {
   const queryClient = useQueryClient();
@@ -260,81 +264,83 @@ export default function AdminUsers() {
                 </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-10">
-                    <Loader2 className="animate-spin mx-auto text-[var(--secondary-400)]" />
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredUsers.map((user) => (
-                  <TableRow key={user.id} className="border-[var(--border-subtle)] hover:bg-[var(--bg-tertiary)]">
-                    <TableCell className="text-right px-6 font-medium text-[var(--text-primary)]">
-                      {user.name}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm text-[var(--text-primary)]" dir="ltr">
-                      {user.phone}
-                    </TableCell>
-                    <TableCell className="text-right text-[var(--text-primary)]">
-                      {batches?.find((b) => b.id === user.batchId)?.name || "-"}
-                    </TableCell>
-                    <TableCell className="text-right text-[var(--text-primary)]">م.{user.phaseNumber}</TableCell>
-                    <TableCell className="text-right">
-                      <Badge
-                        className={
-                          user.status === "active"
-                            ? "bg-[var(--success-600)]/10 text-[var(--success-600)] border-transparent"
-                            : "bg-[var(--secondary-400)]/10 text-[var(--secondary-600)] border-transparent"
-                        }
-                      >
-                        {user.status === "active" ? "نشط" : "معلق"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex justify-center gap-1">
-                        {user.status === "pending" && (
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            className="h-8 w-8 text-[var(--success-600)] border-[var(--success-600)]/40"
-                            onClick={() => handleDirectApprove(user.id)}
-                          >
-                            <Check className="w-4 h-4" />
-                          </Button>
-                        )}
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="h-8 w-8"
-                          onClick={() => {
-                            setEditUser(user);
-                            setEditForm({
-                              name: user.name,
-                              phone: user.phone,
-                              password: "",
-                              batchId: user.batchId?.toString() || "",
-                              phaseNumber: user.phaseNumber?.toString() || "",
-                              status: user.status,
-                            });
-                          }}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="h-8 w-8 text-[var(--error-400)] border-[var(--error-400)]/40 hover:bg-[var(--error-400)]/10"
-                          onClick={() => openDeleteUser(user)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
+              <TableBody>
+  {isLoading ? (
+    <TableRow>
+      <TableCell colSpan={6} className="text-center py-10">
+        <Loader2 className="animate-spin mx-auto text-[var(--secondary-400)]" />
+      </TableCell>
+    </TableRow>
+  ) : filteredUsers.length === 0 ? (
+    <TableRow>
+      <TableCell colSpan={6} className="text-center py-10 text-[var(--secondary-400)]">
+        لا يوجد مشاركون
+      </TableCell>
+    </TableRow>
+  ) : (
+    filteredUsers.map((user) => (
+      <TableRow
+        key={user.id}
+        className="border-[var(--border-subtle)] hover:bg-[var(--bg-tertiary)]"
+      >
+        <TableCell className="align-middle px-6 py-4 text-right">
+          <TableFieldChip tone="navy">{user.name}</TableFieldChip>
+        </TableCell>
+
+        <TableCell className="align-middle px-4 py-4 text-right">
+          <TableFieldChip tone="neutral" dir="ltr">
+            {user.phone}
+          </TableFieldChip>
+        </TableCell>
+
+        <TableCell className="align-middle px-4 py-4 text-center">
+          <TableFieldChip tone="gold">
+            {batches?.find((b) => b.id === user.batchId)?.name ?? "-"}
+          </TableFieldChip>
+        </TableCell>
+
+        <TableCell className="align-middle px-4 py-4 text-center">
+          <TableFieldChip tone="gold">م.{user.phaseNumber}</TableFieldChip>
+        </TableCell>
+
+        <TableCell className="align-middle px-4 py-4 text-center">
+          <StatusBadge status={user.status} />
+        </TableCell>
+
+        <TableCell className="align-middle px-6 py-4">
+          <div className="flex flex-col items-center justify-center gap-1">
+            {user.status === "pending" && (
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="h-8 w-8 text-[var(--success-600)] border-[var(--success-600)]/40"
+                onClick={() => handleDirectApprove(user.id)}
+              >
+                <Check className="h-4 w-4" />
+              </Button>
+            )}
+            <RowActions
+              onEdit={() => {
+                setEditUser(user);
+                setEditForm({
+                  name: user.name,
+                  phone: user.phone,
+                  password: "",
+                  batchId: user.batchId?.toString() ?? "",
+                  phaseNumber: user.phaseNumber?.toString() ?? "",
+                  status: user.status,
+                });
+              }}
+              onDelete={() => openDeleteUser(user)}
+            />
+          </div>
+        </TableCell>
+      </TableRow>
+    ))
+  )}
+</TableBody>
+                             
           </Table>
         </div>
 
