@@ -285,7 +285,7 @@ export default function AdminUsers() {
       >
         <TableCell className="text-center align-middle px-4 py-4">
   <TableFieldChip tone="neutral" dir="ltr" className="mx-auto">
-    {user.phone}
+   {user.name}
   </TableFieldChip>
 </TableCell>
         
