@@ -6,10 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Loader2, Users } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
+
+type DefaultTrack = "full" | "simplified";
+
+const DEFAULT_TRACK_OPTIONS: { value: DefaultTrack; label: string }[] = [
+  { value: "full", label: "كامل" },
+  { value: "simplified", label: "ميسر" },
+];
+
+function defaultTrackLabel(value?: string): string {
+  return DEFAULT_TRACK_OPTIONS.find((o) => o.value === value)?.label ?? "كامل";
+}
 
 export default function AdminBatches() {
   const queryClient = useQueryClient();
@@ -17,7 +30,10 @@ export default function AdminBatches() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editBatch, setEditBatch] = useState<any>(null);
-  const [form, setForm] = useState({ name: "" });
+  const [form, setForm] = useState<{ name: string; defaultTrack: DefaultTrack }>({
+    name: "",
+    defaultTrack: "full",
+  });
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; label: string } | null>(null);
@@ -100,9 +116,14 @@ export default function AdminBatches() {
     }
   };
 
+  const trackBadgeClass =
+    "rounded-full border-0 font-medium " +
+    "bg-[var(--bg-tertiary)] text-[var(--text-primary)] " +
+    "light:bg-white light:text-[var(--primary-600)] light:border light:border-[var(--border-default)]";
+
   return (
     <AdminLayout>
-      <div  className="space-y-6" dir="rtl">
+      <div className="space-y-6" dir="rtl">
         <div className="flex justify-between items-center gap-4 flex-wrap">
           <h2 className="text-2xl font-bold text-[var(--secondary-400)] flex items-center gap-2">
             <Users className="w-6 h-6" />
@@ -113,7 +134,7 @@ export default function AdminBatches() {
             className="gap-2"
             onClick={() => {
               setEditBatch(null);
-              setForm({ name: "" });
+              setForm({ name: "", defaultTrack: "full" });
               setIsModalOpen(true);
             }}
           >
@@ -129,6 +150,9 @@ export default function AdminBatches() {
                 <TableHead className="text-right text-[var(--text-secondary)] font-semibold px-6 py-4">
                   اسم الدفعة
                 </TableHead>
+                <TableHead className="text-center text-[var(--text-secondary)] font-semibold px-4 py-4">
+                  المسار الافتراضي
+                </TableHead>
                 <TableHead className="text-left text-[var(--text-secondary)] font-semibold px-6">
                   الإجراءات
                 </TableHead>
@@ -137,7 +161,7 @@ export default function AdminBatches() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={2} className="text-center py-12">
+                  <TableCell colSpan={3} className="text-center py-12">
                     <Loader2 className="animate-spin mx-auto text-[var(--secondary-400)] w-6 h-6" />
                   </TableCell>
                 </TableRow>
@@ -150,15 +174,24 @@ export default function AdminBatches() {
                     <TableCell className="text-right px-6 font-semibold text-[var(--text-primary)] py-4 text-lg">
                       {batch.name}
                     </TableCell>
+                    <TableCell className="text-center px-4 py-4">
+                      <Badge className={trackBadgeClass}>
+                        {defaultTrackLabel((batch as { defaultTrack?: string }).defaultTrack)}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="text-left px-6 w-32">
-                      <div  className="flex justify-start gap-2">
+                      <div className="flex justify-start gap-2">
                         <Button
                           size="icon"
                           variant="outline"
                           className="h-9 w-9"
                           onClick={() => {
                             setEditBatch(batch);
-                            setForm({ name: batch.name });
+                            setForm({
+                              name: batch.name,
+                              defaultTrack: ((batch as { defaultTrack?: DefaultTrack }).defaultTrack ??
+                                "full") as DefaultTrack,
+                            });
                             setIsModalOpen(true);
                           }}
                         >
@@ -173,7 +206,7 @@ export default function AdminBatches() {
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
-                      </div >
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -186,7 +219,7 @@ export default function AdminBatches() {
           <DialogContent className="sm:max-w-[400px] text-right" dir="rtl">
             <DialogHeader>
               <DialogTitle className="text-right">
-                {editBatch ? "تعديل اسم الدفعة" : "إنشاء دفعة جديدة"}
+                {editBatch ? "تعديل الدفعة" : "إنشاء دفعة جديدة"}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-5 pt-4">
@@ -199,6 +232,24 @@ export default function AdminBatches() {
                   required
                   autoFocus
                 />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[var(--text-secondary)]">المسار الافتراضي</Label>
+                <Select
+                  value={form.defaultTrack}
+                  onValueChange={(v) => setForm({ ...form, defaultTrack: v as DefaultTrack })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEFAULT_TRACK_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <Button
                 type="submit"
