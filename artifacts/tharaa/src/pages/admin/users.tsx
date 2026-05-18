@@ -24,6 +24,17 @@ import { TableFieldChip } from "@/components/admin/table-field-chip";
 import { RowActions } from "@/components/admin/row-actions";
 import { StatusBadge } from "@/components/admin/status-badge";
 
+type TrackOverride = "inherit" | "full" | "simplified";
+
+const TRACK_OVERRIDE_OPTIONS: { value: TrackOverride; label: string }[] = [
+  { value: "inherit", label: "افتراضي من الدفعة" },
+  { value: "full", label: "كامل" },
+  { value: "simplified", label: "ميسر" },
+];
+
+function effectiveTrackLabel(value?: string): string {
+  return value === "simplified" ? "ميسر" : "كامل";
+}
 
 export default function AdminUsers() {
   const queryClient = useQueryClient();
@@ -48,6 +59,7 @@ export default function AdminUsers() {
     batchId: "",
     phaseNumber: "",
     status: "active",
+    trackOverride: "inherit" as TrackOverride,
   });
 
   const { data: users, isLoading } = useListUsers({
@@ -113,6 +125,7 @@ export default function AdminUsers() {
           batchId: parseInt(editForm.batchId),
           phaseNumber: parseInt(editForm.phaseNumber),
           status: editForm.status,
+          trackOverride: editForm.trackOverride === "inherit" ? null : editForm.trackOverride,
         },
       },
       {
@@ -254,6 +267,8 @@ export default function AdminUsers() {
       الدفعة
     </TableHead>
     <TableHead className="text-center font-semibold text-[var(--text-secondary)] px-4 py-4 align-middle">
+      المسار</TableHead>
+    <TableHead className="text-center font-semibold text-[var(--text-secondary)] px-4 py-4 align-middle">
       المرحلة
     </TableHead>
     <TableHead className="text-center font-semibold text-[var(--text-secondary)] px-4 py-4 align-middle">
@@ -267,13 +282,13 @@ export default function AdminUsers() {
               <TableBody>
   {isLoading ? (
     <TableRow>
-      <TableCell colSpan={6} className="text-center py-10">
+      <TableCell colSpan={7} className="text-center py-10">
         <Loader2 className="animate-spin mx-auto text-[var(--secondary-400)]" />
       </TableCell>
     </TableRow>
   ) : filteredUsers.length === 0 ? (
     <TableRow>
-      <TableCell colSpan={6} className="text-center py-10 text-[var(--secondary-400)]">
+      <TableCell colSpan={7} className="text-center py-10 text-[var(--secondary-400)]">
         لا يوجد مشاركون
       </TableCell>
     </TableRow>
@@ -304,10 +319,19 @@ export default function AdminUsers() {
         </TableCell>
 
         <TableCell className="align-middle px-4 py-4">
-            <div className="flex justify-center">
-                  <TableFieldChip tone="gold">م.{user.phaseNumber}</TableFieldChip>
-              </div>
-           </TableCell>
+  <div className="flex justify-center">
+    <TableFieldChip tone="gold">
+      {effectiveTrackLabel((user as { effectiveTrack?: string }).effectiveTrack)}
+    </TableFieldChip>
+  </div>
+</TableCell>
+{/* ثم المرحلة */}
+<TableCell className="align-middle px-4 py-4">
+  <div className="flex justify-center">
+    <TableFieldChip tone="gold">م.{user.phaseNumber}</TableFieldChip>
+  </div>
+</TableCell>
+  
 
         <TableCell className="align-middle px-4 py-4">
              <div className="flex justify-center">
@@ -338,6 +362,7 @@ export default function AdminUsers() {
                   batchId: user.batchId?.toString() ?? "",
                   phaseNumber: user.phaseNumber?.toString() ?? "",
                   status: user.status,
+                  trackOverride: (user as { trackOverride?: string | null }).trackOverride ? ((user as { trackOverride: string }).trackOverride as TrackOverride)  : "inherit",
                 });
               }}
               onDelete={() => openDeleteUser(user)}
@@ -420,6 +445,20 @@ export default function AdminUsers() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-1.5">
+  <Label className="text-[var(--text-secondary)]">مسار الطالب</Label>
+  <Select
+    value={editForm.trackOverride}
+    onValueChange={(v) => setEditForm({ ...editForm, trackOverride: v as TrackOverride })}
+  >
+    <SelectTrigger><SelectValue /></SelectTrigger>
+    <SelectContent>
+      {TRACK_OVERRIDE_OPTIONS.map((opt) => (
+        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+</div>
                 <div className="space-y-1.5">
                   <Label className="text-[var(--text-secondary)]">المرحلة</Label>
                   <Input
