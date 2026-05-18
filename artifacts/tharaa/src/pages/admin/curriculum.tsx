@@ -13,6 +13,18 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Loader2, BookOpen } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
 
+type TrackType = "full" | "simplified" | "both";
+
+const TRACK_OPTIONS: { value: TrackType; label: string }[] = [
+  { value: "full", label: "كامل" },
+  { value: "simplified", label: "ميسر" },
+  { value: "both", label: "كلاهما" },
+];
+
+function trackTypeLabel(value?: string): string {
+  return TRACK_OPTIONS.find((o) => o.value === value)?.label ?? "كلاهما";
+}
+
 export default function AdminCurriculum() {
   const { data: curriculum, isLoading, refetch } = useListCurriculum();
 
@@ -26,6 +38,7 @@ export default function AdminCurriculum() {
     title: "",
     phaseNumber: "1",
     levelType: "basic",
+    trackType: "both" as TrackType,
     totalPages: "",
     author: "",
     pdfUrl: "",
@@ -125,6 +138,11 @@ export default function AdminCurriculum() {
     "bg-[var(--bg-tertiary)] text-[var(--text-primary)] " +
     "light:bg-white light:text-[var(--primary-600)] light:border light:border-[var(--border-default)]";
 
+  const trackBadgeClass =
+    "rounded-full border-0 font-medium " +
+    "bg-[var(--bg-tertiary)] text-[var(--text-primary)] " +
+    "light:bg-white light:text-[var(--primary-600)] light:border light:border-[var(--border-default)]";
+
   return (
     <AdminLayout>
       <div className="space-y-6" dir="rtl">
@@ -139,6 +157,7 @@ export default function AdminCurriculum() {
                 title: "",
                 phaseNumber: "1",
                 levelType: "basic",
+                trackType: "both",
                 totalPages: "",
                 author: "",
                 pdfUrl: "",
@@ -150,18 +169,19 @@ export default function AdminCurriculum() {
             <Plus className="w-4 h-4" />
             إضافة كتاب جديد
           </Button>
-        </div>
+        </div >
 
         <div className="rounded-[var(--radius-xl)] overflow-hidden border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-[var(--shadow-md)]">
           <div className="overflow-x-auto">
-            <Table className="min-w-[900px] table-fixed">
+            <Table className="min-w-[1000px] table-fixed">
               <colgroup>
-                <col className="w-[32%]" />
+                <col className="w-[28%]" />
+                <col className="w-[10%]" />
+                <col className="w-[10%]" />
+                <col className="w-[10%]" />
                 <col className="w-[12%]" />
-                <col className="w-[12%]" />
-                <col className="w-[14%]" />
-                <col className="w-[12%]" />
-                <col className="w-[18%]" />
+                <col className="w-[10%]" />
+                <col className="w-[20%]" />
               </colgroup>
               <TableHeader className="bg-[var(--bg-secondary)]">
                 <TableRow className="border-[var(--border-default)] hover:bg-transparent">
@@ -178,6 +198,9 @@ export default function AdminCurriculum() {
                     المستوى
                   </TableHead>
                   <TableHead className="align-middle text-center text-[var(--text-secondary)] font-semibold px-4 py-4">
+                    المسار
+                  </TableHead>
+                  <TableHead className="align-middle text-center text-[var(--text-secondary)] font-semibold px-4 py-4">
                     عدد الصفحات
                   </TableHead>
                   <TableHead className="align-middle text-left text-[var(--text-secondary)] font-semibold px-6 py-4">
@@ -188,7 +211,7 @@ export default function AdminCurriculum() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12">
+                    <TableCell colSpan={7} className="text-center py-12">
                       <Loader2 className="animate-spin mx-auto text-[var(--secondary-400)]" />
                     </TableCell>
                   </TableRow>
@@ -205,7 +228,7 @@ export default function AdminCurriculum() {
                           </span>
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
                             <BookOpen className="h-4 w-4 text-[var(--secondary-400)]" />
-                          </div>
+                          </div >
                         </div>
                       </TableCell>
                       <TableCell className="align-middle px-4 py-4 text-center">
@@ -221,11 +244,16 @@ export default function AdminCurriculum() {
                           {book.levelType === "basic" ? "أساسي" : "اختياري"}
                         </Badge>
                       </TableCell>
+                      <TableCell className="align-middle px-4 py-4 text-center">
+                        <Badge className={trackBadgeClass}>
+                          {trackTypeLabel((book as { trackType?: string }).trackType)}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="align-middle px-4 py-4 text-center font-mono text-[var(--text-primary)]">
                         {book.totalPages}
                       </TableCell>
                       <TableCell className="align-middle px-6 py-4">
-                         <div className="flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-1">
                           <Button
                             size="icon"
                             variant="outline"
@@ -236,6 +264,7 @@ export default function AdminCurriculum() {
                                 title: book.title,
                                 phaseNumber: book.phaseNumber.toString(),
                                 levelType: book.levelType,
+                                trackType: ((book as { trackType?: TrackType }).trackType ?? "both") as TrackType,
                                 totalPages: book.totalPages.toString(),
                                 author: book.author || "",
                                 pdfUrl: book.pdfUrl || "",
@@ -261,7 +290,7 @@ export default function AdminCurriculum() {
                 )}
               </TableBody>
             </Table>
-          </div>
+          </div >
         </div>
 
         <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
@@ -280,13 +309,13 @@ export default function AdminCurriculum() {
                     onChange={(e) => setForm({ ...form, title: e.target.value })}
                     required
                   />
-                </div>
+                </div >
                 <div className="space-y-1.5">
                   <Label className="text-[var(--text-secondary)]">المؤلف</Label>
                   <Input value={form.author} onChange={(e) => setForm({ ...form, author: e.target.value })} />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-[var(--text-secondary)]">رقم المرحلة</Label>
                   <Input
@@ -296,7 +325,7 @@ export default function AdminCurriculum() {
                     onChange={(e) => setForm({ ...form, phaseNumber: e.target.value })}
                     required
                   />
-                </div>
+                </div >
                 <div className="space-y-1.5">
                   <Label className="text-[var(--text-secondary)]">عدد الصفحات</Label>
                   <Input
@@ -307,6 +336,8 @@ export default function AdminCurriculum() {
                     required
                   />
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-[var(--text-secondary)]">المستوى</Label>
                   <Select value={form.levelType} onValueChange={(v) => setForm({ ...form, levelType: v })}>
@@ -319,7 +350,25 @@ export default function AdminCurriculum() {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[var(--text-secondary)]">مسار الكتاب</Label>
+                  <Select
+                    value={form.trackType}
+                    onValueChange={(v) => setForm({ ...form, trackType: v as TrackType })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TRACK_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div >
               <div className="space-y-1.5">
                 <Label className="text-[var(--text-secondary)]">رابط الكتاب (PDF / Drive)</Label>
                 <Input
@@ -365,11 +414,11 @@ export default function AdminCurriculum() {
               setDeleteOpen(false);
               setDeleteTarget(null);
               await refetch();
-              } catch (e: any) {
-                toast.error(e?.message ?? "تعذر حذف الكتاب");
-              } finally {
-                    setDeleteLoading(false);
-               }
+            } catch (e: any) {
+              toast.error(e?.message ?? "تعذر حذف الكتاب");
+            } finally {
+              setDeleteLoading(false);
+            }
           }}
         />
       </div>
