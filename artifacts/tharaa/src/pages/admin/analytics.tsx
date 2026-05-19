@@ -1,155 +1,88 @@
-import { useState, useMemo } from "react";
-import { useListUsers, useListCurriculum, useListBatches } from "@workspace/api-client-react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useListBatches } from "@workspace/api-client-react";
 import { AdminLayout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet, TrendingUp, Star } from "lucide-react";
+import { FileSpreadsheet, TrendingUp, Star, Shield } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
-function StatCard({
-  label,
-  value,
-  valueClassName = "text-[var(--text-primary)]",
-}: {
-  label: string;
-  value: React.ReactNode;
-  valueClassName?: string;
-}) {
+function StatCard({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <Card>
       <CardContent className="pt-6 pb-6 px-6 text-right">
-        <p className="text-[var(--font-sm)] text-[var(--text-secondary)] mb-2">{label}</p>
-        <p className={`text-3xl font-bold ${valueClassName}`}>{value}</p>
+        <p className="text-sm text-[var(--text-secondary)] mb-2">{label}</p>
+        <p className="text-3xl font-bold">{value}</p>
       </CardContent>
     </Card>
   );
 }
 
 export default function AdminAnalytics() {
-  const { data: users } = useListUsers();
   const { data: batches } = useListBatches();
-  const { data: curriculum } = useListCurriculum();
-  const [selectedBatch, setSelectedBatch] = useState<string>("all");
+  const [selectedBatch, setSelectedBatch] = useState("all");
+  const [selectedTrack, setSelectedTrack] = useState("all");
 
-  const stats = useMemo(() => {
-    if (!users || !curriculum) return [];
+  const { data: analytics, isLoading } = useQuery({
+    queryKey: ["admin-analytics-full", selectedBatch, selectedTrack],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedBatch !== "all") params.set("batchId", selectedBatch);
+      if (selectedTrack !== "all") params.set("track", selectedTrack);
+      const qs = params.toString();
+      const res = await fetch(`/api/analytics.php${qs ? `?${qs}` : ""}`);
+      if (!res.ok) throw new Error("فشل جلب الإحصائيات");
+      return res.json();
+    },
+  });
 
-    const totalCurriculumPages = curriculum.reduce((sum, b) => sum + b.totalPages, 0);
+  const rows = analytics?.usersDetail ?? [];
+  const discipline = analytics?.disciplineLeaderboard ?? [];
+  const elite = analytics?.eliteReadersLeaderboard ?? [];
 
-    return users
-      .filter((u: any) => u.role === "student")
-      .map((user: any) => {
-        const completedIds: number[] = user.completedBooks || [];
-
-        const completedPages = curriculum
-          .filter((b: any) => completedIds.includes(b.id))
-          .reduce((sum: number, b: any) => sum + b.totalPages, 0);
-
-        const completionRate =
-          totalCurriculumPages > 0 ? (completedPages / totalCurriculumPages) * 100 : 0;
-
-        return {
-          ...user,
-          totalReadPages: completedPages,
-          completedCount: completedIds.length,
-          completionRate: Math.round(completionRate),
-        };
-      });
-  }, [users, curriculum]);
-
-  const filteredStats =
-    selectedBatch === "all" ? stats : stats.filter((s: any) => s.batchId === parseInt(selectedBatch));
-
-  const topByPages = [...filteredStats]
-    .sort((a: any, b: any) => b.totalReadPages - a.totalReadPages)
-    .slice(0, 3);
-
-  const topByBooks = [...filteredStats]
-    .sort((a: any, b: any) => b.completedCount - a.completedCount)
-    .slice(0, 3);
-
-  const avgCompletion =
-    filteredStats.length > 0
-      ? Math.round(
-          filteredStats.reduce((sum: number, s: any) => sum + s.completionRate, 0) / filteredStats.length
-        )
+  const avgStage =
+    rows.length > 0
+      ? Math.round(rows.reduce((s: number, r: any) => s + (r.stageCompletionRate ?? 0), 0) / rows.length)
       : 0;
 
-  const totalBooksCompleted = filteredStats.reduce((sum: number, s: any) => sum + s.completedCount, 0);
-
   const exportToExcel = () => {
-    const headers = ["اسم المشارك", "الدفعة", "إجمالي الصفحات", "الكتب المنجزة", "نسبة الإنجاز"];
-    const rows = filteredStats.map((s: any) => [
+    const headers = ["الاسم", "الدفعة", "إنجاز مرحلي %", "تحفيز صفحات", "التزام"];
+    const dataRows = rows.map((s: any) => [
       s.name,
-      batches?.find((b: any) => b.id === s.batchId)?.name || "بدون",
-      s.totalReadPages,
-      s.completedCount,
-      `${s.completionRate}%`,
+      s.batchName,
+      s.stageCompletionRate,
+      s.gamificationPages,
+      s.commitmentIndex,
     ]);
-
-    const excelBg = "#1a2136";
-    const excelGold = "#caa264";
-
-    const tableHtml = `
-      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40" dir="rtl">
-        <head><meta charset="UTF-8"></head>
-        <body>
-          <table border="1" style="border-collapse:collapse; width:100%;">
-            <thead>
-              <tr>
-                ${headers
-                  .map(
-                    (h) =>
-                      `<th style="background-color:${excelBg}; color:${excelGold}; font-weight:bold; height:40px;">${h}</th>`
-                  )
-                  .join("")}
-              </tr>
-            </thead>
-            <tbody>
-              ${rows
-                .map(
-                  (row) =>
-                    `<tr>${row
-                      .map((cell) => `<td style="text-align:center; height:30px;">${cell}</td>`)
-                      .join("")}</tr>`
-                )
-                .join("")}
-            </tbody>
-          </table>
-        </body>
-      </html>
-    `;
-
-    const blob = new Blob([tableHtml], { type: "application/vnd.ms-excel;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `إحصائيات_الرصد_${new Date().toLocaleDateString("en-GB")}.xls`;
-    link.click();
+    const html = `<html dir="rtl"><body><table border="1">${headers
+      .map((h) => `<th>${h}</th>`)
+      .join("")}${dataRows
+      .map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`)
+      .join("")}</table></body></html>`;
+    const blob = new Blob([html], { type: "application/vnd.ms-excel" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "analytics.xls";
+    a.click();
   };
 
   return (
     <AdminLayout>
       <div className="space-y-6" dir="rtl">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h2 className="text-[var(--font-xl)] font-bold text-[var(--secondary-400)] flex items-center gap-2">
-              <TrendingUp className="w-6 h-6" />
-              الإحصائيات
-            </h2>
-            <p className="text-[var(--text-secondary)] text-sm mt-1">
-              تقارير تفصيلية مع تصفية حسب الدفعة وتصدير إكسل.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-3 items-center">
+        <div className="flex flex-wrap justify-between items-center gap-4">
+          <h2 className="text-2xl font-bold text-[var(--secondary-400)] flex items-center gap-2">
+            <TrendingUp className="w-6 h-6" />
+            الإحصائيات
+          </h2>
+          <div className="flex flex-wrap gap-3">
             <Select value={selectedBatch} onValueChange={setSelectedBatch}>
-              <SelectTrigger className="w-44">
-                <SelectValue placeholder="تصفية بالدفعة" />
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="الدفعة" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">جميع الدفعات</SelectItem>
+                <SelectItem value="all">كل الدفعات</SelectItem>
                 {batches?.map((b: any) => (
                   <SelectItem key={b.id} value={b.id.toString()}>
                     {b.name}
@@ -157,117 +90,111 @@ export default function AdminAnalytics() {
                 ))}
               </SelectContent>
             </Select>
-
-            <Button variant="secondary" className="gap-2" onClick={exportToExcel}>
-              <FileSpreadsheet className="w-4 h-4" />
-              تصدير لإكسل
+            <Select value={selectedTrack} onValueChange={setSelectedTrack}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="المسار" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل المسارات</SelectItem>
+                <SelectItem value="full">كامل</SelectItem>
+                <SelectItem value="simplified">ميسر</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="secondary" onClick={exportToExcel}>
+              <FileSpreadsheet className="w-4 h-4 ml-2" />
+              تصدير
             </Button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard label="إجمالي المشاركين" value={filteredStats.length} />
-          <StatCard label="عدد الكتب المنجزة" value={totalBooksCompleted} />
+          <StatCard label="المشاركون" value={isLoading ? "..." : rows.length} />
+          <StatCard label="متوسط الإنجاز المرحلي" value={`${avgStage}%`} />
           <StatCard
-            label="متوسط نسبة الإنجاز (للصنف)"
-            value={`${avgCompletion}%`}
-            valueClassName="text-[var(--secondary-400)]"
+            label="متوسط التزام"
+            value={
+              rows.length
+                ? (
+                    rows.reduce((s: number, r: any) => s + r.commitmentIndex, 0) / rows.length
+                  ).toFixed(2)
+                : "0"
+            }
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card>
-            <CardHeader className="border-b border-[var(--border-subtle)] py-4">
-              <CardTitle className="text-base font-semibold flex items-center gap-2 text-[var(--text-primary)]">
-                <Star className="w-4 h-4 text-[var(--secondary-400)]" />
-                الأعلى قراءة (صفحات)
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Shield className="w-4 h-4" />
+                فرسان الانضباط
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              {topByPages.length === 0 ? (
-                <p className="p-4 text-sm text-[var(--text-secondary)] text-center">لا توجد بيانات</p>
-              ) : (
-                topByPages.map((s: any, i: number) => (
-                  <div
-                    key={s.id}
-                    className="flex justify-between items-center p-4 border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-tertiary)]"
-                  >
-                    <span className="font-medium text-[var(--text-primary)]">
-                      {i + 1}. {s.name}
-                    </span>
-                    <span className="text-[var(--secondary-400)] font-bold">{s.totalReadPages} صفحة</span>
-                  </div>
-                ))
-              )}
+              {discipline.map((u: any, i: number) => (
+                <div key={u.id} className="flex justify-between p-4 border-b last:border-0">
+                  <span>
+                    {i + 1}. {u.name}
+                  </span>
+                  <span className="font-bold text-[var(--secondary-400)]">{u.commitmentIndex}</span>
+                </div>
+              ))}
             </CardContent>
           </Card>
-
           <Card>
-            <CardHeader className="border-b border-[var(--border-subtle)] py-4">
-              <CardTitle className="text-base font-semibold flex items-center gap-2 text-[var(--text-primary)]">
-                <Star className="w-4 h-4 text-[var(--secondary-400)]" />
-                الأكثر إنجازاً (كتب)
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Star className="w-4 h-4" />
+                نخبة القراء
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              {topByBooks.length === 0 ? (
-                <p className="p-4 text-sm text-[var(--text-secondary)] text-center">لا توجد بيانات</p>
-              ) : (
-                topByBooks.map((s: any, i: number) => (
-                  <div
-                    key={s.id}
-                    className="flex justify-between items-center p-4 border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-tertiary)]"
-                  >
-                    <span className="font-medium text-[var(--text-primary)]">
-                      {i + 1}. {s.name}
-                    </span>
-                    <span className="text-[var(--secondary-400)] font-bold">{s.completedCount} كتب</span>
-                  </div>
-                ))
-              )}
+              {elite.map((u: any, i: number) => (
+                <div key={u.id} className="flex justify-between p-4 border-b last:border-0">
+                  <span>
+                    {i + 1}. {u.name}
+                  </span>
+                  <span className="font-bold text-[var(--secondary-400)]">{u.gamificationPages} ص</span>
+                </div>
+              ))}
             </CardContent>
           </Card>
         </div>
 
-        <Card className="overflow-hidden">
+        <Card>
           <CardContent className="p-0">
             <Table>
               <TableHeader className="bg-[var(--bg-secondary)]">
-                <TableRow className="border-[var(--border-default)] hover:bg-transparent">
-                  <TableHead className="text-right text-[var(--text-secondary)] font-semibold">
-                    اسم المشارك
-                  </TableHead>
-                  <TableHead className="text-right text-[var(--text-secondary)] font-semibold">الدفعة</TableHead>
-                  <TableHead className="text-right text-[var(--text-secondary)] font-semibold">
-                    إجمالي الصفحات
-                  </TableHead>
-                  <TableHead className="text-right text-[var(--text-secondary)] font-semibold">
-                    الكتب المنجزة
-                  </TableHead>
-                  <TableHead className="text-right text-[var(--text-secondary)] font-semibold w-[200px]">
-                    نسبة الإنجاز
-                  </TableHead>
+                <TableRow>
+                  <TableHead className="text-right">الاسم</TableHead>
+                  <TableHead className="text-right">الدفعة</TableHead>
+                  <TableHead className="text-center">إنجاز مرحلي</TableHead>
+                  <TableHead className="text-center">تحفيز</TableHead>
+                  <TableHead className="text-center">التزام</TableHead>
+                  <TableHead className="text-right w-[180px]">شريط</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredStats.map((s: any) => (
-                  <TableRow key={s.id} className="border-[var(--border-subtle)] hover:bg-[var(--bg-tertiary)]">
-                    <TableCell className="text-right font-medium text-[var(--text-primary)]">{s.name}</TableCell>
-                    <TableCell className="text-right text-[var(--text-primary)]">
-                      {batches?.find((b: any) => b.id === s.batchId)?.name || "-"}
-                    </TableCell>
-                    <TableCell className="text-right font-bold text-[var(--secondary-400)]">
-                      {s.totalReadPages}
-                    </TableCell>
-                    <TableCell className="text-right text-[var(--text-primary)]">{s.completedCount}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center gap-2">
-                        <Progress value={s.completionRate} className="h-1.5 flex-1" />
-                        <span className="text-xs w-8 text-[var(--text-secondary)]">{s.completionRate}%</span>
-                      </div>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      جاري التحميل...
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  rows.map((s: any) => (
+                    <TableRow key={s.id}>
+                      <TableCell className="font-medium">{s.name}</TableCell>
+                      <TableCell>{s.batchName}</TableCell>
+                      <TableCell className="text-center">{s.stageCompletionRate}%</TableCell>
+                      <TableCell className="text-center">{s.gamificationPages}</TableCell>
+                      <TableCell className="text-center">{s.commitmentIndex}</TableCell>
+                      <TableCell>
+                        <Progress value={s.stageCompletionRate} className="h-2" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </CardContent>
