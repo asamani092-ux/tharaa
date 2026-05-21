@@ -35,12 +35,12 @@ import {
   CheckCircle,
   TrendingUp,
   Download,
-  ChevronLeft,
   Info,
   Lightbulb,
   Send,
+  Calendar,
 } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const WEEKLY_QUOTA = 75;
 
@@ -51,6 +51,15 @@ type LogRow = {
   isCompleted: boolean;
 };
 
+type StudentAnalyticsMe = {
+  effectiveTrack?: string;
+  stageCompletionRate?: number;
+  gamificationPages?: number;
+  expectedFinishHint?: string;
+};
+
+const STUDENT_ANALYTICS_ME_KEY = ["student-analytics-me"] as const;
+
 export default function StudentPortal() {
   const queryClient = useQueryClient();
   const { data: session } = useGetMe();
@@ -60,7 +69,22 @@ export default function StudentPortal() {
   const weeklyQuota = settings?.weeklyQuota || WEEKLY_QUOTA;
 
   const { data: books } = useListCurriculum();
-  const effectiveTrack = (user as { effectiveTrack?: string })?.effectiveTrack ?? "full";
+
+  const { data: analyticsPayload, isLoading: isAnalyticsLoading } = useQuery({
+    queryKey: STUDENT_ANALYTICS_ME_KEY,
+    queryFn: async () => {
+      const res = await fetch("/api/analytics.php?scope=me", { credentials: "include" });
+      if (!res.ok) throw new Error("فشل جلب الإحصائيات");
+      return res.json() as { me: StudentAnalyticsMe };
+    },
+    enabled: !!session?.authenticated,
+  });
+
+  const meAnalytics = analyticsPayload?.me;
+  const effectiveTrack =
+    (user as { effectiveTrack?: string })?.effectiveTrack ??
+    meAnalytics?.effectiveTrack ??
+    "full";
 
   const trackBooks = useMemo(
     () =>
@@ -176,19 +200,14 @@ export default function StudentPortal() {
 
   const selectedBook = displayedPhaseBooks.find((b) => b.id.toString() === bookId);
   const pagesCount = Math.max(0, endPage - startPage + 1);
-  const isOverQuota = !isExtraMode && pagesCount > weeklyQuota;
   const nextBook = availableBooks.find((b) => b.id !== currentBook?.id);
 
-  const completedPages =
-    trackBooks
-      .filter((b) => completedBookIds.includes(b.id))
-      .reduce((sum, b) => sum + b.totalPages, 0) || 0;
-  const activeBookPages =
-    userCurrentBook && !completedBookIds.includes(userCurrentBook.id)
-      ? user?.lastPage || 0
-      : 0;
-  const loggedPages = logs?.reduce((sum, log) => sum + log.pagesRead, 0) || 0;
-  const totalPagesRead = Math.max(completedPages + activeBookPages, loggedPages);
+  const stageCompletionRate = Math.min(
+    100,
+    Math.round(meAnalytics?.stageCompletionRate ?? 0)
+  );
+  const gamificationPages = meAnalytics?.gamificationPages ?? 0;
+  const expectedFinishHint = meAnalytics?.expectedFinishHint?.trim() || "—";
 
   const shareViaWhatsApp = () => {
     if (!reflection.trim() || !selectedBook) {
@@ -233,6 +252,7 @@ export default function StudentPortal() {
       setNextBookIdForRollover("");
       await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
       await queryClient.invalidateQueries({ queryKey: getGetMyLogsQueryKey() });
+      await queryClient.invalidateQueries({ queryKey: STUDENT_ANALYTICS_ME_KEY });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "حدث خطأ أثناء الرصد";
       toast.error(message);
@@ -336,7 +356,8 @@ export default function StudentPortal() {
       toast.success("تم اعتماد الكتب السابقة بنجاح!");
       setShowCustomProgress(false);
       setSelectedCustomBooks([]);
-      queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      await queryClient.invalidateQueries({ queryKey: STUDENT_ANALYTICS_ME_KEY });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "حدث خطأ";
       toast.error(message);
@@ -568,19 +589,56 @@ export default function StudentPortal() {
         </Card>
 
         <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: "الصفحات", value: totalPagesRead, icon: TrendingUp },
-            { label: "الكتب", value: completedBookIds.length, icon: CheckCircle },
-            { label: "آخر صفحة", value: effectiveLastPage, icon: BookOpen },
-          ].map((stat) => (
-            <Card key={stat.label}>
-              <CardContent className="p-4 text-center">
-                <stat.icon className="w-4 h-4 mx-auto mb-1" />
-                <p className="text-xl font-bold">{stat.value}</p>
-                <p className="text-xs text-[var(--text-secondary)]">{stat.label}</p>
-              </CardContent>
-            </Card>
-          ))}
+          <Card>
+            <CardContent className="p-4 text-center space-y-2">
+              {isAnalyticsLoading ? (
+                <Loader2 className="w-6 h-6 mx-auto animate-spin text-[var(--text-secondary)]" />
+              ) : (
+                <>
+                  <div
+                    className="relative mx-auto w-14 h-14 flex items-center justify-center rounded-full border-2 border-[var(--primary-600)]"
+                    aria-hidden
+                  >
+                    <span className="text-sm font-bold text-[var(--primary-600)]">
+                      {stageCompletionRate}%
+                    </span>
+                  </div>
+                  <Progress value={stageCompletionRate} className="h-1.5" />
+                </>
+              )}
+              <p className="text-xs text-[var(--text-secondary)]">نسبة الإنجاز المرحلي</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4 text-center">
+              {isAnalyticsLoading ? (
+                <Loader2 className="w-6 h-6 mx-auto animate-spin text-[var(--text-secondary)]" />
+              ) : (
+                <>
+                  <TrendingUp className="w-4 h-4 mx-auto mb-1 text-[var(--secondary-400)]" />
+                  <p className="text-xl font-bold">{gamificationPages}</p>
+                </>
+              )}
+              <p className="text-xs text-[var(--text-secondary)] mt-1">حصيلة التحفيز</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4 text-center min-h-[88px] flex flex-col justify-center">
+              {isAnalyticsLoading ? (
+                <Loader2 className="w-6 h-6 mx-auto animate-spin text-[var(--text-secondary)]" />
+              ) : (
+                <>
+                  <Calendar className="w-4 h-4 mx-auto mb-1 text-[var(--secondary-400)] shrink-0" />
+                  <p className="text-xs font-medium leading-snug text-[var(--text-primary)] line-clamp-3">
+                    {expectedFinishHint}
+                  </p>
+                </>
+              )}
+              <p className="text-xs text-[var(--text-secondary)] mt-2">موعد الختم</p>
+            </CardContent>
+          </Card>
         </div>
 
         <div>
