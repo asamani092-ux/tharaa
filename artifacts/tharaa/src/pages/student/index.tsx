@@ -40,6 +40,7 @@ import {
   Lightbulb,
   Send,
   Calendar,
+  Check,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 

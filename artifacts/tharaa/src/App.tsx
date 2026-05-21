@@ -46,7 +46,11 @@ function AuthGuard({ children, requireRole }: { children: React.ReactNode, requi
   }
 
   if (!session?.authenticated && location !== "/login") {
-    return null; // Will redirect
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return <>{children}</>;

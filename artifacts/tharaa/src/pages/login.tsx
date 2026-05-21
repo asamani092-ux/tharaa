@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { useEffect, useState } from "react";
 import { isDarkTheme } from "@/lib/theme";
 
 function useIsDarkTheme() {
