@@ -13,7 +13,9 @@ applyTheme(getStoredTheme());
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
     <Toaster
       richColors
       dir="rtl"

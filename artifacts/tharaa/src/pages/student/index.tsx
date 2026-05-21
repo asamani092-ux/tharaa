@@ -69,6 +69,7 @@ type StudentAnalyticsMe = {
 };
 
 const STUDENT_ANALYTICS_ME_KEY = ["student-analytics-me"] as const;
+const EMPTY_COMPLETED_BOOKS: number[] = [];
 
 export default function StudentPortal() {
   const queryClient = useQueryClient();
@@ -83,12 +84,17 @@ export default function StudentPortal() {
   const { data: analyticsPayload, isLoading: isAnalyticsLoading } = useQuery({
     queryKey: STUDENT_ANALYTICS_ME_KEY,
     queryFn: async () => {
-      const res = await fetch("/api/analytics.php?scope=me", { credentials: "include" });
-      if (!res.ok) throw new Error("فشل جلب الإحصائيات");
-      return res.json() as { me: StudentAnalyticsMe };
+      try {
+        const res = await fetch("/api/analytics.php?scope=me", { credentials: "include" });
+        if (!res.ok) return { me: {} as StudentAnalyticsMe };
+        return (await res.json()) as { me: StudentAnalyticsMe };
+      } catch {
+        return { me: {} as StudentAnalyticsMe };
+      }
     },
     enabled: !!session?.authenticated,
-    refetchOnWindowFocus: true,
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 
   const meAnalytics = analyticsPayload?.me;
@@ -109,7 +115,7 @@ export default function StudentPortal() {
 
   const { data: logs } = useGetMyLogs();
 
-  const completedBookIds: number[] = user?.completedBooks ?? [];
+  const completedBookIds: number[] = user?.completedBooks ?? EMPTY_COMPLETED_BOOKS;
   const completedBookIdSet = useMemo(() => new Set<number>(completedBookIds), [completedBookIds]);
 
   const phaseStats = useMemo(() => {
