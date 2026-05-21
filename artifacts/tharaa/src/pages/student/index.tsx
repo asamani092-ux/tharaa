@@ -727,46 +727,44 @@ export default function StudentPortal() {
             <div className="max-h-[40vh] overflow-y-auto space-y-2">
               {trackBooks
                 .filter((b) => !completedBookIds.includes(b.id))
-                .map((book) => (
-                  {(() => {
-                    const isSelected = selectedCustomBooks.includes(book.id);
-                    return (
-                  <div
-                    key={book.id}
-                    role="button"
-                    tabIndex={0}
-                    className={cn(
-                      "p-3 rounded-lg cursor-pointer border-2 flex items-center justify-between gap-2 transition-all",
-                      isSelected
-                        ? "border-[hsl(var(--primary))] bg-[var(--bg-tertiary)] ring-2 ring-[hsl(var(--primary))]/25"
-                        : "border-[var(--border-strong)] bg-[var(--bg-primary)] hover:border-[var(--border-default)]"
-                    )}
-                    onClick={() =>
-                      setSelectedCustomBooks((prev) =>
-                        prev.includes(book.id)
-                          ? prev.filter((id) => id !== book.id)
-                          : [...prev, book.id]
-                      )
-                    }
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
+                .map((book) => {
+                  const isSelected = selectedCustomBooks.includes(book.id);
+                  return (
+                    <div
+                      key={book.id}
+                      role="button"
+                      tabIndex={0}
+                      className={cn(
+                        "p-3 rounded-lg cursor-pointer border-2 flex items-center justify-between gap-2 transition-all",
+                        isSelected
+                          ? "border-[hsl(var(--primary))] bg-[var(--bg-tertiary)] ring-2 ring-[hsl(var(--primary))]/25"
+                          : "border-[var(--border-strong)] bg-[var(--bg-primary)] hover:border-[var(--border-default)]"
+                      )}
+                      onClick={() =>
                         setSelectedCustomBooks((prev) =>
                           prev.includes(book.id)
                             ? prev.filter((id) => id !== book.id)
                             : [...prev, book.id]
-                        );
+                        )
                       }
-                    }}
-                  >
-                    <span className="font-medium text-sm">{book.title}</span>
-                    {isSelected && (
-                      <Check className="w-5 h-5 shrink-0 text-[hsl(var(--primary))]" />
-                    )}
-                  </div>
-                    );
-                  })()}
-                ))}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setSelectedCustomBooks((prev) =>
+                            prev.includes(book.id)
+                              ? prev.filter((id) => id !== book.id)
+                              : [...prev, book.id]
+                          );
+                        }
+                      }}
+                    >
+                      <span className="font-medium text-sm">{book.title}</span>
+                      {isSelected && (
+                        <Check className="w-5 h-5 shrink-0 text-[hsl(var(--primary))]" />
+                      )}
+                    </div>
+                  );
+                })}
             </div>
             <Button
               className="w-full mt-4"
