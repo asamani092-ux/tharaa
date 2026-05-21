@@ -8,6 +8,7 @@ import {
   getGetMyLogsQueryKey,
 } from "@workspace/api-client-react";
 import { StudentLayout } from "@/components/layout";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const WEEKLY_QUOTA = 75;
 
+const STUDENT_SURFACE_CARD =
+  "rounded-[var(--radius-xl)] border-2 border-[var(--border-strong)] bg-[var(--bg-primary)] shadow-[var(--shadow-md)]";
+
+const COMPLETED_BADGE_CLASS =
+  "inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold text-[#0d3d24] border border-[var(--success-600)] "
+  + "bg-[repeating-linear-gradient(-45deg,hsl(var(--success))_0,hsl(var(--success))_4px,#ffffff_4px,#ffffff_8px)]";
+
+
 type LogRow = {
   bookId: number;
   startPage: number;
@@ -78,6 +87,7 @@ export default function StudentPortal() {
       return res.json() as { me: StudentAnalyticsMe };
     },
     enabled: !!session?.authenticated,
+    refetchOnWindowFocus: true,
   });
 
   const meAnalytics = analyticsPayload?.me;
@@ -358,6 +368,7 @@ export default function StudentPortal() {
       setSelectedCustomBooks([]);
       await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
       await queryClient.invalidateQueries({ queryKey: STUDENT_ANALYTICS_ME_KEY });
+      await queryClient.refetchQueries({ queryKey: STUDENT_ANALYTICS_ME_KEY });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "حدث خطأ";
       toast.error(message);
@@ -385,7 +396,7 @@ export default function StudentPortal() {
           </p>
         </div>
 
-        <Card className="rounded-[var(--radius-xl)] border border-[var(--border-default)] shadow-[var(--shadow-md)]">
+        <Card className={STUDENT_SURFACE_CARD}>
           {formCollapsed && hasPrimaryThisWeek && !isExtraMode ? (
             <CardContent className="pt-10 pb-10 space-y-5 text-center">
               <CheckCircle className="w-14 h-14 mx-auto text-[var(--success-600)]" />
@@ -589,8 +600,8 @@ export default function StudentPortal() {
         </Card>
 
         <div className="grid grid-cols-3 gap-3">
-          <Card>
-            <CardContent className="p-4 text-center space-y-2">
+          <Card className={STUDENT_SURFACE_CARD}>
+            <CardContent className="p-4 text-center space-y-2 min-h-[120px] flex flex-col justify-center">
               {isAnalyticsLoading ? (
                 <Loader2 className="w-6 h-6 mx-auto animate-spin text-[var(--text-secondary)]" />
               ) : (
@@ -607,11 +618,14 @@ export default function StudentPortal() {
                 </>
               )}
               <p className="text-xs text-[var(--text-secondary)]">نسبة الإنجاز المرحلي</p>
+              <p className="text-[10px] text-[var(--text-disabled)] leading-tight mt-0.5">
+                تقدمك الرسمي حتى هذا الأسبوع
+              </p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4 text-center">
+          <Card className={STUDENT_SURFACE_CARD}>
+            <CardContent className="p-4 text-center min-h-[120px] flex flex-col justify-center">
               {isAnalyticsLoading ? (
                 <Loader2 className="w-6 h-6 mx-auto animate-spin text-[var(--text-secondary)]" />
               ) : (
@@ -621,11 +635,14 @@ export default function StudentPortal() {
                 </>
               )}
               <p className="text-xs text-[var(--text-secondary)] mt-1">حصيلة التحفيز</p>
+              <p className="text-[10px] text-[var(--text-disabled)] leading-tight">
+                إجمالي الصفحات المسجّلة في رصدك
+              </p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4 text-center min-h-[88px] flex flex-col justify-center">
+          <Card className={STUDENT_SURFACE_CARD}>
+            <CardContent className="p-4 text-center min-h-[120px] flex flex-col justify-center">
               {isAnalyticsLoading ? (
                 <Loader2 className="w-6 h-6 mx-auto animate-spin text-[var(--text-secondary)]" />
               ) : (
@@ -637,6 +654,9 @@ export default function StudentPortal() {
                 </>
               )}
               <p className="text-xs text-[var(--text-secondary)] mt-2">موعد الختم</p>
+              <p className="text-[10px] text-[var(--text-disabled)] leading-tight">
+                تقدير تحفيزي من وتيرة قراءتك
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -668,13 +688,20 @@ export default function StudentPortal() {
               return (
                 <div
                   key={book.id}
-                  className="flex items-center gap-4 p-4 rounded-lg border border-[var(--border-default)]"
+                  className={cn(
+                    "flex items-center gap-4 p-4 rounded-lg border-2 transition-colors bg-[var(--bg-primary)] shadow-sm",
+                    isCompleted
+                      ? "border-[var(--success-600)] bg-[hsl(var(--success)/0.08)]"
+                      : isCurrent
+                        ? "border-[hsl(var(--primary))]"
+                        : "border-[var(--border-strong)]"
+                  )}
                 >
                   <BookOpen className="w-4 h-4 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium truncate">{book.title}</span>
-                      {isCompleted && <Badge>مكتمل</Badge>}
+                      {isCompleted && <span className={COMPLETED_BADGE_CLASS}>مكتمل</span>}
                       {isCurrent && !isCompleted && <Badge variant="outline">حالي</Badge>}
                     </div>
                     <p className="text-xs text-[var(--text-secondary)]">
@@ -693,7 +720,7 @@ export default function StudentPortal() {
         </div>
 
         <Dialog open={showCustomProgress} onOpenChange={setShowCustomProgress}>
-          <DialogContent>
+          <DialogContent className="border-2 border-[var(--border-strong)]">
             <DialogHeader>
               <DialogTitle>إنجاز سابق</DialogTitle>
             </DialogHeader>
@@ -701,9 +728,19 @@ export default function StudentPortal() {
               {trackBooks
                 .filter((b) => !completedBookIds.includes(b.id))
                 .map((book) => (
+                  {(() => {
+                    const isSelected = selectedCustomBooks.includes(book.id);
+                    return (
                   <div
                     key={book.id}
-                    className="p-3 border rounded-lg cursor-pointer"
+                    role="button"
+                    tabIndex={0}
+                    className={cn(
+                      "p-3 rounded-lg cursor-pointer border-2 flex items-center justify-between gap-2 transition-all",
+                      isSelected
+                        ? "border-[hsl(var(--primary))] bg-[var(--bg-tertiary)] ring-2 ring-[hsl(var(--primary))]/25"
+                        : "border-[var(--border-strong)] bg-[var(--bg-primary)] hover:border-[var(--border-default)]"
+                    )}
                     onClick={() =>
                       setSelectedCustomBooks((prev) =>
                         prev.includes(book.id)
@@ -711,9 +748,24 @@ export default function StudentPortal() {
                           : [...prev, book.id]
                       )
                     }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedCustomBooks((prev) =>
+                          prev.includes(book.id)
+                            ? prev.filter((id) => id !== book.id)
+                            : [...prev, book.id]
+                        );
+                      }
+                    }}
                   >
-                    {book.title}
+                    <span className="font-medium text-sm">{book.title}</span>
+                    {isSelected && (
+                      <Check className="w-5 h-5 shrink-0 text-[hsl(var(--primary))]" />
+                    )}
                   </div>
+                    );
+                  })()}
                 ))}
             </div>
             <Button

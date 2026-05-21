@@ -223,7 +223,8 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
         بوابة المشارك
       </p>
     </div>
-    <div className="flex items-center gap-3 shrink-0">
+    <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+      <ThemeToggle />
       <span
         className="text-sm font-medium text-[var(--text-primary)]/80 hidden sm:block"
         data-testid="text-username"
