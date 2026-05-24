@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useGetSettings } from "@workspace/api-client-react";
 import { isDarkTheme } from "@/lib/theme";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 function useIsDarkTheme() {
   const [isDark, setIsDark] = useState(() =>
