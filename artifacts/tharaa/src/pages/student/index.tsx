@@ -2,10 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import {
   useGetMe,
   useListCurriculum,
-  useGetMyLogs,
   useGetSettings,
   getGetMeQueryKey,
-  getGetMyLogsQueryKey,
 } from "@workspace/api-client-react";
 import { StudentLayout } from "@/components/layout";
 import { cn } from "@/lib/utils";
@@ -69,6 +67,7 @@ type StudentAnalyticsMe = {
 };
 
 const STUDENT_ANALYTICS_ME_KEY = ["student-analytics-me"] as const;
+const WEEKLY_LOG_STATUS_KEY = ["logs-weekly-status"] as const;
 const EMPTY_COMPLETED_BOOKS: number[] = [];
 
 export default function StudentPortal() {
@@ -113,7 +112,17 @@ export default function StudentPortal() {
     [books, effectiveTrack]
   );
 
-  const { data: logs } = useGetMyLogs();
+  const { data: weeklyLogStatus } = useQuery({
+    queryKey: WEEKLY_LOG_STATUS_KEY,
+    queryFn: async () => {
+      const res = await fetch("/api/logs.php?id=status", { credentials: "include" });
+      if (!res.ok) return { hasPrimaryThisWeek: false };
+      return (await res.json()) as { hasPrimaryThisWeek?: boolean };
+    },
+    enabled: !!session?.authenticated,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
 
   const completedBookIds: number[] = user?.completedBooks ?? EMPTY_COMPLETED_BOOKS;
   const completedBookIdSet = useMemo(() => new Set<number>(completedBookIds), [completedBookIds]);
@@ -163,14 +172,10 @@ export default function StudentPortal() {
   }, [user?.phaseNumber]);
 
   useEffect(() => {
-    fetch("/api/logs.php?id=status", { credentials: "include" })
-      .then((r) => r.json())
-      .then((d) => {
-        setHasPrimaryThisWeek(!!d.hasPrimaryThisWeek);
-        if (d.hasPrimaryThisWeek) setFormCollapsed(true);
-      })
-      .catch(() => {});
-  }, [logs]);
+    if (!weeklyLogStatus?.hasPrimaryThisWeek) return;
+    setHasPrimaryThisWeek(true);
+    setFormCollapsed(true);
+  }, [weeklyLogStatus?.hasPrimaryThisWeek]);
 
   const displayedPhaseBooks = trackBooks.filter((b) => b.phaseNumber === viewPhase);
   const availableBooks = displayedPhaseBooks.filter((b) => !completedBookIds.includes(b.id));
@@ -268,7 +273,7 @@ export default function StudentPortal() {
       setPendingSubmissionData(null);
       setNextBookIdForRollover("");
       await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-      await queryClient.invalidateQueries({ queryKey: getGetMyLogsQueryKey() });
+      await queryClient.invalidateQueries({ queryKey: WEEKLY_LOG_STATUS_KEY });
       await queryClient.invalidateQueries({ queryKey: STUDENT_ANALYTICS_ME_KEY });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "حدث خطأ أثناء الرصد";
