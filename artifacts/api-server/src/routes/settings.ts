@@ -22,6 +22,9 @@ router.patch("/", requireAdmin, async (c) => {
     updates.curriculumPdfUrl =
       typeof url === "string" && url.trim() !== "" ? url.trim() : null;
   }
+  if (Object.prototype.hasOwnProperty.call(body, "priorAchievementEnabled")) {
+    updates.priorAchievementEnabled = !!body.priorAchievementEnabled;
+  }
 
   if (!settings) {
     [settings] = await db.insert(systemSettingsTable).values(updates).returning();

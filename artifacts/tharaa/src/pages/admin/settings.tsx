@@ -40,15 +40,20 @@ export default function AdminSettings() {
   const [maintenanceSaveStep, setMaintenanceSaveStep] = useState<"idle" | "confirm">("idle");
   const [adminProfile, setAdminProfile] = useState({ name: "", phone: "", password: "" });
   const [curriculumPdfUrl, setCurriculumPdfUrl] = useState("");
+  const [priorAchievementEnabled, setPriorAchievementEnabled] = useState(true);
 
   useEffect(() => {
     if (settings) {
-      const ext = settings as { curriculumPdfUrl?: string | null };
+      const ext = settings as {
+        curriculumPdfUrl?: string | null;
+        priorAchievementEnabled?: boolean;
+      };
       setWeeklyQuota(settings.weeklyQuota?.toString() || "75");
       setAllDaysActive(!!settings.allDaysActive);
       setPrimaryDay(settings.primaryDay || "Friday");
       setIsMaintenanceMode(!!settings.maintenanceMode);
       setCurriculumPdfUrl(ext.curriculumPdfUrl ?? "");
+      setPriorAchievementEnabled(ext.priorAchievementEnabled !== false);
     }
     if (me?.user) {
       setAdminProfile({ name: me.user.name, phone: me.user.phone, password: "" });
@@ -68,6 +73,7 @@ export default function AdminSettings() {
           primaryDay,
           maintenanceMode: isMaintenanceMode ? 1 : 0,
           curriculumPdfUrl: curriculumPdfUrl.trim() || null,
+          priorAchievementEnabled: priorAchievementEnabled ? 1 : 0,
         },
       },
       {
@@ -177,6 +183,23 @@ export default function AdminSettings() {
                 <p className="text-[11px] text-[var(--text-secondary)]">
                   يظهر زر «تنزيل المنهج» بجانب اسم المشارك عند تعبئة الرابط.
                 </p>
+              </div>
+              <div className={switchRowClass}>
+                <div className="space-y-1 flex-1 min-w-0">
+                  <Label className="text-sm font-medium block text-right text-[var(--text-primary)]">
+                    إظهار زر «إنجاز سابق» للمشارك
+                  </Label>
+                  <p className="text-[11px] text-[var(--text-secondary)] text-right">
+                    عند الإيقاف يُخفى الزر من صفحة المشارك ويُرفض تسجيل إنجاز سابق عبر الواجهة.
+                  </p>
+                </div>
+                <div dir="ltr" className="shrink-0">
+                  <Switch
+                    checked={priorAchievementEnabled}
+                    onCheckedChange={setPriorAchievementEnabled}
+                    className={settingsSwitchClass}
+                  />
+                </div>
               </div>
               <Button
                 variant="secondary"

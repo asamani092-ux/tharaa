@@ -23,6 +23,19 @@ function getWeekLabel(): string
     return $startOfWeek->format('Y-m-d');
 }
 
+function isPriorAchievementEnabled(PDO $pdo): bool
+{
+    try {
+        $row = $pdo->query('SELECT prior_achievement_enabled FROM settings LIMIT 1')->fetch(PDO::FETCH_ASSOC);
+        if (!$row || !array_key_exists('prior_achievement_enabled', $row)) {
+            return true;
+        }
+        return !empty($row['prior_achievement_enabled']);
+    } catch (Exception $e) {
+        return true;
+    }
+}
+
 function formatUser($u)
 {
     global $pdo;
@@ -165,6 +178,12 @@ try {
     }
 
     elseif ($method === 'POST' && $id === 'custom_progress') {
+        if (!isPriorAchievementEnabled($pdo)) {
+            http_response_code(403);
+            echo json_encode(['error' => 'ميزة إنجاز سابق معطّلة من إعدادات المنصة'], JSON_UNESCAPED_UNICODE);
+            exit();
+        }
+
         $data = json_decode(file_get_contents('php://input'), true);
         if (!is_array($data)) {
             $data = [];

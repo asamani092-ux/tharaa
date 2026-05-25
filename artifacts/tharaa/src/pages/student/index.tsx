@@ -112,9 +112,11 @@ export default function StudentPortal() {
         submissionStartDay?: number;
         allDaysActive?: boolean;
         curriculumPdfUrl?: string | null;
+        priorAchievementEnabled?: boolean;
       }
     | undefined;
   const curriculumPdfUrl = settingsExtended?.curriculumPdfUrl?.trim() || "";
+  const priorAchievementEnabled = settingsExtended?.priorAchievementEnabled !== false;
   const settingsWithDay = settingsExtended;
 
   const submissionWindow = useMemo(
@@ -597,6 +599,10 @@ export default function StudentPortal() {
   }, [pendingSubmissionData, nextBookIdForRollover, availableBooks, user?.currentBookId, user?.lastPage]);
 
   const submitCustomProgress = async () => {
+    if (!priorAchievementEnabled) {
+      toast.error("ميزة إنجاز سابق غير متاحة حالياً.");
+      return;
+    }
     if (trackCompleted) {
       toast.info("أتممت مسارك بالكامل — لا حاجة لإنجاز سابق.");
       return;
@@ -1071,7 +1077,7 @@ export default function StudentPortal() {
         <div>
           <div className="flex justify-between items-center mb-3">
             <h3 className="font-bold text-sm">كتب المرحلة</h3>
-            {!trackCompleted && (
+            {!trackCompleted && priorAchievementEnabled && (
               <Button
                 variant="outline"
                 size="sm"

@@ -16,6 +16,7 @@ export const systemSettingsTable = pgTable("system_settings", {
   gradeThresholdAcceptable: integer("grade_threshold_acceptable").notNull().default(60),
   allDaysActive: boolean("all_days_active").notNull().default(false),
   curriculumPdfUrl: text("curriculum_pdf_url"),
+  priorAchievementEnabled: boolean("prior_achievement_enabled").notNull().default(true),
 });
 
 export const insertSettingsSchema = createInsertSchema(systemSettingsTable).omit({ id: true });
