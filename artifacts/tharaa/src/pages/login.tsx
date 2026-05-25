@@ -73,7 +73,7 @@ export default function Login() {
           toast.success("تم تسجيل الدخول بنجاح");
           await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
 
-          if (res.role === "admin") {
+          if (res.role === "admin" || res.role === "supervisor") {
             window.location.href = "/admin";
           } else {
             window.location.href = "/student";

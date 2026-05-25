@@ -5,6 +5,7 @@ header('Content-Type: application/json; charset=utf-8');
 
 require_once 'cors.php';
 require_once 'db.php';
+require_once 'auth_helpers.php';
 
 function loadSettings(PDO $pdo): array
 {
@@ -339,9 +340,90 @@ function buildFinishHint(
     return "تسير على الخطة ({$trackAr})، متبقي نحو {$monthsLeft} شهراً";
 }
 
+function loadLastLogDateByUser(PDO $pdo): array
+{
+    $map = [];
+    try {
+        $rows = $pdo->query('SELECT user_id, MAX(`date`) AS last_date FROM reading_logs GROUP BY user_id')->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($rows as $row) {
+            $uid = (int)($row['user_id'] ?? 0);
+            if ($uid > 0 && !empty($row['last_date'])) {
+                $map[$uid] = (string)$row['last_date'];
+            }
+        }
+    } catch (Exception $e) {
+        // ignore if date column missing
+    }
+    return $map;
+}
+
+function buildAtRiskStudents(array $usersDetail, array $lastLogByUser, int $inactiveDays): array
+{
+    $cutoff = (new DateTime('today'))->modify('-' . max(1, $inactiveDays) . ' days');
+    $students = [];
+    foreach ($usersDetail as $u) {
+        $uid = (int)$u['id'];
+        $last = $lastLogByUser[$uid] ?? null;
+        $isAtRisk = true;
+        if ($last !== null) {
+            try {
+                $lastDt = new DateTime($last);
+                $isAtRisk = $lastDt < $cutoff;
+            } catch (Exception $e) {
+                $isAtRisk = true;
+            }
+        }
+        if ($isAtRisk) {
+            $students[] = [
+                'id' => $uid,
+                'name' => $u['name'],
+                'batchName' => $u['batchName'],
+                'trackLabelAr' => $u['trackLabelAr'] ?? '',
+                'lastLogAt' => $last,
+            ];
+        }
+    }
+    return $students;
+}
+
+function buildBookBottleneck(array $filteredUsers, array $booksMap): ?array
+{
+    $counts = [];
+    foreach ($filteredUsers as $user) {
+        $bookId = (int)($user['current_book_id'] ?? 0);
+        if ($bookId <= 0 || !isset($booksMap[$bookId])) {
+            continue;
+        }
+        $completed = json_decode($user['completed_books'] ?: '[]', true) ?: [];
+        $completedIds = array_map('intval', is_array($completed) ? $completed : []);
+        if (in_array($bookId, $completedIds, true)) {
+            continue;
+        }
+        $counts[$bookId] = ($counts[$bookId] ?? 0) + 1;
+    }
+    if (count($counts) === 0) {
+        return null;
+    }
+    arsort($counts);
+    $bookId = (int)array_key_first($counts);
+    $book = $booksMap[$bookId];
+    return [
+        'bookId' => $bookId,
+        'title' => $book['title'] ?? ('كتاب ' . $bookId),
+        'stuckCount' => (int)$counts[$bookId],
+        'method' => 'current_book',
+    ];
+}
+
 try {
+    $scopeMe = isset($_GET['scope']) && $_GET['scope'] === 'me';
+    if (!$scopeMe) {
+        requireStaffRole($pdo);
+    }
+
     $settings = loadSettings($pdo);
     $weeklyQuota = max(1, (int)($settings['weekly_quota'] ?? 75));
+    $atRiskInactiveDays = max(1, min(90, (int)($settings['at_risk_inactive_days'] ?? 14)));
     $submissionStartDay = (int)($settings['submission_start_day'] ?? 0);
 
     $stmtBooks = $pdo->query('SELECT id, title, total_pages, phase_number, track_type, level_type FROM curriculum');
@@ -401,11 +483,12 @@ try {
         $filterTrack = null;
     }
     $filterBatchId = isset($_GET['batchId']) ? (int)$_GET['batchId'] : null;
-    $scopeMe = isset($_GET['scope']) && $_GET['scope'] === 'me';
     $meId = $scopeMe ? (int)($_COOKIE['userId'] ?? 0) : 0;
+    $lastLogByUser = $scopeMe ? [] : loadLastLogDateByUser($pdo);
 
     $usersDetail = [];
     $totalBooksCompleted = 0;
+    $filteredUsersRaw = [];
 
     foreach ($users as $user) {
         $userId = (int)$user['id'];
@@ -449,12 +532,12 @@ try {
         );
         $gamificationPages = $gamificationPagesCore;
 
+        $progressPagesCore = evalProgressPagesForCoreTrack($user, $booksMap, $effectiveTrack);
         $progressPages = evalProgressPagesForTrack($user, $booksMap, $effectiveTrack);
-        $evalNumerator = $progressPages;
         $batchPaceTargetCore = min($totalCoreTrackPages, $batchWeekNow * $weeklyQuota);
-        $batchPaceTargetSupervisor = min($totalTrackPages, $batchWeekSupervisor * $weeklyQuota);
-        $stageCompletionRate = $batchPaceTargetSupervisor > 0
-            ? round(min(100, ($evalNumerator / $batchPaceTargetSupervisor) * 100), 1)
+        /** إنجاز مرحلي: تقدم أساسي رسمي ÷ هدف دفعة أساسي */
+        $stageCompletionRate = $batchPaceTargetCore > 0
+            ? round(min(100, ($progressPagesCore / $batchPaceTargetCore) * 100), 1)
             : 0;
 
         /** نسبة التقدم التراكمي للدفعة (بطاقة الطالب): صفحات أساسية مسجّلة ÷ هدف الدفعة الأساسي */
@@ -462,13 +545,15 @@ try {
             ? round(min(100, ($gamificationPagesCore / $batchPaceTargetCore) * 100), 1)
             : 0;
         $trackCompleted = isCoreTrackCurriculumComplete($completedIds, $booksMap, $effectiveTrack);
-        $progressPagesCore = evalProgressPagesForCoreTrack($user, $booksMap, $effectiveTrack);
 
         $onTimeWeeks = isset($onTimeWeeksByUser[$userId]) ? count($onTimeWeeksByUser[$userId]) : 0;
         $lateWeeks = isset($lateWeeksByUser[$userId]) ? count($lateWeeksByUser[$userId]) : 0;
         $commitmentIndex = round(($onTimeWeeks + 0.5 * $lateWeeks) / $batchWeekNow, 2);
         $completedBooksCount = count($completedIds);
-        $totalBooksCompleted += $completedBooksCount;
+        if ($trackCompleted) {
+            $totalBooksCompleted++;
+        }
+        $filteredUsersRaw[] = $user;
 
         $usersDetail[] = [
             'id' => $userId,
@@ -485,7 +570,7 @@ try {
             'trackLabelAr' => trackLabelAr($effectiveTrack),
             'commitmentIndex' => $commitmentIndex,
             'completedBooksCount' => $completedBooksCount,
-            'totalReadPages' => $evalNumerator,
+            'totalReadPages' => $progressPages,
             'completionRate' => $stageCompletionRate,
             'batchWeekNow' => $batchWeekNow,
             'expectedFinishHint' => buildFinishHint(
@@ -552,6 +637,22 @@ try {
             'logs_count' => $u['commitmentIndex'],
         ], $disciplineLeaderboard),
     ];
+
+    if (!$scopeMe) {
+        $atRiskList = buildAtRiskStudents($usersDetail, $lastLogByUser, $atRiskInactiveDays);
+        $response['supervisorIndicators'] = [
+            'atRisk' => [
+                'count' => count($atRiskList),
+                'windowDays' => $atRiskInactiveDays,
+                'students' => $atRiskList,
+            ],
+            'bookBottleneck' => buildBookBottleneck($filteredUsersRaw, $booksMap),
+        ];
+        $response['filters'] = [
+            'batchId' => $filterBatchId,
+            'track' => $filterTrack,
+        ];
+    }
 
     if ($scopeMe) {
         $me = $usersDetail[0] ?? null;

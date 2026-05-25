@@ -26,8 +26,24 @@ export async function requireAdmin(c: Context, next: Next) {
     return c.json({ error: "Not authenticated" }, 401);
   }
 
-  if (userRole !== "admin") {
+  if (userRole !== "admin" && userRole !== "supervisor") {
     return c.json({ error: "Admin access required" }, 403);
+  }
+
+  await next();
+}
+
+/** صلاحية سوبرفايزر فقط */
+export async function requireSupervisor(c: Context, next: Next) {
+  const userId = getCookie(c, "userId");
+  const userRole = getCookie(c, "userRole");
+
+  if (!userId) {
+    return c.json({ error: "Not authenticated" }, 401);
+  }
+
+  if (userRole !== "supervisor") {
+    return c.json({ error: "Supervisor access required" }, 403);
   }
 
   await next();
