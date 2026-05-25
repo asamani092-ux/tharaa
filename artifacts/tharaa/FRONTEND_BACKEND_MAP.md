@@ -11,7 +11,8 @@
 | `src/pages/student/index.tsx` | `POST /api/users.php?id=custom_progress` | إنجاز سابق — `completedBooks` مدمج تراكمياً في الواجهة |
 | `hostinger-php/api/analytics.php` | نسخة مرجعية للرفع | مقاييس الطالب: **أساسي فقط** (`level_type`≠optional)؛ `trackCompleted` = ختم الأساسي |
 | `src/components/student/book-level-badge.tsx` | — | شارات أساسي (ذهبي صلب) / اختياري في قائمة الكتب |
-| `hostinger-php/api/settings.php` | GET/PATCH `/api/settings.php` | `curriculumPdfUrl`؛ `priorAchievementEnabled` — إظهار/إخفاء إنجاز سابق |
+| `hostinger-php/api/settings.php` | GET/PATCH `/api/settings.php` | منهج PDF حسب المسار؛ `priorAchievementEnabled` |
+| `src/pages/student/index.tsx` | بطاقة الوسط | «عدد الصفحات» — انقسام أساسي/اختياري عند قراءة اختياري |
 | `src/pages/admin/settings.tsx` | PATCH settings | مفتاح «إظهار زر إنجاز سابق» |
 | `src/pages/student/index.tsx` | `gamificationPagesOptional` | يظهر داخل بطاقة التحفيز عند القراءة فقط |
 | `src/pages/student/index.tsx` | — | ختم المسار: بطاقة + modal؛ إخفاء رصد أسبوعي وإنجاز سابق عند الاكتمال |

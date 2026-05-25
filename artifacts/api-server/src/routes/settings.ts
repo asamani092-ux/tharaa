@@ -17,10 +17,13 @@ router.patch("/", requireAdmin, async (c) => {
   let [settings] = await db.select().from(systemSettingsTable).limit(1);
   const body = await c.req.json();
   const updates: Record<string, unknown> = { ...body };
-  if (Object.prototype.hasOwnProperty.call(body, "curriculumPdfUrl")) {
-    const url = body.curriculumPdfUrl;
-    updates.curriculumPdfUrl =
-      typeof url === "string" && url.trim() !== "" ? url.trim() : null;
+  const pdfKeys = ["curriculumPdfUrl", "curriculumPdfUrlFull", "curriculumPdfUrlSimplified"] as const;
+  for (const key of pdfKeys) {
+    if (Object.prototype.hasOwnProperty.call(body, key)) {
+      const url = body[key];
+      updates[key] =
+        typeof url === "string" && url.trim() !== "" ? url.trim() : null;
+    }
   }
   if (Object.prototype.hasOwnProperty.call(body, "priorAchievementEnabled")) {
     updates.priorAchievementEnabled = !!body.priorAchievementEnabled;
