@@ -53,6 +53,7 @@ import {
   buildRolloverRow,
   booksAvailableForRollover,
   consumedAllAvailableInBook,
+  validatePageRangeAgainstBook,
 } from "@/lib/weeklyLogEngine";
 
 const WEEKLY_QUOTA = 75;
@@ -186,6 +187,7 @@ export default function StudentPortal() {
   const [isExtraMode, setIsExtraMode] = useState(false);
   /** يمنع useEffect من إعادة حقن الصفحات فوق تعديل المستخدم */
   const [pagesManuallyEdited, setPagesManuallyEdited] = useState(false);
+  const [bookFieldError, setBookFieldError] = useState(false);
 
   type LogCardMode = "submitted" | "off-day" | "open";
   const logCardMode: LogCardMode = useMemo(() => {
@@ -333,10 +335,32 @@ export default function StudentPortal() {
     }
   };
 
-  const buildPrimaryRow = (): LogRow | null => {
-    if (!bookId || !selectedBook) return null;
-    if (startPage > endPage) return null;
-    return normalizeRow(selectedBook, startPage, endPage);
+  const buildValidatedLogRow = (): LogRow | null => {
+    setBookFieldError(false);
+    if (!bookId?.trim() || !selectedBook) {
+      setBookFieldError(true);
+      toast.error("الرجاء اختيار الكتاب أولاً");
+      return null;
+    }
+
+    const lastPage = lastPageForBook(selectedBook);
+    const check = validatePageRangeAgainstBook(
+      selectedBook,
+      startPage,
+      endPage,
+      lastPage
+    );
+    if (!check.ok) {
+      toast.error(check.message ?? "تحقق من نطاق الصفحات");
+      if (check.normalizedEnd !== endPage) {
+        setEndPage(check.normalizedEnd);
+      }
+      return null;
+    }
+    if (check.normalizedEnd !== endPage) {
+      setEndPage(check.normalizedEnd);
+    }
+    return normalizeRow(selectedBook, startPage, check.normalizedEnd);
   };
 
   const openMultiBookDialog = (rows: LogRow[], remainingQuota: number) => {
@@ -351,15 +375,8 @@ export default function StudentPortal() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const row = buildPrimaryRow();
-    if (!row || !selectedBook) {
-      toast.error("تحقق من الكتاب والصفحات");
-      return;
-    }
-    if (startPage > endPage) {
-      toast.error("صفحة النهاية يجب أن تكون أكبر من صفحة البداية");
-      return;
-    }
+    const row = buildValidatedLogRow();
+    if (!row || !selectedBook) return;
 
     const lastPage = lastPageForBook(selectedBook);
     const { needed, remainingQuota } = needsMultiBookContinuation(
@@ -388,11 +405,8 @@ export default function StudentPortal() {
 
   const handleExtraSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const row = buildPrimaryRow();
-    if (!row) {
-      toast.error("تحقق من الكتاب والصفحات");
-      return;
-    }
+    const row = buildValidatedLogRow();
+    if (!row) return;
     submitLogs([row], "extra", reflection.trim() || undefined);
   };
 
@@ -463,15 +477,25 @@ export default function StudentPortal() {
   }, [pendingSubmissionData, nextBookIdForRollover, availableBooks, user?.currentBookId, user?.lastPage]);
 
   const submitCustomProgress = async () => {
+    if (selectedCustomBooks.length === 0) {
+      toast.error("اختر كتاباً واحداً على الأقل");
+      return;
+    }
     setIsSubmittingCustom(true);
     try {
+      const mergedCompleted = [
+        ...new Set([...completedBookIds, ...selectedCustomBooks]),
+      ];
+      const nextCurrent =
+        trackBooks.find((b) => !mergedCompleted.includes(b.id))?.id ?? null;
+
       const response = await fetch("/api/users.php?id=custom_progress", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          completedBooks: selectedCustomBooks,
-          newCurrentBookId: selectedCustomBooks[0] ?? null,
+          completedBooks: mergedCompleted,
+          newCurrentBookId: nextCurrent,
         }),
       });
       if (!response.ok) {
@@ -662,13 +686,21 @@ export default function StudentPortal() {
                       </span>
                     </div>
                     <Select
-                      value={bookId}
+                      value={bookId || undefined}
                       onValueChange={(value) => {
+                        setBookFieldError(false);
                         setPagesManuallyEdited(false);
                         setBookId(value);
                       }}
                     >
-                      <SelectTrigger className="h-11">
+                      <SelectTrigger
+                        className={cn(
+                          "h-11",
+                          bookFieldError &&
+                            "border-[var(--error-600)] ring-2 ring-[var(--error-600)]/30"
+                        )}
+                        aria-invalid={bookFieldError}
+                      >
                         <SelectValue placeholder="اختر الكتاب" />
                       </SelectTrigger>
                       <SelectContent>
@@ -679,6 +711,9 @@ export default function StudentPortal() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {bookFieldError && (
+                      <p className="text-xs text-[var(--error-600)]">الرجاء اختيار الكتاب أولاً</p>
+                    )}
                   </div>
 
                   {selectedBook &&
@@ -787,14 +822,17 @@ export default function StudentPortal() {
               ) : (
                 <>
                   <div
-                    className="relative mx-auto w-14 h-14 flex items-center justify-center rounded-full border-2 border-[var(--primary-600)]"
+                    className="relative mx-auto w-14 h-14 flex items-center justify-center rounded-full border-2 border-[var(--secondary-400)] shadow-[0_0_12px_rgba(202,162,100,0.35)]"
                     aria-hidden
                   >
-                    <span className="text-sm font-bold text-[var(--primary-600)]">
+                    <span className="text-sm font-bold text-[var(--secondary-400)]">
                       {stageCompletionRate}%
                     </span>
                   </div>
-                  <Progress value={stageCompletionRate} className="h-1.5" />
+                  <Progress
+                    value={stageCompletionRate}
+                    className="h-1.5 [&>div]:bg-[var(--secondary-400)]"
+                  />
                 </>
               )}
               <p className="text-xs text-[var(--text-secondary)]">نسبة الإنجاز المرحلي</p>
@@ -844,7 +882,14 @@ export default function StudentPortal() {
         <div>
           <div className="flex justify-between items-center mb-3">
             <h3 className="font-bold text-sm">كتب المرحلة</h3>
-            <Button variant="outline" size="sm" onClick={() => setShowCustomProgress(true)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSelectedCustomBooks([]);
+                setShowCustomProgress(true);
+              }}
+            >
               إنجاز سابق
             </Button>
           </div>

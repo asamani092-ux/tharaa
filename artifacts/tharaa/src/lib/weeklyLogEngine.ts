@@ -117,3 +117,46 @@ export function booksAvailableForRollover<T extends BookSlice>(
 ): T[] {
   return availableBooks.filter((b) => !usedBookIds.has(b.id));
 }
+
+/** صفحات قابلة للقراءة في الكتاب من موضع lastPage — O(1). */
+export function readablePagesInBook(book: BookSlice, lastPage: number): number {
+  return Math.max(0, book.totalPages - lastPage);
+}
+
+export type PageRangeValidation = {
+  ok: boolean;
+  message?: string;
+  normalizedEnd: number;
+};
+
+/**
+ * تحقق من نطاق الصفحات وسقف الكتاب — O(1).
+ */
+export function validatePageRangeAgainstBook(
+  book: BookSlice,
+  startPage: number,
+  endPage: number,
+  lastPage: number
+): PageRangeValidation {
+  if (startPage < 1) {
+    return { ok: false, message: "صفحة البداية غير صالحة", normalizedEnd: endPage };
+  }
+  if (startPage > endPage) {
+    return {
+      ok: false,
+      message: "صفحة النهاية يجب أن تكون أكبر من أو تساوي صفحة البداية",
+      normalizedEnd: endPage,
+    };
+  }
+  const normalizedEnd = Math.min(endPage, book.totalPages);
+  const maxReadable = readablePagesInBook(book, lastPage);
+  const requested = normalizedEnd - startPage + 1;
+  if (requested > maxReadable) {
+    return {
+      ok: false,
+      message: `متبقي ${maxReadable} صفحة فقط في هذا الكتاب (حتى صفحة ${book.totalPages})`,
+      normalizedEnd: Math.min(book.totalPages, startPage + maxReadable - 1),
+    };
+  }
+  return { ok: true, normalizedEnd };
+}
