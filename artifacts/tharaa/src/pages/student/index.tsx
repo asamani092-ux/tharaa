@@ -6,6 +6,10 @@ import {
   getGetMeQueryKey,
 } from "@workspace/api-client-react";
 import { StudentLayout } from "@/components/layout";
+import {
+  BookLevelBadge,
+  isBasicCurriculumBook,
+} from "@/components/student/book-level-badge";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -138,14 +142,17 @@ export default function StudentPortal() {
     meAnalytics?.effectiveTrack ??
     "full";
 
+  const matchesTrack = (b: { trackType?: string }) =>
+    b.trackType === "both" || b.trackType === effectiveTrack;
+
   const trackBooks = useMemo(
-    () =>
-      (books ?? []).filter(
-        (b) =>
-          (b as { trackType?: string }).trackType === "both" ||
-          (b as { trackType?: string }).trackType === effectiveTrack
-      ),
+    () => (books ?? []).filter((b) => matchesTrack(b as { trackType?: string })),
     [books, effectiveTrack]
+  );
+
+  const coreTrackBooks = useMemo(
+    () => trackBooks.filter((b) => isBasicCurriculumBook(b)),
+    [trackBooks]
   );
 
   const { data: weeklyLogStatus } = useQuery({
@@ -165,7 +172,7 @@ export default function StudentPortal() {
 
   const phaseStats = useMemo(() => {
     const totalsByPhase = new Map<number, { total: number; completed: number }>();
-    for (const b of trackBooks) {
+    for (const b of coreTrackBooks) {
       const phase = b.phaseNumber;
       const row = totalsByPhase.get(phase) ?? { total: 0, completed: 0 };
       row.total += 1;
@@ -178,7 +185,7 @@ export default function StudentPortal() {
       const { total, completed } = totalsByPhase.get(phase)!;
       return { phase, percent: total > 0 ? Math.round((completed / total) * 100) : 0 };
     });
-  }, [trackBooks, completedBookIdSet]);
+  }, [coreTrackBooks, completedBookIdSet]);
 
   const [viewPhase, setViewPhase] = useState<number>(1);
   const [bookId, setBookId] = useState<string>("");
@@ -209,9 +216,9 @@ export default function StudentPortal() {
 
   const trackCompletedOnBooks = useMemo(
     () =>
-      trackBooks.length > 0 &&
-      trackBooks.every((b) => completedBookIdSet.has(b.id)),
-    [trackBooks, completedBookIdSet]
+      coreTrackBooks.length > 0 &&
+      coreTrackBooks.every((b) => completedBookIdSet.has(b.id)),
+    [coreTrackBooks, completedBookIdSet]
   );
 
   const trackCompleted = meAnalytics?.trackCompleted ?? trackCompletedOnBooks;
@@ -256,7 +263,11 @@ export default function StudentPortal() {
   }, [weeklyLogStatus?.hasPrimaryThisWeek]);
 
   const displayedPhaseBooks = trackBooks.filter((b) => b.phaseNumber === viewPhase);
-  const availableBooks = displayedPhaseBooks.filter((b) => !completedBookIds.includes(b.id));
+  const displayedPhaseCoreBooks = displayedPhaseBooks.filter((b) =>
+    isBasicCurriculumBook(b)
+  );
+  const booksForLogSelect = isExtraMode ? displayedPhaseBooks : displayedPhaseCoreBooks;
+  const availableBooks = booksForLogSelect.filter((b) => !completedBookIds.includes(b.id));
 
   const bookIdIsInAvailableList = useMemo(
     () => !!bookId && availableBooks.some((b) => b.id.toString() === bookId),
@@ -266,8 +277,8 @@ export default function StudentPortal() {
   const selectBookValue = bookIdIsInAvailableList ? bookId : undefined;
 
   const priorBooksNotCompleted = useMemo(
-    () => trackBooks.filter((b) => !completedBookIds.includes(b.id)),
-    [trackBooks, completedBookIds]
+    () => coreTrackBooks.filter((b) => !completedBookIds.includes(b.id)),
+    [coreTrackBooks, completedBookIds]
   );
 
   const priorBooksFiltered = useMemo(() => {
@@ -288,6 +299,7 @@ export default function StudentPortal() {
     : null;
   const isCurrentBookValid =
     !!userCurrentBook &&
+    isBasicCurriculumBook(userCurrentBook) &&
     !completedBookIds.includes(userCurrentBook.id) &&
     userCurrentBook.phaseNumber === viewPhase;
 
@@ -325,7 +337,9 @@ export default function StudentPortal() {
       setEndPage(range.endPage);
     };
 
-    const picked = availableBooks.find((b) => b.id.toString() === bookId);
+    const picked =
+      availableBooks.find((b) => b.id.toString() === bookId) ??
+      displayedPhaseBooks.find((b) => b.id.toString() === bookId);
     if (picked) {
       injectForBook(picked);
       return;
@@ -345,7 +359,9 @@ export default function StudentPortal() {
     user?.lastPage,
   ]);
 
-  const selectedBook = availableBooks.find((b) => b.id.toString() === bookId);
+  const selectedBook =
+    availableBooks.find((b) => b.id.toString() === bookId) ??
+    displayedPhaseBooks.find((b) => b.id.toString() === bookId);
 
   const pickCurrentBookForLog = () => {
     if (!isCurrentBookValid || !userCurrentBook) return;
@@ -584,7 +600,7 @@ export default function StudentPortal() {
         ...new Set([...completedBookIds, ...selectedCustomBooks]),
       ];
       const nextCurrent =
-        trackBooks.find((b) => !mergedCompleted.includes(b.id))?.id ?? null;
+        coreTrackBooks.find((b) => !mergedCompleted.includes(b.id))?.id ?? null;
 
       const response = await fetch("/api/users.php?id=custom_progress", {
         method: "POST",
@@ -651,8 +667,8 @@ export default function StudentPortal() {
           >
             <Trophy className="w-5 h-5 text-[var(--success-600)] shrink-0" />
             <span className={successText}>
-              أتممت جميع مراحل المسار <strong>{trackLabelAr}</strong>. الرصد الأسبوعي
-              مغلق؛ يمكنك إرسال إنجاز إضافي للتحفيز فقط.
+              أتممت المنهج <strong>الأساسي</strong> في المسار <strong>{trackLabelAr}</strong>.
+              الرصد الأسبوعي مغلق؛ يمكنك إرسال إنجاز إضافي (بما فيه كتب اختيارية) للتحفيز.
             </span>
           </div>
         )}
@@ -1002,7 +1018,7 @@ export default function StudentPortal() {
               )}
               <p className="text-xs text-[var(--text-secondary)] mt-1">حصيلة التحفيز</p>
               <p className="text-[10px] text-[var(--text-disabled)] leading-tight">
-                صفحات مسجّلة في مسارك ({trackLabelAr})
+                صفحات أساسية مسجّلة — مسار {trackLabelAr}
               </p>
             </CardContent>
           </Card>
@@ -1056,11 +1072,6 @@ export default function StudentPortal() {
               ))}
             </SelectContent>
           </Select>
-          <p className="text-[10px] text-[var(--text-disabled)] mb-3 leading-relaxed">
-            النسبة بين الأقواس = تقدّم كتب كل مرحلة. البطاقة الذهبية = وتيرة صفحاتك
-            المسجّلة مقابل خطة الدفعة.
-          </p>
-
           <div className="grid gap-3">
             {displayedPhaseBooks.map((book) => {
               const isCompleted = completedBookIds.includes(book.id);
@@ -1079,7 +1090,8 @@ export default function StudentPortal() {
                 >
                   <BookOpen className="w-4 h-4 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <BookLevelBadge levelType={book.levelType} />
                       <span className="font-medium truncate">{book.title}</span>
                       {isCompleted && <span className={COMPLETED_BADGE_CLASS}>مكتمل</span>}
                       {isCurrent && !isCompleted && <Badge variant="outline">حالي</Badge>}
@@ -1111,7 +1123,7 @@ export default function StudentPortal() {
               {trackCompleteMessage}
             </p>
             <p className="text-xs text-[var(--text-disabled)]">
-              أتممت جميع الكتب والمراحل في مسارك. نسأل الله القبول والنفع.
+              أتممت جميع الكتب الأساسية في مسارك. نسأل الله القبول والنفع.
             </p>
             <Button
               className="w-full"
@@ -1175,7 +1187,10 @@ export default function StudentPortal() {
                         }
                       }}
                     >
-                      <span className="font-medium text-sm">{book.title}</span>
+                      <div className="flex flex-wrap items-center gap-2 min-w-0">
+                        <BookLevelBadge levelType={book.levelType} />
+                        <span className="font-medium text-sm truncate">{book.title}</span>
+                      </div>
                       {isSelected && (
                         <Check className="w-5 h-5 shrink-0 text-[hsl(var(--primary))]" />
                       )}

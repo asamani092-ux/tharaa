@@ -52,11 +52,34 @@ function bookMatchesTrack(array $book, string $track): bool
     return $tt === $track || $tt === 'both';
 }
 
+/** أساسي = أي level_type غير optional (لا ربط بمرحلة) */
+function bookIsBasic(array $book): bool
+{
+    $lt = strtolower(trim((string)($book['level_type'] ?? 'basic')));
+    return $lt !== 'optional';
+}
+
+function bookMatchesCoreTrack(array $book, string $track): bool
+{
+    return bookMatchesTrack($book, $track) && bookIsBasic($book);
+}
+
 function sumTrackPages(array $booksMap, string $track): int
 {
     $sum = 0;
     foreach ($booksMap as $book) {
         if (bookMatchesTrack($book, $track)) {
+            $sum += (int)$book['total_pages'];
+        }
+    }
+    return $sum;
+}
+
+function sumCoreTrackPages(array $booksMap, string $track): int
+{
+    $sum = 0;
+    foreach ($booksMap as $book) {
+        if (bookMatchesCoreTrack($book, $track)) {
             $sum += (int)$book['total_pages'];
         }
     }
@@ -90,6 +113,33 @@ function evalProgressPagesForTrack(array $user, array $booksMap, string $track):
     return $pages;
 }
 
+/** تقدم رسمي للكتب الأساسية فقط (بطاقة الطالب / ختم المسار) */
+function evalProgressPagesForCoreTrack(array $user, array $booksMap, string $track): int
+{
+    $completedIds = json_decode($user['completed_books'] ?: '[]', true) ?: [];
+    $pages = 0;
+    foreach ($completedIds as $bookId) {
+        $bookId = (int)$bookId;
+        if (!isset($booksMap[$bookId])) {
+            continue;
+        }
+        $book = $booksMap[$bookId];
+        if (bookMatchesCoreTrack($book, $track)) {
+            $pages += (int)$book['total_pages'];
+        }
+    }
+
+    $currentBookId = (int)($user['current_book_id'] ?? 0);
+    if ($currentBookId > 0 && isset($booksMap[$currentBookId])) {
+        $current = $booksMap[$currentBookId];
+        if (bookMatchesCoreTrack($current, $track)) {
+            $pages += (int)($user['last_page'] ?? 0);
+        }
+    }
+
+    return $pages;
+}
+
 function evalNumeratorFromUser(array $user, array $booksMap): int
 {
     return evalProgressPagesForTrack($user, $booksMap, 'full');
@@ -114,10 +164,16 @@ function resolveBatchWeekNow(int $batchId, array $batchWeekCache, int $totalTrac
 }
 
 /**
- * مجموع pages_read ضمن المسار فقط، مع إزالة التكرار لنفس الكتاب والأسبوع.
+ * مجموع pages_read ضمن المسار، مع إزالة التكرار لنفس الكتاب والأسبوع.
+ * $coreOnly=true يقتصر على الكتب الأساسية (تقييم الطالب).
  */
-function sumGamificationPagesForTrack(int $userId, string $track, array $booksMap, array $logsRows): int
-{
+function sumGamificationPagesForTrack(
+    int $userId,
+    string $track,
+    array $booksMap,
+    array $logsRows,
+    bool $coreOnly = false
+): int {
     $deduped = [];
     foreach ($logsRows as $log) {
         if ((int)($log['user_id'] ?? 0) !== $userId) {
@@ -127,7 +183,12 @@ function sumGamificationPagesForTrack(int $userId, string $track, array $booksMa
         if ($bookId <= 0 || !isset($booksMap[$bookId])) {
             continue;
         }
-        if (!bookMatchesTrack($booksMap[$bookId], $track)) {
+        $book = $booksMap[$bookId];
+        if ($coreOnly) {
+            if (!bookMatchesCoreTrack($book, $track)) {
+                continue;
+            }
+        } elseif (!bookMatchesTrack($book, $track)) {
             continue;
         }
         $week = trim((string)($log['week_label'] ?? ''));
@@ -156,6 +217,23 @@ function isTrackCurriculumComplete(array $completedIds, array $booksMap, string 
     return $hasAnyBook;
 }
 
+/** ختم المسار الأساسي: كل الكتب basic في المسار مكتملة */
+function isCoreTrackCurriculumComplete(array $completedIds, array $booksMap, string $track): bool
+{
+    $completedSet = array_flip(array_map('intval', $completedIds));
+    $hasAnyBook = false;
+    foreach ($booksMap as $book) {
+        if (!bookMatchesCoreTrack($book, $track)) {
+            continue;
+        }
+        $hasAnyBook = true;
+        if (!isset($completedSet[(int)$book['id']])) {
+            return false;
+        }
+    }
+    return $hasAnyBook;
+}
+
 function buildFinishHint(
     int $totalTrackPages,
     int $batchWeekNow,
@@ -167,7 +245,7 @@ function buildFinishHint(
     $trackAr = trackLabelAr($effectiveTrack);
 
     if ($trackComplete) {
-        return "مبروك! أتممت جميع مراحل المسار {$trackAr} 🎉";
+        return "مبروك! أتممت المنهج الأساسي في المسار {$trackAr} 🎉";
     }
 
     if ($totalTrackPages <= 0 || $batchWeekNow <= 0) {
@@ -198,7 +276,7 @@ try {
     $weeklyQuota = max(1, (int)($settings['weekly_quota'] ?? 75));
     $submissionStartDay = (int)($settings['submission_start_day'] ?? 0);
 
-    $stmtBooks = $pdo->query('SELECT id, title, total_pages, phase_number, track_type FROM curriculum');
+    $stmtBooks = $pdo->query('SELECT id, title, total_pages, phase_number, track_type, level_type FROM curriculum');
     $allBooks = $stmtBooks->fetchAll(PDO::FETCH_ASSOC);
     $booksMap = [];
     foreach ($allBooks as $book) {
@@ -278,24 +356,35 @@ try {
         }
 
         $totalTrackPages = sumTrackPages($booksMap, $effectiveTrack);
-        $batchWeekNow = resolveBatchWeekNow($batchId, $batchWeekCache, $totalTrackPages, $weeklyQuota);
+        $totalCoreTrackPages = sumCoreTrackPages($booksMap, $effectiveTrack);
+        $batchWeekNow = resolveBatchWeekNow($batchId, $batchWeekCache, $totalCoreTrackPages, $weeklyQuota);
+        $batchWeekSupervisor = resolveBatchWeekNow($batchId, $batchWeekCache, $totalTrackPages, $weeklyQuota);
 
-        $gamificationPages = sumGamificationPagesForTrack($userId, $effectiveTrack, $booksMap, $logsRows);
+        $gamificationPagesCore = sumGamificationPagesForTrack(
+            $userId,
+            $effectiveTrack,
+            $booksMap,
+            $logsRows,
+            true
+        );
+        $gamificationPages = $gamificationPagesCore;
 
         $progressPages = evalProgressPagesForTrack($user, $booksMap, $effectiveTrack);
         $evalNumerator = $progressPages;
-        $batchPaceTarget = min($totalTrackPages, $batchWeekNow * $weeklyQuota);
-        $stageCompletionRate = $batchPaceTarget > 0
-            ? round(min(100, ($evalNumerator / $batchPaceTarget) * 100), 1)
+        $batchPaceTargetCore = min($totalCoreTrackPages, $batchWeekNow * $weeklyQuota);
+        $batchPaceTargetSupervisor = min($totalTrackPages, $batchWeekSupervisor * $weeklyQuota);
+        $stageCompletionRate = $batchPaceTargetSupervisor > 0
+            ? round(min(100, ($evalNumerator / $batchPaceTargetSupervisor) * 100), 1)
             : 0;
 
-        /** نسبة التقدم التراكمي للدفعة (بطاقة الطالب): pages_read في المسار ÷ هدف الدفعة */
-        $batchCumulativeRate = $batchPaceTarget > 0
-            ? round(min(100, ($gamificationPages / $batchPaceTarget) * 100), 1)
+        /** نسبة التقدم التراكمي للدفعة (بطاقة الطالب): صفحات أساسية مسجّلة ÷ هدف الدفعة الأساسي */
+        $batchCumulativeRate = $batchPaceTargetCore > 0
+            ? round(min(100, ($gamificationPagesCore / $batchPaceTargetCore) * 100), 1)
             : 0;
 
         $completedIds = json_decode($user['completed_books'] ?: '[]', true) ?: [];
-        $trackCompleted = isTrackCurriculumComplete($completedIds, $booksMap, $effectiveTrack);
+        $trackCompleted = isCoreTrackCurriculumComplete($completedIds, $booksMap, $effectiveTrack);
+        $progressPagesCore = evalProgressPagesForCoreTrack($user, $booksMap, $effectiveTrack);
 
         $onTimeWeeks = isset($onTimeWeeksByUser[$userId]) ? count($onTimeWeeksByUser[$userId]) : 0;
         $lateWeeks = isset($lateWeeksByUser[$userId]) ? count($lateWeeksByUser[$userId]) : 0;
@@ -311,7 +400,7 @@ try {
             'effectiveTrack' => $effectiveTrack,
             'stageCompletionRate' => $stageCompletionRate,
             'batchCumulativeRate' => $batchCumulativeRate,
-            'batchPaceTarget' => $batchPaceTarget,
+            'batchPaceTarget' => $batchPaceTargetCore,
             'gamificationPages' => $gamificationPages,
             'trackCompleted' => $trackCompleted,
             'trackLabelAr' => trackLabelAr($effectiveTrack),
@@ -321,13 +410,15 @@ try {
             'completionRate' => $stageCompletionRate,
             'batchWeekNow' => $batchWeekNow,
             'expectedFinishHint' => buildFinishHint(
-                $totalTrackPages,
+                $totalCoreTrackPages,
                 $batchWeekNow,
                 $weeklyQuota,
                 $effectiveTrack,
-                $gamificationPages,
+                $gamificationPagesCore,
                 $trackCompleted
             ),
+            'totalCoreTrackPages' => $totalCoreTrackPages,
+            'progressPagesCore' => $progressPagesCore,
         ];
     }
 
