@@ -100,31 +100,88 @@ function trackLabelAr(string $effectiveTrack): string
     return $effectiveTrack === 'simplified' ? 'الميسر' : 'الكامل';
 }
 
+/** أسابيع الدفعة؛ بدون دفعة: خطة واقعية لا تضغط المقام على أسبوع واحد */
+function resolveBatchWeekNow(int $batchId, array $batchWeekCache, int $totalTrackPages, int $weeklyQuota): int
+{
+    if ($batchId > 0) {
+        return max(1, (int)($batchWeekCache[$batchId] ?? 1));
+    }
+    if ($totalTrackPages <= 0) {
+        return 4;
+    }
+    $weeksToCoverTrack = (int)ceil($totalTrackPages / max(1, $weeklyQuota));
+    return max(4, $weeksToCoverTrack);
+}
+
+/**
+ * مجموع pages_read ضمن المسار فقط، مع إزالة التكرار لنفس الكتاب والأسبوع.
+ */
+function sumGamificationPagesForTrack(int $userId, string $track, array $booksMap, array $logsRows): int
+{
+    $deduped = [];
+    foreach ($logsRows as $log) {
+        if ((int)($log['user_id'] ?? 0) !== $userId) {
+            continue;
+        }
+        $bookId = (int)($log['book_id'] ?? 0);
+        if ($bookId <= 0 || !isset($booksMap[$bookId])) {
+            continue;
+        }
+        if (!bookMatchesTrack($booksMap[$bookId], $track)) {
+            continue;
+        }
+        $week = trim((string)($log['week_label'] ?? ''));
+        $key = $bookId . '|' . ($week !== '' ? $week : 'no-week');
+        $pages = max(0, (int)($log['pages_read'] ?? 0));
+        if (!isset($deduped[$key]) || $pages > $deduped[$key]) {
+            $deduped[$key] = $pages;
+        }
+    }
+    return (int)array_sum($deduped);
+}
+
+function isTrackCurriculumComplete(array $completedIds, array $booksMap, string $track): bool
+{
+    $completedSet = array_flip(array_map('intval', $completedIds));
+    $hasAnyBook = false;
+    foreach ($booksMap as $book) {
+        if (!bookMatchesTrack($book, $track)) {
+            continue;
+        }
+        $hasAnyBook = true;
+        if (!isset($completedSet[(int)$book['id']])) {
+            return false;
+        }
+    }
+    return $hasAnyBook;
+}
+
 function buildFinishHint(
-    int $progressPages,
     int $totalTrackPages,
     int $batchWeekNow,
     int $weeklyQuota,
     string $effectiveTrack,
-    int $gamificationPages
+    int $trackGamificationPages,
+    bool $trackComplete
 ): string {
     $trackAr = trackLabelAr($effectiveTrack);
+
+    if ($trackComplete) {
+        return "مبروك! أتممت جميع مراحل المسار {$trackAr} 🎉";
+    }
 
     if ($totalTrackPages <= 0 || $batchWeekNow <= 0) {
         return "تسير على الخطة — مسار {$trackAr}";
     }
 
-    $progressPages = min($progressPages, $totalTrackPages);
-    $remaining = max(0, $totalTrackPages - $progressPages);
+    $pacePages = min(max(0, $trackGamificationPages), $totalTrackPages);
+    $remaining = max(0, $totalTrackPages - $pacePages);
 
     if ($remaining <= 0) {
         return "أداء استثنائي! اقتربت من ختم المسار {$trackAr} 🚀";
     }
 
-    $paceFromProgress = $progressPages / $batchWeekNow;
-    $paceFromLogs = $gamificationPages / $batchWeekNow;
-    $pace = max($paceFromProgress, $paceFromLogs, 1.0);
-
+    $pace = max($trackGamificationPages / $batchWeekNow, 1.0);
     $weeksLeft = (int)ceil($remaining / max($pace, $weeklyQuota * 0.25));
     $monthsLeft = (int)ceil($weeksLeft / 4.33);
     $monthsLeft = min(36, max(1, $monthsLeft));
@@ -171,19 +228,16 @@ try {
     $users = $stmtUsers->fetchAll(PDO::FETCH_ASSOC);
 
     $logsStmt = $pdo->query("
-        SELECT user_id, week_label, submission_status, pages_read
+        SELECT user_id, book_id, week_label, submission_status, pages_read
         FROM reading_logs
     ");
     $logsRows = $logsStmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $gamificationByUser = [];
     $onTimeWeeksByUser = [];
     $lateWeeksByUser = [];
 
     foreach ($logsRows as $log) {
         $uid = (int)$log['user_id'];
-        $gamificationByUser[$uid] = ($gamificationByUser[$uid] ?? 0) + (int)$log['pages_read'];
-
         $week = $log['week_label'] ?? '';
         $status = $log['submission_status'] ?? '';
         if ($week === '') {
@@ -224,9 +278,9 @@ try {
         }
 
         $totalTrackPages = sumTrackPages($booksMap, $effectiveTrack);
-        $batchWeekNow = $batchId ? ($batchWeekCache[$batchId] ?? 1) : 1;
+        $batchWeekNow = resolveBatchWeekNow($batchId, $batchWeekCache, $totalTrackPages, $weeklyQuota);
 
-        $gamificationPages = (int)($gamificationByUser[$userId] ?? 0);
+        $gamificationPages = sumGamificationPagesForTrack($userId, $effectiveTrack, $booksMap, $logsRows);
 
         $progressPages = evalProgressPagesForTrack($user, $booksMap, $effectiveTrack);
         $evalNumerator = $progressPages;
@@ -235,15 +289,17 @@ try {
             ? round(min(100, ($evalNumerator / $batchPaceTarget) * 100), 1)
             : 0;
 
-        /** نسبة التقدم التراكمي للدفعة (بطاقة الطالب): كل pages_read ÷ هدف الدفعة حتى اليوم */
+        /** نسبة التقدم التراكمي للدفعة (بطاقة الطالب): pages_read في المسار ÷ هدف الدفعة */
         $batchCumulativeRate = $batchPaceTarget > 0
             ? round(min(100, ($gamificationPages / $batchPaceTarget) * 100), 1)
             : 0;
+
+        $completedIds = json_decode($user['completed_books'] ?: '[]', true) ?: [];
+        $trackCompleted = isTrackCurriculumComplete($completedIds, $booksMap, $effectiveTrack);
+
         $onTimeWeeks = isset($onTimeWeeksByUser[$userId]) ? count($onTimeWeeksByUser[$userId]) : 0;
         $lateWeeks = isset($lateWeeksByUser[$userId]) ? count($lateWeeksByUser[$userId]) : 0;
         $commitmentIndex = round(($onTimeWeeks + 0.5 * $lateWeeks) / $batchWeekNow, 2);
-
-        $completedIds = json_decode($user['completed_books'] ?: '[]', true) ?: [];
         $completedBooksCount = count($completedIds);
         $totalBooksCompleted += $completedBooksCount;
 
@@ -257,18 +313,20 @@ try {
             'batchCumulativeRate' => $batchCumulativeRate,
             'batchPaceTarget' => $batchPaceTarget,
             'gamificationPages' => $gamificationPages,
+            'trackCompleted' => $trackCompleted,
+            'trackLabelAr' => trackLabelAr($effectiveTrack),
             'commitmentIndex' => $commitmentIndex,
             'completedBooksCount' => $completedBooksCount,
             'totalReadPages' => $evalNumerator,
             'completionRate' => $stageCompletionRate,
             'batchWeekNow' => $batchWeekNow,
             'expectedFinishHint' => buildFinishHint(
-                $progressPages,
                 $totalTrackPages,
                 $batchWeekNow,
                 $weeklyQuota,
                 $effectiveTrack,
-                $gamificationPages
+                $gamificationPages,
+                $trackCompleted
             ),
         ];
     }

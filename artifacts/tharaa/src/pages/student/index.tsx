@@ -40,6 +40,7 @@ import {
   Calendar,
   Check,
   Search,
+  Trophy,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSubmissionWindow } from "@/lib/submissionWindow";
@@ -74,11 +75,23 @@ type StudentAnalyticsMe = {
   stageCompletionRate?: number;
   gamificationPages?: number;
   expectedFinishHint?: string;
+  trackCompleted?: boolean;
+  trackLabelAr?: string;
 };
 
 const STUDENT_ANALYTICS_ME_KEY = ["student-analytics-me"] as const;
 const WEEKLY_LOG_STATUS_KEY = ["logs-weekly-status"] as const;
 const EMPTY_COMPLETED_BOOKS: number[] = [];
+
+const TRACK_COMPLETE_MESSAGES = [
+  "بارك الله فيك! أتممت رحلة المعرفة في مسارك — استمر في الإفادة والدعوة.",
+  "إنجاز عظيم! ختمت جميع مراحل مسارك — نسأل الله أن ينفع بما قرأت.",
+  "مبروك هذا الإنجاز! أنت من فرسان البرنامج الذين أكملوا المسار كاملاً.",
+] as const;
+
+function trackCompleteStorageKey(userId: number) {
+  return `tharaa_track_congrats_${userId}`;
+}
 
 export default function StudentPortal() {
   const queryClient = useQueryClient();
@@ -192,14 +205,46 @@ export default function StudentPortal() {
   /** يمنع useEffect من إعادة حقن الصفحات فوق تعديل المستخدم */
   const [pagesManuallyEdited, setPagesManuallyEdited] = useState(false);
   const [bookFieldError, setBookFieldError] = useState(false);
+  const [showTrackCompleteModal, setShowTrackCompleteModal] = useState(false);
 
-  type LogCardMode = "submitted" | "off-day" | "open";
+  const trackCompletedOnBooks = useMemo(
+    () =>
+      trackBooks.length > 0 &&
+      trackBooks.every((b) => completedBookIdSet.has(b.id)),
+    [trackBooks, completedBookIdSet]
+  );
+
+  const trackCompleted = meAnalytics?.trackCompleted ?? trackCompletedOnBooks;
+  const trackLabelAr =
+    meAnalytics?.trackLabelAr ??
+    (effectiveTrack === "simplified" ? "الميسر" : "الكامل");
+
+  const trackCompleteMessage = useMemo(() => {
+    const idx = user?.id ? user.id % TRACK_COMPLETE_MESSAGES.length : 0;
+    return TRACK_COMPLETE_MESSAGES[idx];
+  }, [user?.id]);
+
+  type LogCardMode = "track-complete" | "submitted" | "off-day" | "open";
   const logCardMode: LogCardMode = useMemo(() => {
     if (isExtraMode) return "open";
+    if (trackCompleted) return "track-complete";
     if (hasPrimaryThisWeek) return "submitted";
     if (!submissionWindow.allowsPrimary) return "off-day";
     return "open";
-  }, [isExtraMode, hasPrimaryThisWeek, submissionWindow.allowsPrimary]);
+  }, [
+    isExtraMode,
+    trackCompleted,
+    hasPrimaryThisWeek,
+    submissionWindow.allowsPrimary,
+  ]);
+
+  useEffect(() => {
+    if (!trackCompleted || !user?.id) return;
+    const key = trackCompleteStorageKey(user.id);
+    if (localStorage.getItem(key) === "1") return;
+    setShowTrackCompleteModal(true);
+    localStorage.setItem(key, "1");
+  }, [trackCompleted, user?.id]);
 
   useEffect(() => {
     if (user?.phaseNumber) setViewPhase(user.phaseNumber);
@@ -343,6 +388,10 @@ export default function StudentPortal() {
     mode: "primary" | "extra",
     reflectionText?: string
   ) => {
+    if (mode === "primary" && trackCompleted) {
+      toast.info("أتممت مسارك — الرصد الأسبوعي غير مطلوب. يمكنك إنجازاً إضافياً للتحفيز.");
+      return;
+    }
     if (isSubmitting || rows.length === 0) return;
     setIsSubmitting(true);
     try {
@@ -521,6 +570,10 @@ export default function StudentPortal() {
   }, [pendingSubmissionData, nextBookIdForRollover, availableBooks, user?.currentBookId, user?.lastPage]);
 
   const submitCustomProgress = async () => {
+    if (trackCompleted) {
+      toast.info("أتممت مسارك بالكامل — لا حاجة لإنجاز سابق.");
+      return;
+    }
     if (selectedCustomBooks.length === 0) {
       toast.error("اختر كتاباً واحداً على الأقل");
       return;
@@ -592,8 +645,40 @@ export default function StudentPortal() {
           )}
         </div>
 
+        {trackCompleted && !isExtraMode && (
+          <div
+            className={`${bannerBase} bg-[hsl(var(--success)/0.08)] border-[var(--success-600)]`}
+          >
+            <Trophy className="w-5 h-5 text-[var(--success-600)] shrink-0" />
+            <span className={successText}>
+              أتممت جميع مراحل المسار <strong>{trackLabelAr}</strong>. الرصد الأسبوعي
+              مغلق؛ يمكنك إرسال إنجاز إضافي للتحفيز فقط.
+            </span>
+          </div>
+        )}
+
         <Card className={STUDENT_SURFACE_CARD}>
-          {logCardMode === "submitted" ? (
+          {logCardMode === "track-complete" ? (
+            <CardContent className="pt-10 pb-10 space-y-5 text-center">
+              <Trophy className="w-16 h-16 mx-auto text-[var(--secondary-400)]" />
+              <div>
+                <p className="text-xl font-bold text-[var(--text-primary)]">
+                  مبروك! أتممت المسار {trackLabelAr}
+                </p>
+                <p className="text-sm text-[var(--text-secondary)] mt-3 max-w-md mx-auto leading-relaxed">
+                  {trackCompleteMessage}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full max-w-xs mx-auto h-11 rounded-[var(--radius-lg)]"
+                onClick={openExtraLogMode}
+              >
+                إرسال إنجاز إضافي (تحفيز)
+              </Button>
+            </CardContent>
+          ) : logCardMode === "submitted" ? (
             <CardContent className="pt-10 pb-10 space-y-5 text-center">
               <CheckCircle className="w-14 h-14 mx-auto text-[var(--success-600)]" />
               <div>
@@ -917,7 +1002,7 @@ export default function StudentPortal() {
               )}
               <p className="text-xs text-[var(--text-secondary)] mt-1">حصيلة التحفيز</p>
               <p className="text-[10px] text-[var(--text-disabled)] leading-tight">
-                إجمالي الصفحات المسجّلة في رصدك
+                صفحات مسجّلة في مسارك ({trackLabelAr})
               </p>
             </CardContent>
           </Card>
@@ -945,17 +1030,19 @@ export default function StudentPortal() {
         <div>
           <div className="flex justify-between items-center mb-3">
             <h3 className="font-bold text-sm">كتب المرحلة</h3>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setSelectedCustomBooks([]);
-                setPriorBookSearch("");
-                setShowCustomProgress(true);
-              }}
-            >
-              إنجاز سابق
-            </Button>
+            {!trackCompleted && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectedCustomBooks([]);
+                  setPriorBookSearch("");
+                  setShowCustomProgress(true);
+                }}
+              >
+                إنجاز سابق
+              </Button>
+            )}
           </div>
           <Select value={viewPhase.toString()} onValueChange={(v) => setViewPhase(parseInt(v, 10))}>
             <SelectTrigger className="mb-3">
@@ -969,6 +1056,10 @@ export default function StudentPortal() {
               ))}
             </SelectContent>
           </Select>
+          <p className="text-[10px] text-[var(--text-disabled)] mb-3 leading-relaxed">
+            النسبة بين الأقواس = تقدّم كتب كل مرحلة. البطاقة الذهبية = وتيرة صفحاتك
+            المسجّلة مقابل خطة الدفعة.
+          </p>
 
           <div className="grid gap-3">
             {displayedPhaseBooks.map((book) => {
@@ -1007,6 +1098,30 @@ export default function StudentPortal() {
             })}
           </div>
         </div>
+
+        <Dialog open={showTrackCompleteModal} onOpenChange={setShowTrackCompleteModal}>
+          <DialogContent className="border-2 border-[var(--success-600)] text-center">
+            <DialogHeader>
+              <DialogTitle className="text-[var(--success-600)] flex items-center justify-center gap-2">
+                <Trophy className="w-6 h-6" />
+                ختم المسار {trackLabelAr}
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed px-2">
+              {trackCompleteMessage}
+            </p>
+            <p className="text-xs text-[var(--text-disabled)]">
+              أتممت جميع الكتب والمراحل في مسارك. نسأل الله القبول والنفع.
+            </p>
+            <Button
+              className="w-full"
+              variant="secondary"
+              onClick={() => setShowTrackCompleteModal(false)}
+            >
+              بارك الله فيك
+            </Button>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={showCustomProgress} onOpenChange={setShowCustomProgress}>
           <DialogContent className="border-2 border-[var(--border-strong)]">

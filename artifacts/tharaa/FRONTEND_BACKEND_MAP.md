@@ -9,7 +9,8 @@
 | `src/lib/submissionWindow.ts` | — | يوم رسمي / تأخير / طوال الأسبوع / خارج الموعد (واجهة فقط حتى تأكيد PHP) |
 | `src/lib/weeklyLogEngine.ts` | — | حلقة النصاب، حقن الصفحات، تخطي |
 | `src/pages/student/index.tsx` | `POST /api/users.php?id=custom_progress` | إنجاز سابق — `completedBooks` مدمج تراكمياً في الواجهة |
-| `hostinger-php/api/analytics.php` | نسخة مرجعية للرفع | `expectedFinishHint` من تقدم المسار لا من طرح خاطئ للسجلات |
+| `hostinger-php/api/analytics.php` | نسخة مرجعية للرفع | `batchCumulativeRate` (SUM `pages_read` ضمن المسار، مُزال التكرار كتاب/أسبوع)، `trackCompleted`، `gamificationPages` مفلترة بالمسار |
+| `src/pages/student/index.tsx` | — | ختم المسار: بطاقة + modal؛ إخفاء رصد أسبوعي وإنجاز سابق عند الاكتمال |
 | `src/components/layout.tsx` | Orval session/settings | `ThemeToggle` في هيدر الطالب |
 
 ## عقد POST الرصد (للمرحلة 2 على Hostinger)
