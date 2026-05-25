@@ -41,6 +41,19 @@ import {
   Check,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getSubmissionWindow } from "@/lib/submissionWindow";
+import {
+  type LogRow,
+  normalizeRow,
+  pagesInRow,
+  sumPages,
+  quotaRemainingAfter,
+  needsMultiBookContinuation,
+  suggestPageRange,
+  buildRolloverRow,
+  booksAvailableForRollover,
+  consumedAllAvailableInBook,
+} from "@/lib/weeklyLogEngine";
 
 const WEEKLY_QUOTA = 75;
 
@@ -51,13 +64,6 @@ const COMPLETED_BADGE_CLASS =
   "inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold text-[#0d3d24] border border-[var(--success-600)] "
   + "bg-[repeating-linear-gradient(-45deg,hsl(var(--success))_0,hsl(var(--success))_4px,#ffffff_4px,#ffffff_8px)]";
 
-
-type LogRow = {
-  bookId: number;
-  startPage: number;
-  endPage: number;
-  isCompleted: boolean;
-};
 
 type StudentAnalyticsMe = {
   effectiveTrack?: string;
@@ -77,6 +83,19 @@ export default function StudentPortal() {
 
   const { data: settings } = useGetSettings();
   const weeklyQuota = settings?.weeklyQuota || WEEKLY_QUOTA;
+  const settingsWithDay = settings as
+    | { primaryDay?: string; submissionStartDay?: number; allDaysActive?: boolean }
+    | undefined;
+
+  const submissionWindow = useMemo(
+    () =>
+      getSubmissionWindow({
+        allDaysActive: settings?.allDaysActive,
+        primaryDay: settingsWithDay?.primaryDay,
+        submissionStartDay: settings?.submissionStartDay,
+      }),
+    [settings, settingsWithDay?.primaryDay, settings?.submissionStartDay, settings?.allDaysActive]
+  );
 
   const { data: books } = useListCurriculum();
 
@@ -163,9 +182,16 @@ export default function StudentPortal() {
   const [selectedCustomBooks, setSelectedCustomBooks] = useState<number[]>([]);
   const [isSubmittingCustom, setIsSubmittingCustom] = useState(false);
 
-  const [formCollapsed, setFormCollapsed] = useState(false);
   const [hasPrimaryThisWeek, setHasPrimaryThisWeek] = useState(false);
   const [isExtraMode, setIsExtraMode] = useState(false);
+
+  type LogCardMode = "submitted" | "off-day" | "open";
+  const logCardMode: LogCardMode = useMemo(() => {
+    if (isExtraMode) return "open";
+    if (hasPrimaryThisWeek) return "submitted";
+    if (!submissionWindow.allowsPrimary) return "off-day";
+    return "open";
+  }, [isExtraMode, hasPrimaryThisWeek, submissionWindow.allowsPrimary]);
 
   useEffect(() => {
     if (user?.phaseNumber) setViewPhase(user.phaseNumber);
@@ -174,11 +200,13 @@ export default function StudentPortal() {
   useEffect(() => {
     if (!weeklyLogStatus?.hasPrimaryThisWeek) return;
     setHasPrimaryThisWeek(true);
-    setFormCollapsed(true);
   }, [weeklyLogStatus?.hasPrimaryThisWeek]);
 
   const displayedPhaseBooks = trackBooks.filter((b) => b.phaseNumber === viewPhase);
   const availableBooks = displayedPhaseBooks.filter((b) => !completedBookIds.includes(b.id));
+
+  const lastPageForBook = (book: { id: number }) =>
+    user?.currentBookId === book.id ? user?.lastPage ?? 0 : 0;
 
   const userCurrentBook = user?.currentBookId
     ? trackBooks.find((b) => b.id === user.currentBookId)
@@ -194,7 +222,7 @@ export default function StudentPortal() {
     ? Math.max(0, currentBook.totalPages - effectiveLastPage)
     : 0;
   const suggestedEndPage = currentBook
-    ? effectiveLastPage + Math.min(remainingInCurrentBook, weeklyQuota)
+    ? suggestPageRange(currentBook, effectiveLastPage, weeklyQuota).endPage
     : weeklyQuota;
 
   useEffect(() => {
@@ -215,10 +243,17 @@ export default function StudentPortal() {
       setStartPage(effectiveLastPage + 1);
       setEndPage(suggestedEndPage);
     } else if (bookId) {
-      setStartPage(1);
-      setEndPage(weeklyQuota);
+      const picked = displayedPhaseBooks.find((b) => b.id.toString() === bookId);
+      if (picked) {
+        const range = suggestPageRange(picked, lastPageForBook(picked), weeklyQuota);
+        setStartPage(range.startPage);
+        setEndPage(range.endPage);
+      } else {
+        setStartPage(1);
+        setEndPage(weeklyQuota);
+      }
     }
-  }, [bookId, currentBook?.id, effectiveLastPage, suggestedEndPage, weeklyQuota]);
+  }, [bookId, currentBook?.id, effectiveLastPage, suggestedEndPage, weeklyQuota, displayedPhaseBooks, user?.currentBookId, user?.lastPage]);
 
   const selectedBook = displayedPhaseBooks.find((b) => b.id.toString() === bookId);
   const pagesCount = Math.max(0, endPage - startPage + 1);
@@ -258,12 +293,10 @@ export default function StudentPortal() {
       if (!res.ok) throw new Error(data.error || "فشل الرصد");
 
       if (mode === "primary") {
-        setFormCollapsed(true);
         setHasPrimaryThisWeek(true);
         setIsExtraMode(false);
         toast.success("شكراً لك! تم تسجيل رصدك الأسبوعي بنجاح");
       } else {
-        setFormCollapsed(true);
         setIsExtraMode(false);
         toast.success("تم تسجيل الإنجاز الإضافي (تحفيز فقط)");
       }
@@ -286,19 +319,23 @@ export default function StudentPortal() {
   const buildPrimaryRow = (): LogRow | null => {
     if (!bookId || !selectedBook) return null;
     if (startPage > endPage) return null;
-    const actualEndPage = Math.min(endPage, selectedBook.totalPages);
-    return {
-      bookId: parseInt(bookId, 10),
-      startPage,
-      endPage: actualEndPage,
-      isCompleted: actualEndPage >= selectedBook.totalPages,
-    };
+    return normalizeRow(selectedBook, startPage, endPage);
+  };
+
+  const openMultiBookDialog = (rows: LogRow[], remainingQuota: number) => {
+    setPendingSubmissionData({
+      rows,
+      reflection: reflection.trim() || undefined,
+      remainingPages: remainingQuota,
+    });
+    setShowCompletionModal(true);
+    setNextBookIdForRollover("");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const row = buildPrimaryRow();
-    if (!row) {
+    if (!row || !selectedBook) {
       toast.error("تحقق من الكتاب والصفحات");
       return;
     }
@@ -307,19 +344,25 @@ export default function StudentPortal() {
       return;
     }
 
-    const remainingPages =
-      row.isCompleted && selectedBook
-        ? Math.max(0, weeklyQuota - (row.endPage - row.startPage + 1))
-        : 0;
+    const lastPage = lastPageForBook(selectedBook);
+    const { needed, remainingQuota } = needsMultiBookContinuation(
+      row,
+      selectedBook,
+      lastPage,
+      weeklyQuota
+    );
 
-    if (row.isCompleted && remainingPages > 0 && availableBooks.length > 1) {
-      setPendingSubmissionData({
-        rows: [row],
-        reflection: reflection.trim() || undefined,
-        remainingPages,
-      });
-      setShowCompletionModal(true);
-      setNextBookIdForRollover("");
+    if (needed) {
+      const others = booksAvailableForRollover(availableBooks, new Set([row.bookId]));
+      if (others.length === 0) {
+        toast.warning(
+          `متبقي ${remainingQuota} صفحة من النصاب ولا توجد كتب أخرى في المرحلة — سيتم حفظ ما قرأته.`
+        );
+        submitLogs([row], "primary", reflection.trim() || undefined);
+        return;
+      }
+      toast.info(`لم تكتمل ${weeklyQuota} صفحة بعد — أكمل من كتاب آخر أو تخطَّ`);
+      openMultiBookDialog([row], remainingQuota);
       return;
     }
 
@@ -338,26 +381,69 @@ export default function StudentPortal() {
 
   const confirmRolloverSubmit = (withRollover: boolean) => {
     if (!pendingSubmissionData) return;
-    const rows = [...pendingSubmissionData.rows];
 
-    if (withRollover && nextBookIdForRollover) {
-      const nextBook = availableBooks.find((b) => b.id.toString() === nextBookIdForRollover);
-      if (nextBook) {
-        const rolloverEnd = Math.min(
-          pendingSubmissionData.remainingPages,
-          nextBook.totalPages
-        );
-        rows.push({
-          bookId: nextBook.id,
-          startPage: 1,
-          endPage: rolloverEnd,
-          isCompleted: rolloverEnd >= nextBook.totalPages,
-        });
-      }
+    if (!withRollover) {
+      submitLogs(pendingSubmissionData.rows, "primary", pendingSubmissionData.reflection);
+      return;
+    }
+
+    if (!nextBookIdForRollover) {
+      toast.error("اختر الكتاب التالي");
+      return;
+    }
+
+    const nextBook = availableBooks.find((b) => b.id.toString() === nextBookIdForRollover);
+    if (!nextBook) {
+      toast.error("الكتاب غير متاح");
+      return;
+    }
+
+    const rows = [...pendingSubmissionData.rows];
+    const nextRow = buildRolloverRow(
+      nextBook,
+      pendingSubmissionData.remainingPages,
+      lastPageForBook(nextBook)
+    );
+    rows.push(nextRow);
+
+    const stillRemaining = quotaRemainingAfter(rows, weeklyQuota);
+    const usedIds = new Set(rows.map((r) => r.bookId));
+    const moreBooks = booksAvailableForRollover(availableBooks, usedIds);
+
+    if (
+      stillRemaining > 0 &&
+      consumedAllAvailableInBook(nextBook, nextRow, lastPageForBook(nextBook)) &&
+      moreBooks.length > 0
+    ) {
+      toast.info(`متبقي ${stillRemaining} صفحة من النصاب — اختر كتاباً آخر أو تخطَّ`);
+      setPendingSubmissionData({
+        rows,
+        reflection: pendingSubmissionData.reflection,
+        remainingPages: stillRemaining,
+      });
+      setNextBookIdForRollover("");
+      return;
     }
 
     submitLogs(rows, "primary", pendingSubmissionData.reflection);
   };
+
+  const rolloverBookOptions = useMemo(() => {
+    if (!pendingSubmissionData) return [];
+    const used = new Set(pendingSubmissionData.rows.map((r) => r.bookId));
+    return booksAvailableForRollover(availableBooks, used);
+  }, [pendingSubmissionData, availableBooks]);
+
+  const rolloverPreview = useMemo(() => {
+    if (!pendingSubmissionData || !nextBookIdForRollover) return null;
+    const nextBook = availableBooks.find((b) => b.id.toString() === nextBookIdForRollover);
+    if (!nextBook) return null;
+    return buildRolloverRow(
+      nextBook,
+      pendingSubmissionData.remainingPages,
+      lastPageForBook(nextBook)
+    );
+  }, [pendingSubmissionData, nextBookIdForRollover, availableBooks, user?.currentBookId, user?.lastPage]);
 
   const submitCustomProgress = async () => {
     setIsSubmittingCustom(true);
@@ -409,7 +495,7 @@ export default function StudentPortal() {
         </div>
 
         <Card className={STUDENT_SURFACE_CARD}>
-          {formCollapsed && hasPrimaryThisWeek && !isExtraMode ? (
+          {logCardMode === "submitted" ? (
             <CardContent className="pt-10 pb-10 space-y-5 text-center">
               <CheckCircle className="w-14 h-14 mx-auto text-[var(--success-600)]" />
               <div>
@@ -424,10 +510,30 @@ export default function StudentPortal() {
                 type="button"
                 variant="secondary"
                 className="w-full max-w-xs mx-auto h-11 rounded-[var(--radius-lg)]"
-                onClick={() => {
-                  setIsExtraMode(true);
-                  setFormCollapsed(false);
-                }}
+                onClick={() => setIsExtraMode(true)}
+              >
+                إرسال إنجاز إضافي
+              </Button>
+            </CardContent>
+          ) : logCardMode === "off-day" ? (
+            <CardContent className="pt-10 pb-10 space-y-5 text-center">
+              <Calendar className="w-14 h-14 mx-auto text-[var(--secondary-400)]" />
+              <div>
+                <p className="text-lg font-bold text-[var(--text-primary)]">
+                  اليوم ليس موعد الرصد الأسبوعي
+                </p>
+                <p className="text-sm text-[var(--text-secondary)] mt-2 max-w-md mx-auto leading-relaxed">
+                  موعد الرصد: <strong>{submissionWindow.primaryDayLabelAr}</strong>، ويوم التأخير:{" "}
+                  <strong>{submissionWindow.lateDayLabelAr}</strong>. اليوم:{" "}
+                  <strong>{submissionWindow.todayLabelAr}</strong>. يمكنك إرسال إنجاز إضافي (تحفيز)
+                  دون أن يُحسب رصداً أسبوعياً.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full max-w-xs mx-auto h-11 rounded-[var(--radius-lg)]"
+                onClick={() => setIsExtraMode(true)}
               >
                 إرسال إنجاز إضافي
               </Button>
@@ -445,10 +551,7 @@ export default function StudentPortal() {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
-                        setIsExtraMode(false);
-                        setFormCollapsed(true);
-                      }}
+                      onClick={() => setIsExtraMode(false)}
                     >
                       رجوع
                     </Button>
@@ -462,6 +565,34 @@ export default function StudentPortal() {
                     <Info className="w-4 h-4 text-[var(--secondary-400)] shrink-0 mt-0.5" />
                     <span className="text-sm text-[var(--text-secondary)]">
                       هذا الإرسال للتحفيز فقط ولا يعدّل التقييم الأسبوعي الرسمي.
+                    </span>
+                  </div>
+                )}
+
+                {!isExtraMode && submissionWindow.kind === "official" && (
+                  <div className={`${bannerBase} bg-[var(--bg-primary)] border-[var(--primary-600)] mb-4`}>
+                    <Calendar className="w-4 h-4 text-[var(--primary-600)] shrink-0" />
+                    <span className="text-sm text-[var(--text-primary)]">
+                      اليوم هو <strong>يوم الرصد الرسمي</strong> — النموذج مفتوح لإتمام نصابك (
+                      {weeklyQuota} صفحة).
+                    </span>
+                  </div>
+                )}
+
+                {!isExtraMode && submissionWindow.kind === "late" && (
+                  <div className={`${bannerBase} bg-[var(--bg-tertiary)] mb-4`}>
+                    <Calendar className="w-4 h-4 text-[var(--secondary-400)] shrink-0" />
+                    <span className="text-sm text-[var(--text-secondary)]">
+                      اليوم <strong>يوم التأخير</strong> — يمكنك إتمام رصدك الأسبوعي.
+                    </span>
+                  </div>
+                )}
+
+                {!isExtraMode && submissionWindow.kind === "anytime" && (
+                  <div className={`${bannerBase} bg-[var(--bg-tertiary)] mb-4`}>
+                    <Info className="w-4 h-4 text-[var(--secondary-400)] shrink-0 mt-0.5" />
+                    <span className="text-sm text-[var(--text-secondary)]">
+                      الرصد مفعّل طوال أيام الأسبوع.
                     </span>
                   </div>
                 )}
@@ -791,27 +922,47 @@ export default function StudentPortal() {
         <Dialog open={showCompletionModal} onOpenChange={setShowCompletionModal}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>أنهيت "{selectedBook?.title}"</DialogTitle>
+              <DialogTitle>أكمل النصاب الأسبوعي</DialogTitle>
             </DialogHeader>
             {pendingSubmissionData && (
               <div className="space-y-4">
                 <p className="text-sm text-[var(--text-secondary)]">
-                  متبقي {pendingSubmissionData.remainingPages} صفحة من النصاب
+                  قرأت <strong>{sumPages(pendingSubmissionData.rows)}</strong> من{" "}
+                  <strong>{weeklyQuota}</strong> صفحة. متبقي{" "}
+                  <strong>{pendingSubmissionData.remainingPages}</strong> صفحة لإكمال النصاب.
                 </p>
+                {pendingSubmissionData.rows.length > 0 && (
+                  <ul className="text-xs text-[var(--text-secondary)] space-y-1 border rounded-lg p-3 bg-[var(--bg-tertiary)]">
+                    {pendingSubmissionData.rows.map((r, i) => {
+                      const title =
+                        trackBooks.find((b) => b.id === r.bookId)?.title ?? `كتاب ${r.bookId}`;
+                      return (
+                        <li key={`${r.bookId}-${i}`}>
+                          {title}: ص {r.startPage}–{r.endPage} ({pagesInRow(r)} ص)
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
                 <Select value={nextBookIdForRollover} onValueChange={setNextBookIdForRollover}>
                   <SelectTrigger>
-                    <SelectValue placeholder="الكتاب التالي" />
+                    <SelectValue placeholder="الكتاب التالي في المرحلة" />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableBooks
-                      .filter((b) => b.id.toString() !== bookId)
-                      .map((book) => (
-                        <SelectItem key={book.id} value={book.id.toString()}>
-                          {book.title}
-                        </SelectItem>
-                      ))}
+                    {rolloverBookOptions.map((book) => (
+                      <SelectItem key={book.id} value={book.id.toString()}>
+                        {book.title} ({book.totalPages} ص)
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
+                {rolloverPreview && (
+                  <p className="text-xs text-[var(--text-primary)] bg-[var(--bg-tertiary)] p-2 rounded-md">
+                    سيُحقَن: من صفحة <strong>{rolloverPreview.startPage}</strong> إلى{" "}
+                    <strong>{rolloverPreview.endPage}</strong> (
+                    {pagesInRow(rolloverPreview)} صفحة)
+                  </p>
+                )}
                 <div className="flex gap-3">
                   <Button
                     variant="outline"
@@ -819,7 +970,7 @@ export default function StudentPortal() {
                     disabled={isSubmitting}
                     onClick={() => confirmRolloverSubmit(false)}
                   >
-                    تخطي
+                    تخطي / إنهاء الرصد
                   </Button>
                   <Button
                     className="flex-1"
