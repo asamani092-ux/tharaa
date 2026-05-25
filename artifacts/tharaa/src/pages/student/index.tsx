@@ -61,8 +61,8 @@ const STUDENT_SURFACE_CARD =
   "rounded-[var(--radius-xl)] border-2 border-[var(--border-strong)] bg-[var(--bg-primary)] shadow-[var(--shadow-md)]";
 
 const COMPLETED_BADGE_CLASS =
-  "inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold text-[#0d3d24] border border-[var(--success-600)] "
-  + "bg-[repeating-linear-gradient(-45deg,hsl(var(--success))_0,hsl(var(--success))_4px,#ffffff_4px,#ffffff_8px)]";
+  "inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold "
+  + "bg-white text-[var(--success-600)] border border-[var(--success-600)]";
 
 
 type StudentAnalyticsMe = {
