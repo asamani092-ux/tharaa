@@ -59,9 +59,19 @@ function bookIsBasic(array $book): bool
     return $lt !== 'optional';
 }
 
+function bookIsOptional(array $book): bool
+{
+    return strtolower(trim((string)($book['level_type'] ?? 'basic'))) === 'optional';
+}
+
 function bookMatchesCoreTrack(array $book, string $track): bool
 {
     return bookMatchesTrack($book, $track) && bookIsBasic($book);
+}
+
+function bookMatchesOptionalTrack(array $book, string $track): bool
+{
+    return bookMatchesTrack($book, $track) && bookIsOptional($book);
 }
 
 function sumTrackPages(array $booksMap, string $track): int
@@ -165,14 +175,14 @@ function resolveBatchWeekNow(int $batchId, array $batchWeekCache, int $totalTrac
 
 /**
  * مجموع pages_read ضمن المسار، مع إزالة التكرار لنفس الكتاب والأسبوع.
- * $coreOnly=true يقتصر على الكتب الأساسية (تقييم الطالب).
+ * $pagesScope: core | optional | all
  */
 function sumGamificationPagesForTrack(
     int $userId,
     string $track,
     array $booksMap,
     array $logsRows,
-    bool $coreOnly = false
+    string $pagesScope = 'all'
 ): int {
     $deduped = [];
     foreach ($logsRows as $log) {
@@ -184,8 +194,12 @@ function sumGamificationPagesForTrack(
             continue;
         }
         $book = $booksMap[$bookId];
-        if ($coreOnly) {
+        if ($pagesScope === 'core') {
             if (!bookMatchesCoreTrack($book, $track)) {
+                continue;
+            }
+        } elseif ($pagesScope === 'optional') {
+            if (!bookMatchesOptionalTrack($book, $track)) {
                 continue;
             }
         } elseif (!bookMatchesTrack($book, $track)) {
@@ -365,7 +379,14 @@ try {
             $effectiveTrack,
             $booksMap,
             $logsRows,
-            true
+            'core'
+        );
+        $gamificationPagesOptional = sumGamificationPagesForTrack(
+            $userId,
+            $effectiveTrack,
+            $booksMap,
+            $logsRows,
+            'optional'
         );
         $gamificationPages = $gamificationPagesCore;
 
@@ -402,6 +423,7 @@ try {
             'batchCumulativeRate' => $batchCumulativeRate,
             'batchPaceTarget' => $batchPaceTargetCore,
             'gamificationPages' => $gamificationPages,
+            'gamificationPagesOptional' => $gamificationPagesOptional,
             'trackCompleted' => $trackCompleted,
             'trackLabelAr' => trackLabelAr($effectiveTrack),
             'commitmentIndex' => $commitmentIndex,

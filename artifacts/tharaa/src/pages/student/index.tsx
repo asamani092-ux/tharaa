@@ -10,6 +10,7 @@ import {
   BookLevelBadge,
   isBasicCurriculumBook,
 } from "@/components/student/book-level-badge";
+import { CurriculumDownloadButton } from "@/components/student/curriculum-download-button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -78,6 +79,7 @@ type StudentAnalyticsMe = {
   batchCumulativeRate?: number;
   stageCompletionRate?: number;
   gamificationPages?: number;
+  gamificationPagesOptional?: number;
   expectedFinishHint?: string;
   trackCompleted?: boolean;
   trackLabelAr?: string;
@@ -104,9 +106,18 @@ export default function StudentPortal() {
 
   const { data: settings } = useGetSettings();
   const weeklyQuota = settings?.weeklyQuota || WEEKLY_QUOTA;
-  const settingsWithDay = settings as
-    | { primaryDay?: string; submissionStartDay?: number; allDaysActive?: boolean }
+  const settingsExtended = settings as
+    | {
+        primaryDay?: string;
+        submissionStartDay?: number;
+        allDaysActive?: boolean;
+        curriculumPdfUrl?: string | null;
+        priorAchievementEnabled?: boolean;
+      }
     | undefined;
+  const curriculumPdfUrl = settingsExtended?.curriculumPdfUrl?.trim() || "";
+  const priorAchievementEnabled = settingsExtended?.priorAchievementEnabled !== false;
+  const settingsWithDay = settingsExtended;
 
   const submissionWindow = useMemo(
     () =>
@@ -277,8 +288,8 @@ export default function StudentPortal() {
   const selectBookValue = bookIdIsInAvailableList ? bookId : undefined;
 
   const priorBooksNotCompleted = useMemo(
-    () => coreTrackBooks.filter((b) => !completedBookIds.includes(b.id)),
-    [coreTrackBooks, completedBookIds]
+    () => trackBooks.filter((b) => !completedBookIds.includes(b.id)),
+    [trackBooks, completedBookIds]
   );
 
   const priorBooksFiltered = useMemo(() => {
@@ -388,6 +399,8 @@ export default function StudentPortal() {
     )
   );
   const gamificationPages = meAnalytics?.gamificationPages ?? 0;
+  const gamificationPagesOptional = meAnalytics?.gamificationPagesOptional ?? 0;
+  const showOptionalGamification = gamificationPagesOptional > 0;
   const expectedFinishHint = meAnalytics?.expectedFinishHint?.trim() || "—";
 
   const shareViaWhatsApp = () => {
@@ -586,6 +599,10 @@ export default function StudentPortal() {
   }, [pendingSubmissionData, nextBookIdForRollover, availableBooks, user?.currentBookId, user?.lastPage]);
 
   const submitCustomProgress = async () => {
+    if (!priorAchievementEnabled) {
+      toast.error("ميزة إنجاز سابق غير متاحة حالياً.");
+      return;
+    }
     if (trackCompleted) {
       toast.info("أتممت مسارك بالكامل — لا حاجة لإنجاز سابق.");
       return;
@@ -649,16 +666,21 @@ export default function StudentPortal() {
   return (
     <StudentLayout>
       <div className="max-w-2xl mx-auto space-y-6" dir="rtl">
-        <div>
-          <h2 className="text-[var(--font-lg)] font-bold">
-            مرحباً، <span className={warningText}>{user?.name}</span>
-          </h2>
-          {!isExtraMode && (
-            <p className={`text-[var(--font-xs)] mt-0.5 ${muted}`}>
-              النصاب الأسبوعي:{" "}
-              <strong className="text-[var(--text-primary)]">{weeklyQuota} صفحة</strong>
-            </p>
-          )}
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-[var(--font-lg)] font-bold">
+              مرحباً، <span className={warningText}>{user?.name}</span>
+            </h2>
+            {!isExtraMode && (
+              <p className={`text-[var(--font-xs)] mt-0.5 ${muted}`}>
+                النصاب الأسبوعي:{" "}
+                <strong className="text-[var(--text-primary)]">{weeklyQuota} صفحة</strong>
+              </p>
+            )}
+          </div>
+          {curriculumPdfUrl ? (
+            <CurriculumDownloadButton href={curriculumPdfUrl} />
+          ) : null}
         </div>
 
         {trackCompleted && !isExtraMode && (
@@ -1013,12 +1035,21 @@ export default function StudentPortal() {
               ) : (
                 <>
                   <TrendingUp className="w-4 h-4 mx-auto mb-1 text-[var(--secondary-400)]" />
-                  <p className="text-xl font-bold">{gamificationPages}</p>
+                  <p className="text-xl font-bold leading-none">{gamificationPages}</p>
+                  <p className="text-[10px] text-[var(--text-secondary)] mt-1">أساسي</p>
+                  {showOptionalGamification && (
+                    <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] w-full">
+                      <p className="text-base font-bold text-[var(--secondary-400)] leading-none">
+                        {gamificationPagesOptional}
+                      </p>
+                      <p className="text-[10px] text-[var(--text-disabled)] mt-1">اختياري</p>
+                    </div>
+                  )}
                 </>
               )}
-              <p className="text-xs text-[var(--text-secondary)] mt-1">حصيلة التحفيز</p>
+              <p className="text-xs text-[var(--text-secondary)] mt-2">حصيلة التحفيز</p>
               <p className="text-[10px] text-[var(--text-disabled)] leading-tight">
-                صفحات أساسية مسجّلة — مسار {trackLabelAr}
+                مسار {trackLabelAr}
               </p>
             </CardContent>
           </Card>
@@ -1046,7 +1077,7 @@ export default function StudentPortal() {
         <div>
           <div className="flex justify-between items-center mb-3">
             <h3 className="font-bold text-sm">كتب المرحلة</h3>
-            {!trackCompleted && (
+            {!trackCompleted && priorAchievementEnabled && (
               <Button
                 variant="outline"
                 size="sm"

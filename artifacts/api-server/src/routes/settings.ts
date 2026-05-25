@@ -15,13 +15,25 @@ router.get("/", requireAuth, async (c) => {
 
 router.patch("/", requireAdmin, async (c) => {
   let [settings] = await db.select().from(systemSettingsTable).limit(1);
-  const updates = await c.req.json();
+  const body = await c.req.json();
+  const updates: Record<string, unknown> = { ...body };
+  if (Object.prototype.hasOwnProperty.call(body, "curriculumPdfUrl")) {
+    const url = body.curriculumPdfUrl;
+    updates.curriculumPdfUrl =
+      typeof url === "string" && url.trim() !== "" ? url.trim() : null;
+  }
+  if (Object.prototype.hasOwnProperty.call(body, "priorAchievementEnabled")) {
+    updates.priorAchievementEnabled = !!body.priorAchievementEnabled;
+  }
 
   if (!settings) {
     [settings] = await db.insert(systemSettingsTable).values(updates).returning();
   } else {
-    [settings] = await db.update(systemSettingsTable).set(updates)
-      .where(eq(systemSettingsTable.id, settings.id)).returning();
+    [settings] = await db
+      .update(systemSettingsTable)
+      .set(updates)
+      .where(eq(systemSettingsTable.id, settings.id))
+      .returning();
   }
   return c.json(settings);
 });
