@@ -20,7 +20,10 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -286,8 +289,16 @@ export default function StudentPortal() {
   const displayedPhaseCoreBooks = displayedPhaseBooks.filter((b) =>
     isBasicCurriculumBook(b)
   );
-  const booksForLogSelect = isExtraMode ? displayedPhaseBooks : displayedPhaseCoreBooks;
-  const availableBooks = booksForLogSelect.filter((b) => !completedBookIds.includes(b.id));
+  const availableBooks = displayedPhaseBooks.filter(
+    (b) => !completedBookIds.includes(b.id)
+  );
+  const availableCoreBooks = displayedPhaseCoreBooks.filter(
+    (b) => !completedBookIds.includes(b.id)
+  );
+  const availableBooksCore = availableBooks.filter((b) => isBasicCurriculumBook(b));
+  const availableBooksOptional = availableBooks.filter(
+    (b) => !isBasicCurriculumBook(b)
+  );
 
   const bookIdIsInAvailableList = useMemo(
     () => !!bookId && availableBooks.some((b) => b.id.toString() === bookId),
@@ -323,12 +334,20 @@ export default function StudentPortal() {
     !completedBookIds.includes(userCurrentBook.id) &&
     userCurrentBook.phaseNumber === viewPhase;
 
-  const currentBook = isCurrentBookValid ? userCurrentBook : availableBooks[0];
+  const selectedBook =
+    availableBooks.find((b) => b.id.toString() === bookId) ??
+    displayedPhaseBooks.find((b) => b.id.toString() === bookId);
+
+  const selectedBookIsOptional = !!selectedBook && !isBasicCurriculumBook(selectedBook);
+  const capPagesByQuota = !isExtraMode && !selectedBookIsOptional;
+
+  const currentBook = isCurrentBookValid
+    ? userCurrentBook
+    : availableCoreBooks[0] ?? availableBooks[0];
   const effectiveLastPage = isCurrentBookValid ? user?.lastPage || 0 : 0;
   const remainingInCurrentBook = currentBook
     ? Math.max(0, currentBook.totalPages - effectiveLastPage)
     : 0;
-  const capPagesByQuota = !isExtraMode;
 
   useEffect(() => {
     setPagesManuallyEdited(false);
@@ -379,10 +398,6 @@ export default function StudentPortal() {
     user?.lastPage,
   ]);
 
-  const selectedBook =
-    availableBooks.find((b) => b.id.toString() === bookId) ??
-    displayedPhaseBooks.find((b) => b.id.toString() === bookId);
-
   const pickCurrentBookForLog = () => {
     if (!isCurrentBookValid || !userCurrentBook) return;
     setBookFieldError(false);
@@ -397,7 +412,9 @@ export default function StudentPortal() {
     setIsExtraMode(true);
   };
   const pagesCount = Math.max(0, endPage - startPage + 1);
-  const nextBook = availableBooks.find((b) => b.id !== currentBook?.id);
+  const nextBook =
+    availableCoreBooks.find((b) => b.id !== currentBook?.id) ??
+    availableBooks.find((b) => b.id !== currentBook?.id);
 
   const batchCumulativeRate = Math.min(
     100,
@@ -408,7 +425,18 @@ export default function StudentPortal() {
     )
   );
   const gamificationPages = meAnalytics?.gamificationPages ?? 0;
-  const gamificationPagesOptional = meAnalytics?.gamificationPagesOptional ?? 0;
+  const gamificationPagesOptionalFromApi = meAnalytics?.gamificationPagesOptional ?? 0;
+  const optionalPagesFromCompleted = useMemo(
+    () =>
+      trackBooks
+        .filter((b) => !isBasicCurriculumBook(b) && completedBookIds.includes(b.id))
+        .reduce((sum, b) => sum + (Number(b.totalPages) || 0), 0),
+    [trackBooks, completedBookIds]
+  );
+  const gamificationPagesOptional = Math.max(
+    gamificationPagesOptionalFromApi,
+    optionalPagesFromCompleted
+  );
   const showOptionalGamification = gamificationPagesOptional > 0;
   const expectedFinishHint = meAnalytics?.expectedFinishHint?.trim() || "—";
 
@@ -509,6 +537,11 @@ export default function StudentPortal() {
     const row = buildValidatedLogRow();
     if (!row || !selectedBook) return;
 
+    if (selectedBookIsOptional) {
+      submitLogs([row], "extra", reflection.trim() || undefined);
+      return;
+    }
+
     const lastPage = lastPageForBook(selectedBook);
     const { needed, remainingQuota } = needsMultiBookContinuation(
       row,
@@ -518,7 +551,7 @@ export default function StudentPortal() {
     );
 
     if (needed) {
-      const others = booksAvailableForRollover(availableBooks, new Set([row.bookId]));
+      const others = booksAvailableForRollover(availableCoreBooks, new Set([row.bookId]));
       if (others.length === 0) {
         toast.warning(
           `متبقي ${remainingQuota} صفحة من النصاب ولا توجد كتب أخرى في المرحلة — سيتم حفظ ما قرأته.`
@@ -554,7 +587,9 @@ export default function StudentPortal() {
       return;
     }
 
-    const nextBook = availableBooks.find((b) => b.id.toString() === nextBookIdForRollover);
+    const nextBook = availableCoreBooks.find(
+      (b) => b.id.toString() === nextBookIdForRollover
+    );
     if (!nextBook) {
       toast.error("الكتاب غير متاح");
       return;
@@ -570,7 +605,7 @@ export default function StudentPortal() {
 
     const stillRemaining = quotaRemainingAfter(rows, weeklyQuota);
     const usedIds = new Set(rows.map((r) => r.bookId));
-    const moreBooks = booksAvailableForRollover(availableBooks, usedIds);
+    const moreBooks = booksAvailableForRollover(availableCoreBooks, usedIds);
 
     if (
       stillRemaining > 0 &&
@@ -593,19 +628,27 @@ export default function StudentPortal() {
   const rolloverBookOptions = useMemo(() => {
     if (!pendingSubmissionData) return [];
     const used = new Set(pendingSubmissionData.rows.map((r) => r.bookId));
-    return booksAvailableForRollover(availableBooks, used);
-  }, [pendingSubmissionData, availableBooks]);
+    return booksAvailableForRollover(availableCoreBooks, used);
+  }, [pendingSubmissionData, availableCoreBooks]);
 
   const rolloverPreview = useMemo(() => {
     if (!pendingSubmissionData || !nextBookIdForRollover) return null;
-    const nextBook = availableBooks.find((b) => b.id.toString() === nextBookIdForRollover);
+    const nextBook = availableCoreBooks.find(
+      (b) => b.id.toString() === nextBookIdForRollover
+    );
     if (!nextBook) return null;
     return buildRolloverRow(
       nextBook,
       pendingSubmissionData.remainingPages,
       lastPageForBook(nextBook)
     );
-  }, [pendingSubmissionData, nextBookIdForRollover, availableBooks, user?.currentBookId, user?.lastPage]);
+  }, [
+    pendingSubmissionData,
+    nextBookIdForRollover,
+    availableCoreBooks,
+    user?.currentBookId,
+    user?.lastPage,
+  ]);
 
   const submitCustomProgress = async () => {
     if (!priorAchievementEnabled) {
@@ -885,13 +928,52 @@ export default function StudentPortal() {
                         <SelectValue placeholder="اختر الكتاب" />
                       </SelectTrigger>
                       <SelectContent>
-                        {availableBooks.map((book) => (
-                          <SelectItem key={book.id} value={book.id.toString()}>
-                            {book.title} ({book.totalPages} ص)
-                          </SelectItem>
-                        ))}
+                        {availableBooksCore.length > 0 && (
+                          <SelectGroup>
+                            <SelectLabel>أساسي — يحسب في النصاب والإنجاز</SelectLabel>
+                            {availableBooksCore.map((book) => (
+                              <SelectItem key={book.id} value={book.id.toString()}>
+                                <span className="flex items-center gap-2">
+                                  <BookLevelBadge levelType={book.levelType} />
+                                  <span>
+                                    {book.title} ({book.totalPages} ص)
+                                  </span>
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        )}
+                        {availableBooksOptional.length > 0 && (
+                          <>
+                            {availableBooksCore.length > 0 && <SelectSeparator />}
+                            <SelectGroup>
+                              <SelectLabel>اختياري — تحفيز فقط</SelectLabel>
+                              {availableBooksOptional.map((book) => (
+                                <SelectItem key={book.id} value={book.id.toString()}>
+                                  <span className="flex items-center gap-2">
+                                    <BookLevelBadge levelType={book.levelType} />
+                                    <span>
+                                      {book.title} ({book.totalPages} ص)
+                                    </span>
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
+                    {!isExtraMode && selectedBookIsOptional && (
+                      <div
+                        className={`${bannerBase} bg-[var(--bg-tertiary)] mt-2`}
+                      >
+                        <Info className="w-4 h-4 text-[var(--secondary-400)] shrink-0 mt-0.5" />
+                        <span className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                          كتاب اختياري — يُسجَّل للتحفيز فقط ولا يُحسب ضمن النصاب الأسبوعي
+                          ولا الإنجاز الأساسي.
+                        </span>
+                      </div>
+                    )}
                     {isCurrentBookValid && userCurrentBook && !bookIdIsInAvailableList && (
                       <Button
                         type="button"
@@ -953,7 +1035,7 @@ export default function StudentPortal() {
                     </div>
                   </div>
 
-                  {bookId && !isExtraMode && (
+                  {bookId && !isExtraMode && !selectedBookIsOptional && (
                     <div className="space-y-2">
                       <div className="flex justify-between text-xs">
                         <span className="text-[var(--text-secondary)]">النصاب</span>
@@ -997,8 +1079,10 @@ export default function StudentPortal() {
                   >
                     {isSubmitting ? (
                       <Loader2 className="animate-spin" />
-                    ) : isExtraMode ? (
-                      "إرسال إنجاز إضافي"
+                    ) : isExtraMode || selectedBookIsOptional ? (
+                      selectedBookIsOptional && !isExtraMode
+                        ? "تسجيل قراءة اختيارية (تحفيز)"
+                        : "إرسال إنجاز إضافي"
                     ) : (
                       "اعتماد الرصد"
                     )}
@@ -1291,7 +1375,12 @@ export default function StudentPortal() {
                   <SelectContent>
                     {rolloverBookOptions.map((book) => (
                       <SelectItem key={book.id} value={book.id.toString()}>
-                        {book.title} ({book.totalPages} ص)
+                        <span className="flex items-center gap-2">
+                          <BookLevelBadge levelType={book.levelType} />
+                          <span>
+                            {book.title} ({book.totalPages} ص)
+                          </span>
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>

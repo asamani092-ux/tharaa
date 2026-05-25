@@ -52,16 +52,24 @@ function bookMatchesTrack(array $book, string $track): bool
     return $tt === $track || $tt === 'both';
 }
 
+function normalizeBookLevelType($levelType): string
+{
+    $lt = strtolower(trim((string)($levelType ?? 'basic')));
+    if (in_array($lt, ['optional', 'اختياري', 'إختياري'], true)) {
+        return 'optional';
+    }
+    return 'basic';
+}
+
 /** أساسي = أي level_type غير optional (لا ربط بمرحلة) */
 function bookIsBasic(array $book): bool
 {
-    $lt = strtolower(trim((string)($book['level_type'] ?? 'basic')));
-    return $lt !== 'optional';
+    return normalizeBookLevelType($book['level_type'] ?? null) === 'basic';
 }
 
 function bookIsOptional(array $book): bool
 {
-    return strtolower(trim((string)($book['level_type'] ?? 'basic'))) === 'optional';
+    return normalizeBookLevelType($book['level_type'] ?? null) === 'optional';
 }
 
 function bookMatchesCoreTrack(array $book, string $track): bool
@@ -213,6 +221,52 @@ function sumGamificationPagesForTrack(
         }
     }
     return (int)array_sum($deduped);
+}
+
+/** صفحات اختيارية: سجلات القراءة + كتب اختيارية مكتملة في completed_books (لكل كتاب الأعلى) */
+function sumOptionalGamificationPages(
+    int $userId,
+    string $track,
+    array $booksMap,
+    array $logsRows,
+    array $completedIds
+): int {
+    $byBookMax = [];
+
+    foreach ($logsRows as $log) {
+        if ((int)($log['user_id'] ?? 0) !== $userId) {
+            continue;
+        }
+        $bookId = (int)($log['book_id'] ?? 0);
+        if ($bookId <= 0 || !isset($booksMap[$bookId])) {
+            continue;
+        }
+        $book = $booksMap[$bookId];
+        if (!bookMatchesOptionalTrack($book, $track)) {
+            continue;
+        }
+        $pages = max(0, (int)($log['pages_read'] ?? 0));
+        if (!isset($byBookMax[$bookId]) || $pages > $byBookMax[$bookId]) {
+            $byBookMax[$bookId] = $pages;
+        }
+    }
+
+    foreach ($completedIds as $bookId) {
+        $bookId = (int)$bookId;
+        if ($bookId <= 0 || !isset($booksMap[$bookId])) {
+            continue;
+        }
+        $book = $booksMap[$bookId];
+        if (!bookMatchesOptionalTrack($book, $track)) {
+            continue;
+        }
+        $total = max(0, (int)($book['total_pages'] ?? 0));
+        if (!isset($byBookMax[$bookId]) || $total > $byBookMax[$bookId]) {
+            $byBookMax[$bookId] = $total;
+        }
+    }
+
+    return (int)array_sum($byBookMax);
 }
 
 function isTrackCurriculumComplete(array $completedIds, array $booksMap, string $track): bool
@@ -374,6 +428,11 @@ try {
         $batchWeekNow = resolveBatchWeekNow($batchId, $batchWeekCache, $totalCoreTrackPages, $weeklyQuota);
         $batchWeekSupervisor = resolveBatchWeekNow($batchId, $batchWeekCache, $totalTrackPages, $weeklyQuota);
 
+        $completedIds = json_decode($user['completed_books'] ?: '[]', true) ?: [];
+        if (!is_array($completedIds)) {
+            $completedIds = [];
+        }
+
         $gamificationPagesCore = sumGamificationPagesForTrack(
             $userId,
             $effectiveTrack,
@@ -381,12 +440,12 @@ try {
             $logsRows,
             'core'
         );
-        $gamificationPagesOptional = sumGamificationPagesForTrack(
+        $gamificationPagesOptional = sumOptionalGamificationPages(
             $userId,
             $effectiveTrack,
             $booksMap,
             $logsRows,
-            'optional'
+            $completedIds
         );
         $gamificationPages = $gamificationPagesCore;
 
@@ -402,8 +461,6 @@ try {
         $batchCumulativeRate = $batchPaceTargetCore > 0
             ? round(min(100, ($gamificationPagesCore / $batchPaceTargetCore) * 100), 1)
             : 0;
-
-        $completedIds = json_decode($user['completed_books'] ?: '[]', true) ?: [];
         $trackCompleted = isCoreTrackCurriculumComplete($completedIds, $booksMap, $effectiveTrack);
         $progressPagesCore = evalProgressPagesForCoreTrack($user, $booksMap, $effectiveTrack);
 
