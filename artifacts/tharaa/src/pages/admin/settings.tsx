@@ -39,13 +39,16 @@ export default function AdminSettings() {
   const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false);
   const [maintenanceSaveStep, setMaintenanceSaveStep] = useState<"idle" | "confirm">("idle");
   const [adminProfile, setAdminProfile] = useState({ name: "", phone: "", password: "" });
+  const [curriculumPdfUrl, setCurriculumPdfUrl] = useState("");
 
   useEffect(() => {
     if (settings) {
+      const ext = settings as { curriculumPdfUrl?: string | null };
       setWeeklyQuota(settings.weeklyQuota?.toString() || "75");
       setAllDaysActive(!!settings.allDaysActive);
       setPrimaryDay(settings.primaryDay || "Friday");
       setIsMaintenanceMode(!!settings.maintenanceMode);
+      setCurriculumPdfUrl(ext.curriculumPdfUrl ?? "");
     }
     if (me?.user) {
       setAdminProfile({ name: me.user.name, phone: me.user.phone, password: "" });
@@ -64,6 +67,7 @@ export default function AdminSettings() {
           allDaysActive: allDaysActive ? 1 : 0,
           primaryDay,
           maintenanceMode: isMaintenanceMode ? 1 : 0,
+          curriculumPdfUrl: curriculumPdfUrl.trim() || null,
         },
       },
       {
@@ -159,6 +163,20 @@ export default function AdminSettings() {
                   onChange={(e) => setWeeklyQuota(e.target.value)}
                   className="text-center text-xl font-bold"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label className={labelClass}>رابط PDF المنهج (للطالب — تنزيل المنهج)</Label>
+                <Input
+                  type="url"
+                  dir="ltr"
+                  placeholder="https://..."
+                  value={curriculumPdfUrl}
+                  onChange={(e) => setCurriculumPdfUrl(e.target.value)}
+                  className="text-left text-sm"
+                />
+                <p className="text-[11px] text-[var(--text-secondary)]">
+                  يظهر زر «تنزيل المنهج» بجانب اسم المشارك عند تعبئة الرابط.
+                </p>
               </div>
               <Button
                 variant="secondary"
