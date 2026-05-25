@@ -112,10 +112,11 @@ export default function StudentPortal() {
         submissionStartDay?: number;
         allDaysActive?: boolean;
         curriculumPdfUrl?: string | null;
+        curriculumPdfUrlFull?: string | null;
+        curriculumPdfUrlSimplified?: string | null;
         priorAchievementEnabled?: boolean;
       }
     | undefined;
-  const curriculumPdfUrl = settingsExtended?.curriculumPdfUrl?.trim() || "";
   const priorAchievementEnabled = settingsExtended?.priorAchievementEnabled !== false;
   const settingsWithDay = settingsExtended;
 
@@ -152,6 +153,14 @@ export default function StudentPortal() {
     (user as { effectiveTrack?: string })?.effectiveTrack ??
     meAnalytics?.effectiveTrack ??
     "full";
+
+  const curriculumPdfUrl = useMemo(() => {
+    const legacy = settingsExtended?.curriculumPdfUrl?.trim() || "";
+    const full = settingsExtended?.curriculumPdfUrlFull?.trim() || legacy;
+    const simplified =
+      settingsExtended?.curriculumPdfUrlSimplified?.trim() || legacy;
+    return effectiveTrack === "simplified" ? simplified : full;
+  }, [settingsExtended, effectiveTrack]);
 
   const matchesTrack = (b: { trackType?: string }) =>
     b.trackType === "both" || b.trackType === effectiveTrack;
@@ -1032,22 +1041,32 @@ export default function StudentPortal() {
             <CardContent className="p-4 text-center min-h-[120px] flex flex-col justify-center">
               {isAnalyticsLoading ? (
                 <Loader2 className="w-6 h-6 mx-auto animate-spin text-[var(--text-secondary)]" />
+              ) : showOptionalGamification ? (
+                <div className="w-full space-y-3">
+                  <div>
+                    <TrendingUp className="w-4 h-4 mx-auto mb-1 text-[var(--secondary-400)]" />
+                    <p className="text-xl font-bold leading-none">{gamificationPages}</p>
+                    <p className="text-[10px] text-[var(--text-secondary)] mt-1">
+                      الحصيلة الأساسية
+                    </p>
+                  </div>
+                  <div className="pt-3 border-t border-[var(--border-subtle)] w-full">
+                    <p className="text-base font-bold text-[var(--secondary-400)] leading-none">
+                      {gamificationPagesOptional}
+                    </p>
+                    <p className="text-[10px] text-[var(--text-disabled)] mt-1">
+                      الحصيلة الاختيارية
+                    </p>
+                  </div>
+                </div>
               ) : (
                 <>
                   <TrendingUp className="w-4 h-4 mx-auto mb-1 text-[var(--secondary-400)]" />
                   <p className="text-xl font-bold leading-none">{gamificationPages}</p>
                   <p className="text-[10px] text-[var(--text-secondary)] mt-1">أساسي</p>
-                  {showOptionalGamification && (
-                    <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] w-full">
-                      <p className="text-base font-bold text-[var(--secondary-400)] leading-none">
-                        {gamificationPagesOptional}
-                      </p>
-                      <p className="text-[10px] text-[var(--text-disabled)] mt-1">اختياري</p>
-                    </div>
-                  )}
                 </>
               )}
-              <p className="text-xs text-[var(--text-secondary)] mt-2">حصيلة التحفيز</p>
+              <p className="text-xs text-[var(--text-secondary)] mt-2">عدد الصفحات</p>
               <p className="text-[10px] text-[var(--text-disabled)] leading-tight">
                 مسار {trackLabelAr}
               </p>

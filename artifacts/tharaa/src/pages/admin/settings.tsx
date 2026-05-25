@@ -39,20 +39,28 @@ export default function AdminSettings() {
   const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false);
   const [maintenanceSaveStep, setMaintenanceSaveStep] = useState<"idle" | "confirm">("idle");
   const [adminProfile, setAdminProfile] = useState({ name: "", phone: "", password: "" });
-  const [curriculumPdfUrl, setCurriculumPdfUrl] = useState("");
+  const [curriculumPdfUrlFull, setCurriculumPdfUrlFull] = useState("");
+  const [curriculumPdfUrlSimplified, setCurriculumPdfUrlSimplified] = useState("");
   const [priorAchievementEnabled, setPriorAchievementEnabled] = useState(true);
 
   useEffect(() => {
     if (settings) {
       const ext = settings as {
         curriculumPdfUrl?: string | null;
+        curriculumPdfUrlFull?: string | null;
+        curriculumPdfUrlSimplified?: string | null;
         priorAchievementEnabled?: boolean;
       };
       setWeeklyQuota(settings.weeklyQuota?.toString() || "75");
       setAllDaysActive(!!settings.allDaysActive);
       setPrimaryDay(settings.primaryDay || "Friday");
       setIsMaintenanceMode(!!settings.maintenanceMode);
-      setCurriculumPdfUrl(ext.curriculumPdfUrl ?? "");
+      setCurriculumPdfUrlFull(
+        ext.curriculumPdfUrlFull ?? ext.curriculumPdfUrl ?? ""
+      );
+      setCurriculumPdfUrlSimplified(
+        ext.curriculumPdfUrlSimplified ?? ext.curriculumPdfUrl ?? ""
+      );
       setPriorAchievementEnabled(ext.priorAchievementEnabled !== false);
     }
     if (me?.user) {
@@ -72,7 +80,8 @@ export default function AdminSettings() {
           allDaysActive: allDaysActive ? 1 : 0,
           primaryDay,
           maintenanceMode: isMaintenanceMode ? 1 : 0,
-          curriculumPdfUrl: curriculumPdfUrl.trim() || null,
+          curriculumPdfUrlFull: curriculumPdfUrlFull.trim() || null,
+          curriculumPdfUrlSimplified: curriculumPdfUrlSimplified.trim() || null,
           priorAchievementEnabled: priorAchievementEnabled ? 1 : 0,
         },
       },
@@ -171,17 +180,28 @@ export default function AdminSettings() {
                 />
               </div>
               <div className="space-y-2">
-                <Label className={labelClass}>رابط PDF المنهج (للطالب — تنزيل المنهج)</Label>
+                <Label className={labelClass}>رابط PDF المنهج — المسار الكامل</Label>
                 <Input
                   type="url"
                   dir="ltr"
                   placeholder="https://..."
-                  value={curriculumPdfUrl}
-                  onChange={(e) => setCurriculumPdfUrl(e.target.value)}
+                  value={curriculumPdfUrlFull}
+                  onChange={(e) => setCurriculumPdfUrlFull(e.target.value)}
+                  className="text-left text-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className={labelClass}>رابط PDF المنهج — المسار الميسر</Label>
+                <Input
+                  type="url"
+                  dir="ltr"
+                  placeholder="https://..."
+                  value={curriculumPdfUrlSimplified}
+                  onChange={(e) => setCurriculumPdfUrlSimplified(e.target.value)}
                   className="text-left text-sm"
                 />
                 <p className="text-[11px] text-[var(--text-secondary)]">
-                  يظهر زر «تنزيل المنهج» بجانب اسم المشارك عند تعبئة الرابط.
+                  يظهر زر «تنزيل المنهج» للمشارك حسب مساره (كامل أو ميسر).
                 </p>
               </div>
               <div className={switchRowClass}>

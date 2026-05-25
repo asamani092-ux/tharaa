@@ -16,6 +16,8 @@ export const systemSettingsTable = pgTable("system_settings", {
   gradeThresholdAcceptable: integer("grade_threshold_acceptable").notNull().default(60),
   allDaysActive: boolean("all_days_active").notNull().default(false),
   curriculumPdfUrl: text("curriculum_pdf_url"),
+  curriculumPdfUrlFull: text("curriculum_pdf_url_full"),
+  curriculumPdfUrlSimplified: text("curriculum_pdf_url_simplified"),
   priorAchievementEnabled: boolean("prior_achievement_enabled").notNull().default(true),
 });
 

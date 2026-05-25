@@ -7,6 +7,25 @@ header('Content-Type: application/json; charset=utf-8');
 
 $method = $_SERVER['REQUEST_METHOD'];
 
+function resolveCurriculumPdfUrl(?array $row, string $trackColumn): ?string
+{
+    if (!$row) {
+        return null;
+    }
+    if (!empty($row[$trackColumn])) {
+        return trim((string)$row[$trackColumn]);
+    }
+    if (!empty($row['curriculum_pdf_url'])) {
+        return trim((string)$row['curriculum_pdf_url']);
+    }
+    return null;
+}
+
+function normalizePdfUrlInput($val): ?string
+{
+    return is_string($val) && trim($val) !== '' ? trim($val) : null;
+}
+
 function formatSettingsRow(?array $row): array
 {
     if (!$row) {
@@ -26,9 +45,14 @@ function formatSettingsRow(?array $row): array
             'primaryDay' => 'Friday',
             'maintenanceMode' => false,
             'curriculumPdfUrl' => null,
+            'curriculumPdfUrlFull' => null,
+            'curriculumPdfUrlSimplified' => null,
             'priorAchievementEnabled' => true,
         ];
     }
+
+    $pdfFull = resolveCurriculumPdfUrl($row, 'curriculum_pdf_url_full');
+    $pdfSimplified = resolveCurriculumPdfUrl($row, 'curriculum_pdf_url_simplified');
 
     return [
         'id' => (int)$row['id'],
@@ -45,7 +69,9 @@ function formatSettingsRow(?array $row): array
         'allDaysActive' => !empty($row['all_days_active']),
         'primaryDay' => !empty($row['primary_day']) ? $row['primary_day'] : 'Friday',
         'maintenanceMode' => !empty($row['maintenance_mode']),
-        'curriculumPdfUrl' => !empty($row['curriculum_pdf_url']) ? $row['curriculum_pdf_url'] : null,
+        'curriculumPdfUrl' => $pdfFull,
+        'curriculumPdfUrlFull' => $pdfFull,
+        'curriculumPdfUrlSimplified' => $pdfSimplified,
         'priorAchievementEnabled' => !array_key_exists('prior_achievement_enabled', $row)
             || !empty($row['prior_achievement_enabled']),
     ];
@@ -97,6 +123,8 @@ try {
             'primaryDay' => 'primary_day',
             'maintenanceMode' => 'maintenance_mode',
             'curriculumPdfUrl' => 'curriculum_pdf_url',
+            'curriculumPdfUrlFull' => 'curriculum_pdf_url_full',
+            'curriculumPdfUrlSimplified' => 'curriculum_pdf_url_simplified',
             'priorAchievementEnabled' => 'prior_achievement_enabled',
         ];
 
@@ -110,8 +138,8 @@ try {
             if ($key === 'allDaysActive' || $key === 'maintenanceMode' || $key === 'priorAchievementEnabled') {
                 $val = $val ? 1 : 0;
             }
-            if ($key === 'curriculumPdfUrl') {
-                $val = is_string($val) && trim($val) !== '' ? trim($val) : null;
+            if ($key === 'curriculumPdfUrl' || $key === 'curriculumPdfUrlFull' || $key === 'curriculumPdfUrlSimplified') {
+                $val = normalizePdfUrlInput($val);
             }
             $fields[] = "$col = ?";
             $params[] = $val;
