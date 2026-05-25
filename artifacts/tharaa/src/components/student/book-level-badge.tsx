@@ -3,7 +3,11 @@ import { cn } from "@/lib/utils";
 type BookLevel = "basic" | "optional";
 
 function resolveLevel(levelType?: string | null): BookLevel {
-  return levelType?.toLowerCase() === "optional" ? "optional" : "basic";
+  const lt = (levelType ?? "basic").trim().toLowerCase();
+  if (lt === "optional" || lt === "اختياري" || lt === "إختياري") {
+    return "optional";
+  }
+  return "basic";
 }
 
 /** شارة نوع الكتاب — أساسي (ذهبي صلب) / اختياري (إطار ذهبي) */

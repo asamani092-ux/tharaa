@@ -408,7 +408,18 @@ export default function StudentPortal() {
     )
   );
   const gamificationPages = meAnalytics?.gamificationPages ?? 0;
-  const gamificationPagesOptional = meAnalytics?.gamificationPagesOptional ?? 0;
+  const gamificationPagesOptionalFromApi = meAnalytics?.gamificationPagesOptional ?? 0;
+  const optionalPagesFromCompleted = useMemo(
+    () =>
+      trackBooks
+        .filter((b) => !isBasicCurriculumBook(b) && completedBookIds.includes(b.id))
+        .reduce((sum, b) => sum + (Number(b.totalPages) || 0), 0),
+    [trackBooks, completedBookIds]
+  );
+  const gamificationPagesOptional = Math.max(
+    gamificationPagesOptionalFromApi,
+    optionalPagesFromCompleted
+  );
   const showOptionalGamification = gamificationPagesOptional > 0;
   const expectedFinishHint = meAnalytics?.expectedFinishHint?.trim() || "—";
 
