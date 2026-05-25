@@ -14,7 +14,8 @@
 | `hostinger-php/api/settings.php` | GET/PATCH `/api/settings.php` | منهج PDF حسب المسار؛ `priorAchievementEnabled` |
 | `src/pages/student/index.tsx` | بطاقة الوسط | «عدد الصفحات» — انقسام أساسي/اختياري عند قراءة اختياري |
 | `src/pages/admin/settings.tsx` | PATCH settings | مفتاح «إظهار زر إنجاز سابق» |
-| `src/pages/student/index.tsx` | `gamificationPagesOptional` | يظهر داخل بطاقة التحفيز عند القراءة فقط |
+| `src/pages/student/index.tsx` | قائمة الكتاب (رصد) | مجموعتان: أساسي / اختياري؛ الاختياري يُرسل `mode=extra` |
+| `src/pages/student/index.tsx` | `gamificationPagesOptional` | بطاقة «عدد الصفحات» — انقسام عند القراءة |
 | `src/pages/student/index.tsx` | — | ختم المسار: بطاقة + modal؛ إخفاء رصد أسبوعي وإنجاز سابق عند الاكتمال |
 | `src/components/layout.tsx` | Orval session/settings | `ThemeToggle` في هيدر الطالب |
 
