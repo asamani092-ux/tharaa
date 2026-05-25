@@ -69,6 +69,8 @@ const COMPLETED_BADGE_CLASS =
 
 type StudentAnalyticsMe = {
   effectiveTrack?: string;
+  /** نسبة التقدم التراكمي للدفعة (SUM pages_read ÷ هدف الدفعة) */
+  batchCumulativeRate?: number;
   stageCompletionRate?: number;
   gamificationPages?: number;
   expectedFinishHint?: string;
@@ -316,9 +318,13 @@ export default function StudentPortal() {
   const pagesCount = Math.max(0, endPage - startPage + 1);
   const nextBook = availableBooks.find((b) => b.id !== currentBook?.id);
 
-  const stageCompletionRate = Math.min(
+  const batchCumulativeRate = Math.min(
     100,
-    Math.round(meAnalytics?.stageCompletionRate ?? 0)
+    Math.round(
+      meAnalytics?.batchCumulativeRate ??
+        meAnalytics?.stageCompletionRate ??
+        0
+    )
   );
   const gamificationPages = meAnalytics?.gamificationPages ?? 0;
   const expectedFinishHint = meAnalytics?.expectedFinishHint?.trim() || "—";
@@ -883,18 +889,18 @@ export default function StudentPortal() {
                     aria-hidden
                   >
                     <span className="text-sm font-bold text-[var(--secondary-400)]">
-                      {stageCompletionRate}%
+                      {batchCumulativeRate}%
                     </span>
                   </div>
                   <Progress
-                    value={stageCompletionRate}
+                    value={batchCumulativeRate}
                     className="h-1.5 [&>div]:bg-[var(--secondary-400)]"
                   />
                 </>
               )}
-              <p className="text-xs text-[var(--text-secondary)]">نسبة الإنجاز المرحلي</p>
+              <p className="text-xs text-[var(--text-secondary)]">نسبة التقدم التراكمي للدفعة</p>
               <p className="text-[10px] text-[var(--text-disabled)] leading-tight mt-0.5">
-                تقدمك الرسمي حتى هذا الأسبوع
+                صفحاتك المسجّلة مقارنة بخطة الدفعة حتى هذا الأسبوع
               </p>
             </CardContent>
           </Card>

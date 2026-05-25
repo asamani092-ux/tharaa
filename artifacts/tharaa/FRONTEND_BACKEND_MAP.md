@@ -2,7 +2,7 @@
 
 | ملف الواجهة | نقطة API | ملاحظة |
 |-------------|----------|--------|
-| `src/pages/student/index.tsx` | `GET /api/analytics.php?scope=me` | بطاقات الطالب + `effectiveTrack` احتياطي |
+| `src/pages/student/index.tsx` | `GET /api/analytics.php?scope=me` | `batchCumulativeRate` (بطاقة 1)، `gamificationPages`، `expectedFinishHint`؛ `stageCompletionRate` للمشرف فقط |
 | `src/pages/student/index.tsx` | `GET /api/logs.php?id=status` | `hasPrimaryThisWeek` — إغلاق «تم الإرسال» |
 | `src/pages/student/index.tsx` | `POST /api/logs.php` | `mode`: primary \| extra، `rows[]` متعدد (المرحلة 2 PHP) |
 | `src/pages/student/index.tsx` | `useGetSettings` | `weeklyQuota`, `allDaysActive`, `primaryDay` — نافذة التوقيت في `submissionWindow.ts` |

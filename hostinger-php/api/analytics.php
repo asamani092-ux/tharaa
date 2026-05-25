@@ -226,14 +226,19 @@ try {
         $totalTrackPages = sumTrackPages($booksMap, $effectiveTrack);
         $batchWeekNow = $batchId ? ($batchWeekCache[$batchId] ?? 1) : 1;
 
+        $gamificationPages = (int)($gamificationByUser[$userId] ?? 0);
+
         $progressPages = evalProgressPagesForTrack($user, $booksMap, $effectiveTrack);
         $evalNumerator = $progressPages;
-        $evalDenominator = min($totalTrackPages, $batchWeekNow * $weeklyQuota);
-        $stageCompletionRate = $evalDenominator > 0
-            ? round(min(100, ($evalNumerator / $evalDenominator) * 100), 1)
+        $batchPaceTarget = min($totalTrackPages, $batchWeekNow * $weeklyQuota);
+        $stageCompletionRate = $batchPaceTarget > 0
+            ? round(min(100, ($evalNumerator / $batchPaceTarget) * 100), 1)
             : 0;
 
-        $gamificationPages = (int)($gamificationByUser[$userId] ?? 0);
+        /** نسبة التقدم التراكمي للدفعة (بطاقة الطالب): كل pages_read ÷ هدف الدفعة حتى اليوم */
+        $batchCumulativeRate = $batchPaceTarget > 0
+            ? round(min(100, ($gamificationPages / $batchPaceTarget) * 100), 1)
+            : 0;
         $onTimeWeeks = isset($onTimeWeeksByUser[$userId]) ? count($onTimeWeeksByUser[$userId]) : 0;
         $lateWeeks = isset($lateWeeksByUser[$userId]) ? count($lateWeeksByUser[$userId]) : 0;
         $commitmentIndex = round(($onTimeWeeks + 0.5 * $lateWeeks) / $batchWeekNow, 2);
@@ -249,6 +254,8 @@ try {
             'batchName' => $batchId && isset($batchesMap[$batchId]) ? $batchesMap[$batchId]['name'] : 'بدون دفعة',
             'effectiveTrack' => $effectiveTrack,
             'stageCompletionRate' => $stageCompletionRate,
+            'batchCumulativeRate' => $batchCumulativeRate,
+            'batchPaceTarget' => $batchPaceTarget,
             'gamificationPages' => $gamificationPages,
             'commitmentIndex' => $commitmentIndex,
             'completedBooksCount' => $completedBooksCount,
