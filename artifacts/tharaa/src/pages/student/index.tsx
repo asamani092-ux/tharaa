@@ -61,8 +61,8 @@ const STUDENT_SURFACE_CARD =
   "rounded-[var(--radius-xl)] border-2 border-[var(--border-strong)] bg-[var(--bg-primary)] shadow-[var(--shadow-md)]";
 
 const COMPLETED_BADGE_CLASS =
-  "inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold text-[#0d3d24] border border-[var(--success-600)] "
-  + "bg-[repeating-linear-gradient(-45deg,hsl(var(--success))_0,hsl(var(--success))_4px,#ffffff_4px,#ffffff_8px)]";
+  "inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold "
+  + "bg-white text-[var(--success-600)] border border-[var(--success-600)]";
 
 
 type StudentAnalyticsMe = {
@@ -184,6 +184,8 @@ export default function StudentPortal() {
 
   const [hasPrimaryThisWeek, setHasPrimaryThisWeek] = useState(false);
   const [isExtraMode, setIsExtraMode] = useState(false);
+  /** يمنع useEffect من إعادة حقن الصفحات فوق تعديل المستخدم */
+  const [pagesManuallyEdited, setPagesManuallyEdited] = useState(false);
 
   type LogCardMode = "submitted" | "off-day" | "open";
   const logCardMode: LogCardMode = useMemo(() => {
@@ -221,39 +223,54 @@ export default function StudentPortal() {
   const remainingInCurrentBook = currentBook
     ? Math.max(0, currentBook.totalPages - effectiveLastPage)
     : 0;
-  const suggestedEndPage = currentBook
-    ? suggestPageRange(currentBook, effectiveLastPage, weeklyQuota).endPage
-    : weeklyQuota;
+  const capPagesByQuota = !isExtraMode;
 
   useEffect(() => {
+    setPagesManuallyEdited(false);
+  }, [bookId, viewPhase, isExtraMode]);
+
+  useEffect(() => {
+    if (pagesManuallyEdited) return;
+
+    const injectForBook = (book: (typeof trackBooks)[number]) => {
+      const range = suggestPageRange(
+        book,
+        lastPageForBook(book),
+        weeklyQuota,
+        0,
+        capPagesByQuota
+      );
+      setStartPage(range.startPage);
+      setEndPage(range.endPage);
+    };
+
+    if (bookId) {
+      const picked = displayedPhaseBooks.find((b) => b.id.toString() === bookId);
+      if (picked) injectForBook(picked);
+      return;
+    }
+
     if (currentBook) {
       setBookId(currentBook.id.toString());
-      setStartPage(effectiveLastPage + 1);
-      setEndPage(suggestedEndPage);
-    } else {
-      setBookId("");
-      setStartPage(1);
-      setEndPage(weeklyQuota);
+      injectForBook(currentBook);
+      return;
     }
-  }, [currentBook?.id, effectiveLastPage, suggestedEndPage, viewPhase, weeklyQuota]);
 
-  useEffect(() => {
-    const selectedId = parseInt(bookId, 10);
-    if (selectedId === currentBook?.id) {
-      setStartPage(effectiveLastPage + 1);
-      setEndPage(suggestedEndPage);
-    } else if (bookId) {
-      const picked = displayedPhaseBooks.find((b) => b.id.toString() === bookId);
-      if (picked) {
-        const range = suggestPageRange(picked, lastPageForBook(picked), weeklyQuota);
-        setStartPage(range.startPage);
-        setEndPage(range.endPage);
-      } else {
-        setStartPage(1);
-        setEndPage(weeklyQuota);
-      }
-    }
-  }, [bookId, currentBook?.id, effectiveLastPage, suggestedEndPage, weeklyQuota, displayedPhaseBooks, user?.currentBookId, user?.lastPage]);
+    setBookId("");
+    setStartPage(1);
+    setEndPage(capPagesByQuota ? weeklyQuota : 1);
+  }, [
+    bookId,
+    viewPhase,
+    isExtraMode,
+    capPagesByQuota,
+    currentBook?.id,
+    weeklyQuota,
+    pagesManuallyEdited,
+    displayedPhaseBooks,
+    user?.currentBookId,
+    user?.lastPage,
+  ]);
 
   const selectedBook = displayedPhaseBooks.find((b) => b.id.toString() === bookId);
   const pagesCount = Math.max(0, endPage - startPage + 1);
@@ -488,10 +505,12 @@ export default function StudentPortal() {
           <h2 className="text-[var(--font-lg)] font-bold">
             مرحباً، <span className={warningText}>{user?.name}</span>
           </h2>
-          <p className={`text-[var(--font-xs)] mt-0.5 ${muted}`}>
-            النصاب الأسبوعي:{" "}
-            <strong className="text-[var(--text-primary)]">{weeklyQuota} صفحة</strong>
-          </p>
+          {!isExtraMode && (
+            <p className={`text-[var(--font-xs)] mt-0.5 ${muted}`}>
+              النصاب الأسبوعي:{" "}
+              <strong className="text-[var(--text-primary)]">{weeklyQuota} صفحة</strong>
+            </p>
+          )}
         </div>
 
         <Card className={STUDENT_SURFACE_CARD}>
@@ -510,7 +529,10 @@ export default function StudentPortal() {
                 type="button"
                 variant="secondary"
                 className="w-full max-w-xs mx-auto h-11 rounded-[var(--radius-lg)]"
-                onClick={() => setIsExtraMode(true)}
+                onClick={() => {
+                  setPagesManuallyEdited(false);
+                  setIsExtraMode(true);
+                }}
               >
                 إرسال إنجاز إضافي
               </Button>
@@ -533,7 +555,10 @@ export default function StudentPortal() {
                 type="button"
                 variant="secondary"
                 className="w-full max-w-xs mx-auto h-11 rounded-[var(--radius-lg)]"
-                onClick={() => setIsExtraMode(true)}
+                onClick={() => {
+                  setPagesManuallyEdited(false);
+                  setIsExtraMode(true);
+                }}
               >
                 إرسال إنجاز إضافي
               </Button>
@@ -551,7 +576,10 @@ export default function StudentPortal() {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => setIsExtraMode(false)}
+                      onClick={() => {
+                        setPagesManuallyEdited(false);
+                        setIsExtraMode(false);
+                      }}
                     >
                       رجوع
                     </Button>
@@ -564,7 +592,8 @@ export default function StudentPortal() {
                   <div className={`${bannerBase} bg-[var(--bg-tertiary)] mb-4`}>
                     <Info className="w-4 h-4 text-[var(--secondary-400)] shrink-0 mt-0.5" />
                     <span className="text-sm text-[var(--text-secondary)]">
-                      هذا الإرسال للتحفيز فقط ولا يعدّل التقييم الأسبوعي الرسمي.
+                      إنجاز إضافي (تحفيز) — لا يرتبط بالنصاب الأسبوعي ولا يعدّل تقييم الرصد
+                      الرسمي.
                     </span>
                   </div>
                 )}
@@ -632,7 +661,13 @@ export default function StudentPortal() {
                         مرحلة {viewPhase}
                       </span>
                     </div>
-                    <Select value={bookId} onValueChange={setBookId}>
+                    <Select
+                      value={bookId}
+                      onValueChange={(value) => {
+                        setPagesManuallyEdited(false);
+                        setBookId(value);
+                      }}
+                    >
                       <SelectTrigger className="h-11">
                         <SelectValue placeholder="اختر الكتاب" />
                       </SelectTrigger>
@@ -667,9 +702,10 @@ export default function StudentPortal() {
                         type="number"
                         min={1}
                         value={startPage}
-                        onChange={(e) =>
-                          setStartPage(Math.max(1, parseInt(e.target.value, 10) || 1))
-                        }
+                        onChange={(e) => {
+                          setPagesManuallyEdited(true);
+                          setStartPage(Math.max(1, parseInt(e.target.value, 10) || 1));
+                        }}
                         className="h-11 text-center"
                         required
                       />
@@ -681,9 +717,10 @@ export default function StudentPortal() {
                         min={startPage}
                         max={selectedBook?.totalPages}
                         value={endPage}
-                        onChange={(e) =>
-                          setEndPage(parseInt(e.target.value, 10) || startPage)
-                        }
+                        onChange={(e) => {
+                          setPagesManuallyEdited(true);
+                          setEndPage(parseInt(e.target.value, 10) || startPage);
+                        }}
                         className="h-11 text-center"
                         required
                       />
