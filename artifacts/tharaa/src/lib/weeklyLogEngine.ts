@@ -80,11 +80,15 @@ export function suggestPageRange(
   book: BookSlice,
   lastPage: number,
   weeklyQuota: number,
-  pagesAlreadyInSession = 0
+  pagesAlreadyInSession = 0,
+  /** عند false (إنجاز إضافي) لا يُقيَّد بالنصاب الأسبوعي */
+  capByWeeklyQuota = true
 ): { startPage: number; endPage: number } {
   const startPage = lastPage + 1;
   const remainingInBook = Math.max(0, book.totalPages - lastPage);
-  const quotaLeft = Math.max(0, weeklyQuota - pagesAlreadyInSession);
+  const quotaLeft = capByWeeklyQuota
+    ? Math.max(0, weeklyQuota - pagesAlreadyInSession)
+    : remainingInBook;
   const pagesToRead = Math.max(1, Math.min(remainingInBook, quotaLeft));
   return { startPage, endPage: startPage + pagesToRead - 1 };
 }
