@@ -39,6 +39,7 @@ import {
   Send,
   Calendar,
   Check,
+  Search,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSubmissionWindow } from "@/lib/submissionWindow";
@@ -181,6 +182,7 @@ export default function StudentPortal() {
 
   const [showCustomProgress, setShowCustomProgress] = useState(false);
   const [selectedCustomBooks, setSelectedCustomBooks] = useState<number[]>([]);
+  const [priorBookSearch, setPriorBookSearch] = useState("");
   const [isSubmittingCustom, setIsSubmittingCustom] = useState(false);
 
   const [hasPrimaryThisWeek, setHasPrimaryThisWeek] = useState(false);
@@ -209,6 +211,28 @@ export default function StudentPortal() {
   const displayedPhaseBooks = trackBooks.filter((b) => b.phaseNumber === viewPhase);
   const availableBooks = displayedPhaseBooks.filter((b) => !completedBookIds.includes(b.id));
 
+  const bookIdIsInAvailableList = useMemo(
+    () => !!bookId && availableBooks.some((b) => b.id.toString() === bookId),
+    [bookId, availableBooks]
+  );
+
+  const selectBookValue = bookIdIsInAvailableList ? bookId : undefined;
+
+  const priorBooksNotCompleted = useMemo(
+    () => trackBooks.filter((b) => !completedBookIds.includes(b.id)),
+    [trackBooks, completedBookIds]
+  );
+
+  const priorBooksFiltered = useMemo(() => {
+    const q = priorBookSearch.trim().toLowerCase();
+    if (!q) return priorBooksNotCompleted;
+    return priorBooksNotCompleted.filter(
+      (b) =>
+        b.title.toLowerCase().includes(q) ||
+        (b.bookCode?.toLowerCase().includes(q) ?? false)
+    );
+  }, [priorBooksNotCompleted, priorBookSearch]);
+
   const lastPageForBook = (book: { id: number }) =>
     user?.currentBookId === book.id ? user?.lastPage ?? 0 : 0;
 
@@ -231,6 +255,14 @@ export default function StudentPortal() {
     setPagesManuallyEdited(false);
   }, [bookId, viewPhase, isExtraMode]);
 
+  /** إزالة bookId إن كان لكتاب مكتمل أو غير موجود في القائمة (يمنع التضليل في Select) */
+  useEffect(() => {
+    if (!bookId) return;
+    if (!availableBooks.some((b) => b.id.toString() === bookId)) {
+      setBookId("");
+    }
+  }, [availableBooks, bookId]);
+
   useEffect(() => {
     if (pagesManuallyEdited) return;
 
@@ -246,19 +278,12 @@ export default function StudentPortal() {
       setEndPage(range.endPage);
     };
 
-    if (bookId) {
-      const picked = displayedPhaseBooks.find((b) => b.id.toString() === bookId);
-      if (picked) injectForBook(picked);
+    const picked = availableBooks.find((b) => b.id.toString() === bookId);
+    if (picked) {
+      injectForBook(picked);
       return;
     }
 
-    if (currentBook) {
-      setBookId(currentBook.id.toString());
-      injectForBook(currentBook);
-      return;
-    }
-
-    setBookId("");
     setStartPage(1);
     setEndPage(capPagesByQuota ? weeklyQuota : 1);
   }, [
@@ -266,15 +291,28 @@ export default function StudentPortal() {
     viewPhase,
     isExtraMode,
     capPagesByQuota,
-    currentBook?.id,
     weeklyQuota,
     pagesManuallyEdited,
-    displayedPhaseBooks,
+    availableBooks,
     user?.currentBookId,
     user?.lastPage,
   ]);
 
-  const selectedBook = displayedPhaseBooks.find((b) => b.id.toString() === bookId);
+  const selectedBook = availableBooks.find((b) => b.id.toString() === bookId);
+
+  const pickCurrentBookForLog = () => {
+    if (!isCurrentBookValid || !userCurrentBook) return;
+    setBookFieldError(false);
+    setPagesManuallyEdited(false);
+    setBookId(userCurrentBook.id.toString());
+  };
+
+  const openExtraLogMode = () => {
+    setBookId("");
+    setBookFieldError(false);
+    setPagesManuallyEdited(false);
+    setIsExtraMode(true);
+  };
   const pagesCount = Math.max(0, endPage - startPage + 1);
   const nextBook = availableBooks.find((b) => b.id !== currentBook?.id);
 
@@ -337,9 +375,9 @@ export default function StudentPortal() {
 
   const buildValidatedLogRow = (): LogRow | null => {
     setBookFieldError(false);
-    if (!bookId?.trim() || !selectedBook) {
+    if (!bookIdIsInAvailableList || !selectedBook) {
       setBookFieldError(true);
-      toast.error("الرجاء اختيار الكتاب أولاً");
+      toast.error("الرجاء اختيار الكتاب من القائمة أولاً");
       return null;
     }
 
@@ -502,9 +540,20 @@ export default function StudentPortal() {
         const errData = await response.json().catch(() => null);
         throw new Error(errData?.error || "فشل في تحديث البيانات");
       }
-      toast.success("تم اعتماد الكتب السابقة بنجاح!");
+      const result = (await response.json().catch(() => ({}))) as {
+        gamificationPagesAdded?: number;
+      };
+      const added = result.gamificationPagesAdded ?? 0;
+      if (added > 0) {
+        toast.success(
+          `تم اعتماد الكتب السابقة. أُضيف ${added} صفحة إلى حصيلة التحفيز.`
+        );
+      } else {
+        toast.success("تم اعتماد الكتب السابقة بنجاح!");
+      }
       setShowCustomProgress(false);
       setSelectedCustomBooks([]);
+      setPriorBookSearch("");
       await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
       await queryClient.invalidateQueries({ queryKey: STUDENT_ANALYTICS_ME_KEY });
       await queryClient.refetchQueries({ queryKey: STUDENT_ANALYTICS_ME_KEY });
@@ -553,10 +602,7 @@ export default function StudentPortal() {
                 type="button"
                 variant="secondary"
                 className="w-full max-w-xs mx-auto h-11 rounded-[var(--radius-lg)]"
-                onClick={() => {
-                  setPagesManuallyEdited(false);
-                  setIsExtraMode(true);
-                }}
+                onClick={openExtraLogMode}
               >
                 إرسال إنجاز إضافي
               </Button>
@@ -579,10 +625,7 @@ export default function StudentPortal() {
                 type="button"
                 variant="secondary"
                 className="w-full max-w-xs mx-auto h-11 rounded-[var(--radius-lg)]"
-                onClick={() => {
-                  setPagesManuallyEdited(false);
-                  setIsExtraMode(true);
-                }}
+                onClick={openExtraLogMode}
               >
                 إرسال إنجاز إضافي
               </Button>
@@ -686,7 +729,7 @@ export default function StudentPortal() {
                       </span>
                     </div>
                     <Select
-                      value={bookId || undefined}
+                      value={selectBookValue}
                       onValueChange={(value) => {
                         setBookFieldError(false);
                         setPagesManuallyEdited(false);
@@ -711,6 +754,16 @@ export default function StudentPortal() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {isCurrentBookValid && userCurrentBook && !bookIdIsInAvailableList && (
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="h-auto p-0 text-xs text-[var(--primary-600)]"
+                        onClick={pickCurrentBookForLog}
+                      >
+                        استخدام كتابي الحالي: {userCurrentBook.title}
+                      </Button>
+                    )}
                     {bookFieldError && (
                       <p className="text-xs text-[var(--error-600)]">الرجاء اختيار الكتاب أولاً</p>
                     )}
@@ -799,7 +852,11 @@ export default function StudentPortal() {
                     </div>
                   )}
 
-                  <Button type="submit" className="w-full h-11" disabled={isSubmitting || !bookId}>
+                  <Button
+                    type="submit"
+                    className="w-full h-11"
+                    disabled={isSubmitting || !bookIdIsInAvailableList}
+                  >
                     {isSubmitting ? (
                       <Loader2 className="animate-spin" />
                     ) : isExtraMode ? (
@@ -887,6 +944,7 @@ export default function StudentPortal() {
               size="sm"
               onClick={() => {
                 setSelectedCustomBooks([]);
+                setPriorBookSearch("");
                 setShowCustomProgress(true);
               }}
             >
@@ -949,10 +1007,23 @@ export default function StudentPortal() {
             <DialogHeader>
               <DialogTitle>إنجاز سابق</DialogTitle>
             </DialogHeader>
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]" />
+              <Input
+                value={priorBookSearch}
+                onChange={(e) => setPriorBookSearch(e.target.value)}
+                placeholder="ابحث باسم الكتاب أو الرمز..."
+                className="h-10 pr-9"
+                dir="rtl"
+              />
+            </div>
             <div className="max-h-[40vh] overflow-y-auto space-y-2">
-              {trackBooks
-                .filter((b) => !completedBookIds.includes(b.id))
-                .map((book) => {
+              {priorBooksFiltered.length === 0 ? (
+                <p className="text-sm text-center text-[var(--text-secondary)] py-6">
+                  لا توجد كتب مطابقة للبحث
+                </p>
+              ) : (
+                priorBooksFiltered.map((book) => {
                   const isSelected = selectedCustomBooks.includes(book.id);
                   return (
                     <div
@@ -989,7 +1060,8 @@ export default function StudentPortal() {
                       )}
                     </div>
                   );
-                })}
+                })
+              )}
             </div>
             <Button
               className="w-full mt-4"
