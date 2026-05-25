@@ -44,6 +44,7 @@ function formatUser($u)
             SELECT id FROM curriculum
             WHERE phase_number = ?
               AND (track_type = ? OR track_type = 'both')
+              AND (level_type IS NULL OR level_type = '' OR level_type = 'basic')
             ORDER BY order_in_level ASC
             LIMIT 1
         ");
