@@ -22,9 +22,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, Plus, Pencil, Shield } from "lucide-react";
+import { Loader2, Plus, Shield } from "lucide-react";
 import { isSupervisorRole } from "@/lib/roles";
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
+import { RowActions } from "@/components/admin/row-actions";
 
 type AdminUser = {
   id: number;
@@ -133,40 +134,41 @@ export default function AdminSupervisors() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6" dir="rtl">
+      <div className="space-y-6 max-w-5xl mx-auto" dir="rtl">
         <div className="flex flex-wrap justify-between items-center gap-4">
           <h2 className="text-2xl font-bold text-[var(--secondary-400)] flex items-center gap-2">
-            <Shield className="w-6 h-6" />
+            <Shield className="w-7 h-7 shrink-0" />
             إدارة حسابات المشرفين
           </h2>
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
-              <Button variant="secondary">
-                <Plus className="w-4 h-4 ml-2" />
+              <Button variant="secondary" className="gap-2 shrink-0">
+                <Plus className="w-4 h-4" />
                 مشرف جديد
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-md" dir="rtl">
               <DialogHeader>
                 <DialogTitle>إنشاء مشرف</DialogTitle>
               </DialogHeader>
               <div className="space-y-3">
-                <div>
+                <div className="space-y-1.5">
                   <Label>الاسم</Label>
                   <Input
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                   />
                 </div>
-                <div>
+                <div className="space-y-1.5">
                   <Label>الجوال</Label>
                   <Input
                     dir="ltr"
+                    className="text-left"
                     value={form.phone}
                     onChange={(e) => setForm({ ...form, phone: e.target.value })}
                   />
                 </div>
-                <div>
+                <div className="space-y-1.5">
                   <Label>كلمة المرور</Label>
                   <Input
                     type="password"
@@ -186,87 +188,113 @@ export default function AdminSupervisors() {
           </Dialog>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">قائمة المشرفين</CardTitle>
+        <Card className="rounded-[var(--radius-xl)] border border-[var(--border-default)] overflow-hidden">
+          <CardHeader className="border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]/50 py-4">
+            <CardTitle className="text-lg font-semibold">قائمة المشرفين</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-right">الاسم</TableHead>
-                  <TableHead className="text-right">الجوال</TableHead>
-                  <TableHead className="text-center">إجراءات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-center py-8">
-                      <Loader2 className="animate-spin mx-auto" />
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table className="min-w-[520px]">
+                <TableHeader className="bg-[var(--bg-secondary)]">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="text-right font-semibold px-6 py-3 w-[45%]">
+                      الاسم
+                    </TableHead>
+                    <TableHead className="text-center font-semibold px-4 py-3 w-[30%]">
+                      الجوال
+                    </TableHead>
+                    <TableHead className="text-center font-semibold px-6 py-3 w-[25%]">
+                      إجراءات
+                    </TableHead>
                   </TableRow>
-                ) : (
-                  (admins ?? []).map((a) => (
-                    <TableRow key={a.id}>
-                      <TableCell>{a.name}</TableCell>
-                      <TableCell dir="ltr" className="text-left">
-                        {a.phone}
-                      </TableCell>
-                      <TableCell className="text-center space-x-2 space-x-reverse">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setEditUser(a);
-                            setEditForm({ name: a.name, phone: a.phone, password: "" });
-                          }}
-                        >
-                          <Pencil className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => setDeleteTarget(a)}
-                        >
-                          حذف
-                        </Button>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center py-12">
+                        <Loader2 className="animate-spin mx-auto text-[var(--secondary-400)]" />
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (admins ?? []).length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={3}
+                        className="text-center py-12 text-[var(--text-secondary)]"
+                      >
+                        لا يوجد مشرفون مسجّلون
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    (admins ?? []).map((a) => (
+                      <TableRow
+                        key={a.id}
+                        className="border-[var(--border-subtle)] hover:bg-[var(--bg-tertiary)]"
+                      >
+                        <TableCell className="px-6 py-4 font-medium text-right">
+                          {a.name}
+                        </TableCell>
+                        <TableCell className="px-4 py-4 text-center">
+                          <span
+                            dir="ltr"
+                            className="inline-block font-mono text-sm text-[var(--text-primary)]"
+                          >
+                            {a.phone}
+                          </span>
+                        </TableCell>
+                        <TableCell className="px-6 py-4">
+                          <RowActions
+                            onEdit={() => {
+                              setEditUser(a);
+                              setEditForm({ name: a.name, phone: a.phone, password: "" });
+                            }}
+                            onDelete={() => setDeleteTarget(a)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
 
         <Dialog open={!!editUser} onOpenChange={(o) => !o && setEditUser(null)}>
-          <DialogContent>
+          <DialogContent className="sm:max-w-md" dir="rtl">
             <DialogHeader>
               <DialogTitle>تعديل مشرف</DialogTitle>
             </DialogHeader>
             <div className="space-y-3">
-              <Input
-                value={editForm.name}
-                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-              />
-              <Input
-                dir="ltr"
-                value={editForm.phone}
-                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-              />
-              <Input
-                type="password"
-                placeholder="كلمة مرور جديدة (اختياري)"
-                value={editForm.password}
-                onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
-              />
+              <div className="space-y-1.5">
+                <Label>الاسم</Label>
+                <Input
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>الجوال</Label>
+                <Input
+                  dir="ltr"
+                  className="text-left"
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>كلمة مرور جديدة (اختياري)</Label>
+                <Input
+                  type="password"
+                  value={editForm.password}
+                  onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                />
+              </div>
               <Button
                 className="w-full"
                 onClick={() => updateAdmin.mutate()}
                 disabled={updateAdmin.isPending}
               >
-                حفظ
+                {updateAdmin.isPending ? <Loader2 className="animate-spin" /> : "حفظ"}
               </Button>
             </div>
           </DialogContent>

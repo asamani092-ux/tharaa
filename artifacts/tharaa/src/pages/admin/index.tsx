@@ -117,20 +117,16 @@ export default function AdminOverview() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card className="border-[var(--error-600)]/40">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2 text-[var(--error-600)]">
-                <AlertTriangle className="w-5 h-5" />
-                دائرة الخطر
+              <CardTitle className="text-sm flex items-center gap-2 text-[var(--error-600)]">
+                <AlertTriangle className="w-4 h-4" />
+                دائرة الخطر ({atRisk?.windowDays ?? 14} يوم)
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-[var(--error-600)]">
-                {atRisk?.count ?? 0} مشارك
-              </p>
-              <p className="text-xs text-[var(--text-secondary)] mt-1">
-                بدون رصد خلال {atRisk?.windowDays ?? 14} يوماً (حقل date)
-              </p>
+              <p className="text-2xl font-bold text-[var(--error-600)]">{atRisk?.count ?? 0}</p>
+              <p className="text-xs text-[var(--text-secondary)] mt-1">مشارك بلا رصد خلال المدة</p>
               {(atRisk?.students?.length ?? 0) > 0 && (
-                <ul className="mt-3 text-sm space-y-1 max-h-32 overflow-y-auto">
+                <ul className="mt-2 text-xs space-y-0.5 max-h-24 overflow-y-auto text-[var(--text-secondary)]">
                   {atRisk.students.slice(0, 8).map((s) => (
                     <li key={s.id}>
                       {s.name} — {s.batchName}
@@ -164,10 +160,11 @@ export default function AdminOverview() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard label="المشاركون (ضمن الفلتر)" value={analytics?.overview?.totalStudents ?? 0} />
+          <StatCard label="المشاركون" value={analytics?.overview?.totalStudents ?? 0} />
           <StatCard
-            label="أتمموا المسار الأساسي"
-            value={analytics?.overview?.totalBooksCompleted ?? 0}
+            label="متوسط إنجاز الدفعة"
+            value={`${analytics?.overview?.avgBatchCumulativeRate ?? 0}%`}
+            valueClassName="text-[var(--secondary-400)]"
           />
           <StatCard
             label="متوسط الإنجاز المرحلي"
@@ -182,7 +179,7 @@ export default function AdminOverview() {
               <div className="px-6 py-4 border-b border-[var(--border-subtle)]">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
                   <Trophy className="w-5 h-5 text-[var(--secondary-400)]" />
-                  فرسان الانضباط
+                  الأكثر التزاماً
                 </h3>
               </div>
               <div className="divide-y divide-[var(--border-subtle)]">
@@ -207,7 +204,7 @@ export default function AdminOverview() {
               <div className="px-6 py-4 border-b border-[var(--border-subtle)]">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
                   <Star className="w-5 h-5 text-[var(--secondary-400)]" />
-                  نخبة القراء (أساسي)
+                  الأكثر قراءة بعدد الصفحات
                 </h3>
               </div>
               <div className="divide-y divide-[var(--border-subtle)]">
