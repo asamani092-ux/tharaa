@@ -473,6 +473,10 @@ try {
         if ($week === '') {
             continue;
         }
+        // لا تدخل سجلات إنجاز سابق / تحفيز اختياري في مؤشر التزام
+        if ($status === 'extra') {
+            continue;
+        }
         if ($status === 'on_time') {
             $onTimeWeeksByUser[$uid][$week] = true;
         } elseif ($status === 'late') {
