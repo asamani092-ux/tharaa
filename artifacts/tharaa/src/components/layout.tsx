@@ -47,17 +47,24 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const navItems = [
+  const role = session?.user?.role;
+  const supervisor = isSupervisorRole(role);
+
+  const adminNavItems = [
     { href: "/admin", label: "نظرة عامة", icon: Home, id: "overview" },
     { href: "/admin/users", label: "إدارة المشاركين", icon: Users, id: "users" },
     { href: "/admin/curriculum", label: "المنهج الدراسي", icon: BookOpen, id: "curriculum" },
     { href: "/admin/batches", label: "الدفعات", icon: Layers, id: "batches" },
     { href: "/admin/analytics", label: "الإحصائيات", icon: BarChart3, id: "analytics" },
     { href: "/admin/settings", label: "الإعدادات", icon: Settings, id: "settings" },
-    ...(isSupervisorRole(session?.user?.role)
-      ? [{ href: "/admin/supervisors", label: "إدارة المشرفين", icon: Shield, id: "supervisors" }]
-      : []),
   ];
+
+  const supervisorNavItems = [
+    { href: "/admin/supervisors", label: "إدارة المشرفين", icon: Shield, id: "supervisors" },
+    { href: "/admin/settings", label: "الإعدادات", icon: Settings, id: "settings" },
+  ];
+
+  const navItems = supervisor ? supervisorNavItems : adminNavItems;
 
   return (
     <div className="flex min-h-screen bg-background text-foreground flex-col md:flex-row font-sans" dir="rtl">
@@ -70,7 +77,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               className="h-12 sm:h-14 w-auto max-w-[220px] object-contain"
             />
             <p className="text-[11px] sm:text-xs text-[var(--text-secondary)] leading-none">
-              لوحة المشرف
+              {supervisor ? "لوحة السوبرفايزر" : "لوحة المشرف"}
             </p>
           </div>
         </div>

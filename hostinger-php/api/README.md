@@ -6,7 +6,7 @@
 | `auth_helpers.php` | للمستودع فقط؛ اختياري على السيرفر (يُحمَّل تلقائياً فقط إن لم تكن الدوال موجودة في `cors.php`) |
 | `analytics.php` | مؤشرات، فلترة دفعة/مسار، دائرة الخطر، عنق الزجاجة |
 | `settings.php` | منهج PDF؛ صيانة وإنجاز سابق (سوبرفايزر)； `atRiskInactiveDays` |
-| `users.php` | `GET ?id=admins`، `POST ?id=admin` (سوبرفايزر)； إنجاز سابق |
+| `users.php` | قائمة المشاركين والإحصائيات: **مشرف (`admin`) فقط**؛ `GET/POST ?id=admins|admin`: **سوبرفايزر** (حسابات `admin` فقط، لا مشاركين ولا سوبرفايزر آخر) |
 | `MIGRATION_supervisor_and_at_risk.sql` | أيام الخطر + دور supervisor |
 | `MIGRATION_curriculum_pdf_by_track.sql` | منهج PDF كامل/ميسر |
 | `MIGRATION_prior_achievement_enabled.sql` | زر إنجاز سابق |

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { eq } from "drizzle-orm";
 import { db, systemSettingsTable } from "@workspace/db";
-import { requireAuth, requireAdmin } from "../lib/auth";
+import { requireAuth, requireStaff } from "../lib/auth";
 
 const router = new Hono();
 
@@ -13,7 +13,7 @@ router.get("/", requireAuth, async (c) => {
   return c.json(settings);
 });
 
-router.patch("/", requireAdmin, async (c) => {
+router.patch("/", requireStaff, async (c) => {
   let [settings] = await db.select().from(systemSettingsTable).limit(1);
   const body = await c.req.json();
   const updates: Record<string, unknown> = { ...body };
