@@ -5,7 +5,13 @@ import { useGetMe } from "@workspace/api-client-react";
 import { Loader2 } from "lucide-react";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { homePathForRole, isStaffRole } from "@/lib/roles";
+import {
+  homePathForRole,
+  isAdminRole,
+  isStaffRole,
+  isSupervisorOnlyPath,
+  isSupervisorRole,
+} from "@/lib/roles";
 
 import Login from "@/pages/login";
 import StudentPortal from "@/pages/student/index";
@@ -41,7 +47,7 @@ function AuthGuard({
   requireRole,
 }: {
   children: React.ReactNode;
-  requireRole?: "staff" | "student";
+  requireRole?: "staff" | "student" | "admin" | "supervisor";
 }) {
   const { data: session, isLoading } = useGetMe();
   const [location, setLocation] = useLocation();
@@ -66,6 +72,21 @@ function AuthGuard({
     }
 
     if (requireRole === "staff" && !isStaffRole(role)) {
+      go(homePathForRole(role));
+      return;
+    }
+
+    if (requireRole === "admin" && !isAdminRole(role)) {
+      go(homePathForRole(role));
+      return;
+    }
+
+    if (requireRole === "supervisor" && !isSupervisorRole(role)) {
+      go(homePathForRole(role));
+      return;
+    }
+
+    if (isSupervisorRole(role) && location.startsWith("/admin") && !isSupervisorOnlyPath(location)) {
       go(homePathForRole(role));
       return;
     }
@@ -108,22 +129,22 @@ function Router() {
       </Route>
 
       <Route path="/admin">
-        <AuthGuard requireRole="staff">
+        <AuthGuard requireRole="admin">
           <AdminDashboard />
         </AuthGuard>
       </Route>
       <Route path="/admin/users">
-        <AuthGuard requireRole="staff">
+        <AuthGuard requireRole="admin">
           <AdminUsers />
         </AuthGuard>
       </Route>
       <Route path="/admin/analytics">
-        <AuthGuard requireRole="staff">
+        <AuthGuard requireRole="admin">
           <AdminAnalytics />
         </AuthGuard>
       </Route>
       <Route path="/admin/curriculum">
-        <AuthGuard requireRole="staff">
+        <AuthGuard requireRole="admin">
           <AdminCurriculum />
         </AuthGuard>
       </Route>
@@ -133,12 +154,12 @@ function Router() {
         </AuthGuard>
       </Route>
       <Route path="/admin/batches">
-        <AuthGuard requireRole="staff">
+        <AuthGuard requireRole="admin">
           <AdminBatches />
         </AuthGuard>
       </Route>
       <Route path="/admin/supervisors">
-        <AuthGuard requireRole="staff">
+        <AuthGuard requireRole="supervisor">
           <AdminSupervisors />
         </AuthGuard>
       </Route>

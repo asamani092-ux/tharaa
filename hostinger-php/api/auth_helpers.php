@@ -25,6 +25,11 @@ function isStaffRole(?string $role): bool
     return in_array($role, ['admin', 'supervisor'], true);
 }
 
+function isAdminRole(?string $role): bool
+{
+    return $role === 'admin';
+}
+
 function isSupervisorRole(?string $role): bool
 {
     return $role === 'supervisor';
@@ -51,6 +56,15 @@ function requireStaffRole(PDO $pdo): string
     $role = requireAuthenticatedRole($pdo);
     if (!isStaffRole($role)) {
         authJsonError(403, 'غير مصرح');
+    }
+    return $role;
+}
+
+function requireAdminRole(PDO $pdo): string
+{
+    $role = requireAuthenticatedRole($pdo);
+    if (!isAdminRole($role)) {
+        authJsonError(403, 'يتطلب صلاحية مشرف');
     }
     return $role;
 }

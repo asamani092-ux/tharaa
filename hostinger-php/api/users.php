@@ -108,6 +108,7 @@ try {
                 echo json_encode(null);
             }
         } elseif ($id && is_numeric($id)) {
+            $callerRole = requireAuthenticatedRole($pdo);
             $stmt = $pdo->prepare("
                 SELECT u.*, b.default_track
                 FROM users u
@@ -115,7 +116,21 @@ try {
                 WHERE u.id = ?
             ");
             $stmt->execute([$id]);
-            echo json_encode(formatUser($stmt->fetch(PDO::FETCH_ASSOC)), JSON_UNESCAPED_UNICODE);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$row) {
+                authJsonError(404, 'المستخدم غير موجود');
+            }
+            $targetRole = (string)$row['role'];
+            if (isSupervisorRole($callerRole)) {
+                if ($targetRole !== 'admin') {
+                    authJsonError(403, 'غير مصرح');
+                }
+            } elseif ($targetRole === 'student') {
+                requireAdminRole($pdo);
+            } elseif ($targetRole === 'supervisor' && !isSupervisorRole($callerRole)) {
+                authJsonError(403, 'غير مصرح');
+            }
+            echo json_encode(formatUser($row), JSON_UNESCAPED_UNICODE);
         } elseif ($id === 'admins') {
             requireSupervisorRole($pdo);
             $stmt = $pdo->query("
@@ -128,7 +143,7 @@ try {
             $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
             echo json_encode(array_map('formatUser', $users), JSON_UNESCAPED_UNICODE);
         } else {
-            requireStaffRole($pdo);
+            requireAdminRole($pdo);
             $stmt = $pdo->query("
                 SELECT u.*, b.default_track
                 FROM users u
@@ -162,7 +177,7 @@ try {
     }
 
     elseif ($method === 'POST' && $id === 'bulk') {
-        requireStaffRole($pdo);
+        requireAdminRole($pdo);
         $data = json_decode(file_get_contents('php://input'), true);
 
         $batchId = $data['batchId'] ?? null;
@@ -214,6 +229,10 @@ try {
     }
 
     elseif ($method === 'POST' && $id === 'custom_progress') {
+        $callerRole = requireAuthenticatedRole($pdo);
+        if (isSupervisorRole($callerRole)) {
+            authJsonError(403, 'غير مصرح');
+        }
         if (!isPriorAchievementEnabled($pdo)) {
             http_response_code(403);
             echo json_encode(['error' => 'ميزة إنجاز سابق معطّلة من إعدادات المنصة'], JSON_UNESCAPED_UNICODE);
@@ -233,6 +252,10 @@ try {
             http_response_code(401);
             echo json_encode(['error' => 'غير مصرح'], JSON_UNESCAPED_UNICODE);
             exit();
+        }
+
+        if ($targetUserId !== getCurrentUserId() && !isAdminRole($callerRole)) {
+            authJsonError(403, 'غير مصرح');
         }
 
         if (!is_array($incoming)) {
@@ -365,8 +388,8 @@ try {
         if ($targetRole === 'supervisor' && !isSupervisorRole($callerRole)) {
             authJsonError(403, 'غير مصرح');
         }
-        if ($targetRole === 'student' && !isStaffRole($callerRole) && (int)$id !== getCurrentUserId()) {
-            authJsonError(403, 'غير مصرح');
+        if ($targetRole === 'student' && !isAdminRole($callerRole)) {
+            authJsonError(403, 'يتطلب صلاحية مشرف');
         }
         if (array_key_exists('role', $data)) {
             authJsonError(403, 'لا يمكن تغيير الدور من هنا');
@@ -424,7 +447,7 @@ try {
     }
 
     elseif ($method === 'DELETE') {
-        requireStaffRole($pdo);
+        $callerRole = requireAuthenticatedRole($pdo);
         $data = json_decode(file_get_contents('php://input'), true);
         $targetId = $id ?? ($data['id'] ?? null);
 
@@ -432,7 +455,7 @@ try {
             http_response_code(400);
             echo json_encode([
                 'success' => false,
-                'error' => 'رقم المشارك مفقود، لا يمكن الحذف',
+                'error' => 'رقم المستخدم مفقود، لا يمكن الحذف',
             ], JSON_UNESCAPED_UNICODE);
             exit();
         }
@@ -440,7 +463,10 @@ try {
         $targetStmt = $pdo->prepare('SELECT role FROM users WHERE id = ?');
         $targetStmt->execute([$targetId]);
         $targetRole = (string)$targetStmt->fetchColumn();
-        if ($targetRole === 'admin' && !isSupervisorRole(getCurrentUserRole($pdo))) {
+        if ($targetRole === 'student' && !isAdminRole($callerRole)) {
+            authJsonError(403, 'يتطلب صلاحية مشرف');
+        }
+        if ($targetRole === 'admin' && !isSupervisorRole($callerRole)) {
             authJsonError(403, 'يتطلب صلاحية سوبرفايزر لحذف مشرف');
         }
         if ($targetRole === 'supervisor') {
