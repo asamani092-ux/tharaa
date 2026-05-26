@@ -235,11 +235,24 @@ export default function AdminAnalytics() {
                   <TableHead className="text-center whitespace-nowrap">المسار</TableHead>
                   <TableHead className="text-center whitespace-nowrap">إنجاز مرحلي</TableHead>
                   <TableHead className="text-center whitespace-nowrap">تقدم دفعة</TableHead>
+<<<<<<< HEAD
                   <TableHead className="text-center whitespace-nowrap">قراءة أساسية</TableHead>
                   <TableHead className="text-center whitespace-nowrap">قراءة اختيارية</TableHead>
                   <TableHead className="text-center whitespace-nowrap">التزام بالإرسال</TableHead>
                   <TableHead className="text-center whitespace-nowrap">اكمال مسار</TableHead>
                   <TableHead className="text-right min-w-[120px]">شريط</TableHead>
+=======
+                  <TableHead className="text-center whitespace-nowrap">تحفيز أساسي</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">تحفيز اختياري</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">التزام</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">ختم مسار</TableHead>
+                  <TableHead
+                    className="text-right w-[240px]"
+                    title="كتب أساسية مكتملة ÷ إجمالي كتب المنهج الأساسية في المسار"
+                  >
+                    الإنجاز التراكمي
+                  </TableHead>
+>>>>>>> c74ba5d (ui: الإنجاز التراكمي بإطار في الإحصائيات، نصاب واحد في رصد الطالب)
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -271,11 +284,25 @@ export default function AdminAnalytics() {
                       <TableCell className="text-center">
                         {s.trackCompleted ? "نعم" : "لا"}
                       </TableCell>
-                      <TableCell title={`${Number(s.completedCoreBooksInTrack ?? 0)} / ${Number(s.totalCoreBooksInTrack ?? 0)} كتاب أساسي`}>
-                        <Progress
-                          value={Number(s.curriculumBooksProgressRate ?? 0)}
-                          className="h-2 min-w-[80px]"
-                        />
+                      <TableCell>
+                        {(() => {
+                          const rate = Number(s.curriculumBooksProgressRate ?? 0);
+                          const done = Number(s.completedCoreBooksInTrack ?? 0);
+                          const total = Number(s.totalCoreBooksInTrack ?? 0);
+                          return (
+                            <div className="min-w-[200px] rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] p-2">
+                              <div className="flex items-center gap-2">
+                                <Progress value={rate} className="h-2 flex-1" tone="gold" />
+                                <span className="text-xs font-semibold text-[var(--secondary-400)] tabular-nums shrink-0">
+                                  {rate}%
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-[var(--text-secondary)] mt-1 tabular-nums">
+                                {done}/{total} كتاب
+                              </p>
+                            </div>
+                          );
+                        })()}
                       </TableCell>
                     </TableRow>
                   ))
