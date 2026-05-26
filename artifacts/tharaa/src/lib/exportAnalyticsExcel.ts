@@ -16,6 +16,7 @@ export const ANALYTICS_EXPORT_HEADERS = [
   "ختم المسار الأساسي",
   "عدد كتب مكتملة",
   "إجمالي صفحات المسار الأساسي",
+  "تقدم المنهج بالكتب %",
 ] as const;
 
 export function analyticsRowToExportCells(s: Record<string, unknown>): (string | number)[] {
@@ -35,6 +36,7 @@ export function analyticsRowToExportCells(s: Record<string, unknown>): (string |
     s.trackCompleted ? "نعم" : "لا",
     Number(s.completedBooksCount ?? 0),
     Number(s.totalCoreTrackPages ?? 0),
+    Number(s.curriculumBooksProgressRate ?? 0),
   ];
 }
 

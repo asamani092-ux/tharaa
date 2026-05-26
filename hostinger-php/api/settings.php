@@ -35,6 +35,37 @@ function normalizePdfUrlInput($val): ?string
     return is_string($val) && trim($val) !== '' ? trim($val) : null;
 }
 
+/** أسماء أيام الرصد — مطابقة submissionWindow.ts */
+function submissionDayNameToNum(?string $dayName): ?int
+{
+    static $map = [
+        'Sunday' => 0,
+        'Monday' => 1,
+        'Tuesday' => 2,
+        'Wednesday' => 3,
+        'Thursday' => 4,
+        'Friday' => 5,
+        'Saturday' => 6,
+    ];
+    if ($dayName === null || trim($dayName) === '') {
+        return null;
+    }
+    $name = trim($dayName);
+    return $map[$name] ?? null;
+}
+
+function syncSubmissionDaysFromPrimary(string $primaryDayName): ?array
+{
+    $start = submissionDayNameToNum($primaryDayName);
+    if ($start === null) {
+        return null;
+    }
+    return [
+        'submission_start_day' => $start,
+        'late_deadline_day' => ($start + 1) % 7,
+    ];
+}
+
 function formatSettingsRow(?array $row): array
 {
     if (!$row) {
@@ -114,6 +145,14 @@ try {
             }
         }
 
+        if (array_key_exists('primaryDay', $data) && is_string($data['primaryDay'])) {
+            $synced = syncSubmissionDaysFromPrimary($data['primaryDay']);
+            if ($synced !== null) {
+                $data['submissionStartDay'] = $synced['submission_start_day'];
+                $data['lateDeadlineDay'] = $synced['late_deadline_day'];
+            }
+        }
+
         $map = [
             'weeklyQuota' => 'weekly_quota',
             'submissionStartDay' => 'submission_start_day',
@@ -153,6 +192,25 @@ try {
             }
             $fields[] = "$col = ?";
             $params[] = $val;
+        }
+
+        if (array_key_exists('primaryDay', $data) && is_string($data['primaryDay'])) {
+            $synced = syncSubmissionDaysFromPrimary($data['primaryDay']);
+            if ($synced !== null) {
+                foreach ($synced as $col => $num) {
+                    $already = false;
+                    foreach ($fields as $f) {
+                        if (strpos($f, $col . ' =') === 0) {
+                            $already = true;
+                            break;
+                        }
+                    }
+                    if (!$already) {
+                        $fields[] = "$col = ?";
+                        $params[] = $num;
+                    }
+                }
+            }
         }
 
         $existing = $pdo->query('SELECT id FROM settings LIMIT 1')->fetch(PDO::FETCH_ASSOC);

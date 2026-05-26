@@ -11,6 +11,7 @@
 | تحفيز أساسي | `gamificationPages` | كما البسط أعلاه | — |
 | تحفيز اختياري | `gamificationPagesOptional` | سجلات + كتب اختيارية مكتملة | — |
 | ختم المسار | `trackCompleted` | كل كتب **أساسية** في المسار في `completed_books` | — |
+| موعد الختم (تقدير) | `expectedFinishHint` | نص تحفيزي؛ سقف الأشهر: **27** للمسار الكامل، **20** للميسر |
 
 ## مؤشرات المشرف (`usersDetail`)
 
@@ -19,6 +20,7 @@
 | المسار | `effectiveTrack` / `trackLabelAr` | تجاوز المشارك أو `default_track` للدفعة |
 | إنجاز مرحلي % | `stageCompletionRate` | أساسي رسمي ÷ هدف دفعة أساسي |
 | تقدم تراكمي للدفعة % | `batchCumulativeRate` | سجلات أساسية ÷ هدف دفعة أساسي |
+| شريط المنهج (جدول الإحصائيات) | `curriculumBooksProgressRate` | كتب أساسية مكتملة ÷ إجمالي كتب المنهج الأساسية في المسار (تراكمي، بلا تاريخ) |
 | هدف الدفعة | `batchPaceTarget` | مقام التراكمي |
 | تحفيز أساسي / اختياري | `gamificationPages` / `gamificationPagesOptional` | صفحات |
 | التزام | `commitmentIndex` | `(أسابيع في الموعد + 0.5×متأخر) ÷ أسبوع_الدفعة` — **بلا** `submission_status = extra`؛ بطاقة الإحصائيات تعرض `min(100, متوسط×100)%` |

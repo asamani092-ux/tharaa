@@ -271,8 +271,11 @@ export default function AdminAnalytics() {
                       <TableCell className="text-center">
                         {s.trackCompleted ? "نعم" : "لا"}
                       </TableCell>
-                      <TableCell>
-                        <Progress value={Number(s.batchCumulativeRate)} className="h-2 min-w-[80px]" />
+                      <TableCell title={`${Number(s.completedCoreBooksInTrack ?? 0)} / ${Number(s.totalCoreBooksInTrack ?? 0)} كتاب أساسي`}>
+                        <Progress
+                          value={Number(s.curriculumBooksProgressRate ?? 0)}
+                          className="h-2 min-w-[80px]"
+                        />
                       </TableCell>
                     </TableRow>
                   ))
