@@ -988,20 +988,6 @@ export default function StudentPortal() {
                     )}
                   </div>
 
-                  {selectedBook &&
-                    parseInt(bookId, 10) === currentBook?.id &&
-                    effectiveLastPage > 0 && (
-                      <div className="p-3 rounded-[var(--radius-lg)] bg-[var(--bg-tertiary)] border">
-                        <Progress
-                          value={(effectiveLastPage / selectedBook.totalPages) * 100}
-                          className="h-1.5"
-                        />
-                        <p className="text-xs mt-2 text-[var(--text-secondary)]">
-                          {effectiveLastPage} / {selectedBook.totalPages} — متبقي {remainingInCurrentBook}
-                        </p>
-                      </div>
-                    )}
-
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label>من صفحة</Label>
@@ -1035,14 +1021,28 @@ export default function StudentPortal() {
                   </div>
 
                   {bookId && !isExtraMode && !selectedBookIsOptional && (
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-[var(--text-secondary)]">النصاب</span>
-                        <span>
-                          {pagesCount} / {weeklyQuota}
+                    <div className="rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Progress
+                          value={Math.min(100, (pagesCount / weeklyQuota) * 100)}
+                          className="h-2 flex-1"
+                          tone="gold"
+                        />
+                        <span className="text-xs font-semibold text-[var(--secondary-400)] tabular-nums shrink-0">
+                          {Math.min(100, Math.round((pagesCount / weeklyQuota) * 100))}%
                         </span>
                       </div>
-                      <Progress value={Math.min(100, (pagesCount / weeklyQuota) * 100)} />
+                      <p className="text-[10px] text-[var(--text-secondary)] tabular-nums">
+                        النصاب: {pagesCount} / {weeklyQuota} صفحة
+                      </p>
+                      {selectedBook &&
+                        parseInt(bookId, 10) === currentBook?.id &&
+                        effectiveLastPage > 0 && (
+                          <p className="text-[10px] text-[var(--text-disabled)] leading-relaxed">
+                            في «{selectedBook.title}»: {effectiveLastPage}/{selectedBook.totalPages} — متبقي{" "}
+                            {remainingInCurrentBook} صفحة
+                          </p>
+                        )}
                     </div>
                   )}
 

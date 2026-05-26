@@ -16,7 +16,7 @@ export const ANALYTICS_EXPORT_HEADERS = [
   "ختم المسار الأساسي",
   "عدد كتب مكتملة",
   "إجمالي صفحات المسار الأساسي",
-  "تقدم المنهج بالكتب %",
+  "الإنجاز التراكمي %",
 ] as const;
 
 export function analyticsRowToExportCells(s: Record<string, unknown>): (string | number)[] {
