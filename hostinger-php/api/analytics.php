@@ -629,6 +629,9 @@ try {
             'avgCommitmentIndex' => $count > 0
                 ? round(array_sum(array_column($usersDetail, 'commitmentIndex')) / $count, 2)
                 : 0,
+            'avgBatchCumulativeRate' => $count > 0
+                ? round(array_sum(array_column($usersDetail, 'batchCumulativeRate')) / $count, 1)
+                : 0,
         ],
         'usersDetail' => $usersDetail,
         'batchStats' => $batchStats,

@@ -151,10 +151,14 @@ export default function AdminAnalytics() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <StatCard label="المشاركون" value={isLoading ? "..." : rows.length} />
-          <StatCard label="متوسط إنجاز مرحلي" value={`${avgStage}%`} />
-          <StatCard label="متوسط تقدم دفعة" value={`${avgBatch}%`} />
+          <StatCard label="متوسط إنجاز الدفعة" value={`${avgBatch}%`} />
+          <StatCard label="متوسط الإنجاز المرحلي" value={`${avgStage}%`} />
+          <StatCard
+            label="أتمّوا المسار الأساسي"
+            value={analytics?.overview?.totalBooksCompleted ?? 0}
+          />
           <StatCard
             label="متوسط التزام"
             value={
@@ -173,7 +177,7 @@ export default function AdminAnalytics() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Shield className="w-4 h-4" />
-                فرسان الانضباط
+                الأكثر التزاماً
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
@@ -191,7 +195,7 @@ export default function AdminAnalytics() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Star className="w-4 h-4" />
-                نخبة القراء (أساسي)
+                الأكثر قراءة بعدد الصفحات
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
