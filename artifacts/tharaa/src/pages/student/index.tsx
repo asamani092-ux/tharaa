@@ -60,7 +60,6 @@ import {
   quotaRemainingAfter,
   needsMultiBookContinuation,
   suggestPageRange,
-  buildRolloverRow,
   booksAvailableForRollover,
   consumedAllAvailableInBook,
   validatePageRangeAgainstBook,
@@ -218,6 +217,9 @@ export default function StudentPortal() {
   const [showReflection, setShowReflection] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [nextBookIdForRollover, setNextBookIdForRollover] = useState<string>("");
+  const [rolloverStartPage, setRolloverStartPage] = useState(1);
+  const [rolloverEndPage, setRolloverEndPage] = useState(1);
+  const [rolloverPagesManuallyEdited, setRolloverPagesManuallyEdited] = useState(false);
   const [pendingSubmissionData, setPendingSubmissionData] = useState<{
     rows: LogRow[];
     reflection?: string;
@@ -530,7 +532,40 @@ export default function StudentPortal() {
     });
     setShowCompletionModal(true);
     setNextBookIdForRollover("");
+    setRolloverPagesManuallyEdited(false);
+    setRolloverStartPage(1);
+    setRolloverEndPage(Math.max(1, remainingQuota));
   };
+
+  const rolloverSelectedBook = useMemo(() => {
+    if (!nextBookIdForRollover) return null;
+    return (
+      availableCoreBooks.find((b) => b.id.toString() === nextBookIdForRollover) ?? null
+    );
+  }, [nextBookIdForRollover, availableCoreBooks]);
+
+  useEffect(() => {
+    if (!pendingSubmissionData || !rolloverSelectedBook || rolloverPagesManuallyEdited) {
+      return;
+    }
+    const alreadyLogged = sumPages(pendingSubmissionData.rows);
+    const range = suggestPageRange(
+      rolloverSelectedBook,
+      lastPageForBook(rolloverSelectedBook),
+      weeklyQuota,
+      alreadyLogged,
+      true
+    );
+    setRolloverStartPage(range.startPage);
+    setRolloverEndPage(range.endPage);
+  }, [
+    pendingSubmissionData,
+    rolloverSelectedBook,
+    rolloverPagesManuallyEdited,
+    weeklyQuota,
+    user?.currentBookId,
+    user?.lastPage,
+  ]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -595,13 +630,31 @@ export default function StudentPortal() {
       return;
     }
 
-    const rows = [...pendingSubmissionData.rows];
-    const nextRow = buildRolloverRow(
+    const lastPageOnNext = lastPageForBook(nextBook);
+    const rangeCheck = validatePageRangeAgainstBook(
       nextBook,
-      pendingSubmissionData.remainingPages,
-      lastPageForBook(nextBook)
+      rolloverStartPage,
+      rolloverEndPage,
+      lastPageOnNext
     );
+    if (!rangeCheck.ok) {
+      toast.error(rangeCheck.message ?? "تحقق من نطاق الصفحات في الكتاب التالي");
+      if (rangeCheck.normalizedEnd !== rolloverEndPage) {
+        setRolloverEndPage(rangeCheck.normalizedEnd);
+      }
+      return;
+    }
+
+    const rows = [...pendingSubmissionData.rows];
+    const nextRow = normalizeRow(nextBook, rolloverStartPage, rangeCheck.normalizedEnd);
     rows.push(nextRow);
+
+    const totalPages = sumPages(rows);
+    if (totalPages > weeklyQuota) {
+      toast.info(
+        `سُجِّل ${totalPages} صفحة (أكثر من النصاب ${weeklyQuota}) — قراءتك الفعلية محفوظة.`
+      );
+    }
 
     const stillRemaining = quotaRemainingAfter(rows, weeklyQuota);
     const usedIds = new Set(rows.map((r) => r.bookId));
@@ -609,7 +662,7 @@ export default function StudentPortal() {
 
     if (
       stillRemaining > 0 &&
-      consumedAllAvailableInBook(nextBook, nextRow, lastPageForBook(nextBook)) &&
+      consumedAllAvailableInBook(nextBook, nextRow, lastPageOnNext) &&
       moreBooks.length > 0
     ) {
       toast.info(`متبقي ${stillRemaining} صفحة من النصاب — اختر كتاباً آخر أو تخطَّ`);
@@ -619,6 +672,7 @@ export default function StudentPortal() {
         remainingPages: stillRemaining,
       });
       setNextBookIdForRollover("");
+      setRolloverPagesManuallyEdited(false);
       return;
     }
 
@@ -631,24 +685,7 @@ export default function StudentPortal() {
     return booksAvailableForRollover(availableCoreBooks, used);
   }, [pendingSubmissionData, availableCoreBooks]);
 
-  const rolloverPreview = useMemo(() => {
-    if (!pendingSubmissionData || !nextBookIdForRollover) return null;
-    const nextBook = availableCoreBooks.find(
-      (b) => b.id.toString() === nextBookIdForRollover
-    );
-    if (!nextBook) return null;
-    return buildRolloverRow(
-      nextBook,
-      pendingSubmissionData.remainingPages,
-      lastPageForBook(nextBook)
-    );
-  }, [
-    pendingSubmissionData,
-    nextBookIdForRollover,
-    availableCoreBooks,
-    user?.currentBookId,
-    user?.lastPage,
-  ]);
+  const rolloverPagesCount = Math.max(0, rolloverEndPage - rolloverStartPage + 1);
 
   const submitCustomProgress = async () => {
     if (!priorAchievementEnabled) {
@@ -1342,7 +1379,16 @@ export default function StudentPortal() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={showCompletionModal} onOpenChange={setShowCompletionModal}>
+        <Dialog
+          open={showCompletionModal}
+          onOpenChange={(open) => {
+            setShowCompletionModal(open);
+            if (!open) {
+              setNextBookIdForRollover("");
+              setRolloverPagesManuallyEdited(false);
+            }
+          }}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>أكمل النصاب الأسبوعي</DialogTitle>
@@ -1367,7 +1413,13 @@ export default function StudentPortal() {
                     })}
                   </ul>
                 )}
-                <Select value={nextBookIdForRollover} onValueChange={setNextBookIdForRollover}>
+                <Select
+                  value={nextBookIdForRollover}
+                  onValueChange={(value) => {
+                    setNextBookIdForRollover(value);
+                    setRolloverPagesManuallyEdited(false);
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="الكتاب التالي في المرحلة" />
                   </SelectTrigger>
@@ -1384,12 +1436,51 @@ export default function StudentPortal() {
                     ))}
                   </SelectContent>
                 </Select>
-                {rolloverPreview && (
-                  <p className="text-xs text-[var(--text-primary)] bg-[var(--bg-tertiary)] p-2 rounded-md">
-                    سيُحقَن: من صفحة <strong>{rolloverPreview.startPage}</strong> إلى{" "}
-                    <strong>{rolloverPreview.endPage}</strong> (
-                    {pagesInRow(rolloverPreview)} صفحة)
-                  </p>
+                {rolloverSelectedBook && (
+                  <div className="rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3 space-y-3">
+                    <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                      أدخل الصفحة التي وصلت إليها في «{rolloverSelectedBook.title}». يمكنك تسجيل
+                      أكثر من المتبقي من النصاب ({pendingSubmissionData.remainingPages} ص) إن قرأت
+                      ahead.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">من صفحة</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={rolloverSelectedBook.totalPages}
+                          value={rolloverStartPage}
+                          onChange={(e) => {
+                            setRolloverPagesManuallyEdited(true);
+                            setRolloverStartPage(Math.max(1, parseInt(e.target.value, 10) || 1));
+                          }}
+                          className="h-10 text-center"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">إلى صفحة</Label>
+                        <Input
+                          type="number"
+                          min={rolloverStartPage}
+                          max={rolloverSelectedBook.totalPages}
+                          value={rolloverEndPage}
+                          onChange={(e) => {
+                            setRolloverPagesManuallyEdited(true);
+                            setRolloverEndPage(
+                              parseInt(e.target.value, 10) || rolloverStartPage
+                            );
+                          }}
+                          className="h-10 text-center"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-[var(--text-primary)] tabular-nums">
+                      هذا الجزء: <strong>{rolloverPagesCount}</strong> صفحة — المجموع بعد الإرسال:{" "}
+                      <strong>{sumPages(pendingSubmissionData.rows) + rolloverPagesCount}</strong> /{" "}
+                      {weeklyQuota}
+                    </p>
+                  </div>
                 )}
                 <div className="flex gap-3">
                   <Button

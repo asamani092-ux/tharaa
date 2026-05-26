@@ -93,7 +93,10 @@ export function suggestPageRange(
   return { startPage, endPage: startPage + pagesToRead - 1 };
 }
 
-/** صف لكتاب تالي في حلقة النصاب — يقرأ على الأقل صفحة واحدة إن وُجد متبقٍ. */
+/**
+ * صف لكتاب تالي — اقتراح افتراضي (حد أدنى ≈ المتبقي من النصاب).
+ * واجهة الرصد قد تسمح بمدى أوسع عبر validatePageRangeAgainstBook.
+ */
 export function buildRolloverRow(
   book: BookSlice,
   pagesNeeded: number,
