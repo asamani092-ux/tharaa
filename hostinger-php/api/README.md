@@ -2,7 +2,8 @@
 
 | ملف | ملاحظة |
 |-----|--------|
-| `auth_helpers.php` | أدوار `admin` / `supervisor` / `student` |
+| **`cors.php`** | **إلزامي** — CORS + كل دوال الصلاحيات. **لا تحتاج** `auth_helpers.php` على Hostinger إذا رفعت هذا الملف. |
+| `auth_helpers.php` | للمستودع فقط؛ اختياري على السيرفر (يُحمَّل تلقائياً فقط إن لم تكن الدوال موجودة في `cors.php`) |
 | `analytics.php` | مؤشرات، فلترة دفعة/مسار، دائرة الخطر، عنق الزجاجة |
 | `settings.php` | منهج PDF؛ صيانة وإنجاز سابق (سوبرفايزر)； `atRiskInactiveDays` |
 | `users.php` | `GET ?id=admins`، `POST ?id=admin` (سوبرفايزر)； إنجاز سابق |
