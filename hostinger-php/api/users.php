@@ -121,13 +121,10 @@ try {
                 authJsonError(404, 'المستخدم غير موجود');
             }
             $targetRole = (string)$row['role'];
-            if (isSupervisorRole($callerRole)) {
-                if ($targetRole !== 'admin') {
-                    authJsonError(403, 'غير مصرح');
-                }
-            } elseif ($targetRole === 'student') {
-                requireAdminRole($pdo);
-            } elseif ($targetRole === 'supervisor' && !isSupervisorRole($callerRole)) {
+            if ($targetRole === 'supervisor' && !isSupervisorRole($callerRole) && (int)$id !== getCurrentUserId()) {
+                authJsonError(403, 'غير مصرح');
+            }
+            if ($targetRole === 'student' && !isStaffRole($callerRole) && (int)$id !== getCurrentUserId()) {
                 authJsonError(403, 'غير مصرح');
             }
             echo json_encode(formatUser($row), JSON_UNESCAPED_UNICODE);
@@ -143,7 +140,7 @@ try {
             $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
             echo json_encode(array_map('formatUser', $users), JSON_UNESCAPED_UNICODE);
         } else {
-            requireAdminRole($pdo);
+            requireStaffRole($pdo);
             $stmt = $pdo->query("
                 SELECT u.*, b.default_track
                 FROM users u
@@ -177,7 +174,7 @@ try {
     }
 
     elseif ($method === 'POST' && $id === 'bulk') {
-        requireAdminRole($pdo);
+        requireStaffRole($pdo);
         $data = json_decode(file_get_contents('php://input'), true);
 
         $batchId = $data['batchId'] ?? null;
@@ -230,9 +227,6 @@ try {
 
     elseif ($method === 'POST' && $id === 'custom_progress') {
         $callerRole = requireAuthenticatedRole($pdo);
-        if (isSupervisorRole($callerRole)) {
-            authJsonError(403, 'غير مصرح');
-        }
         if (!isPriorAchievementEnabled($pdo)) {
             http_response_code(403);
             echo json_encode(['error' => 'ميزة إنجاز سابق معطّلة من إعدادات المنصة'], JSON_UNESCAPED_UNICODE);
@@ -254,7 +248,7 @@ try {
             exit();
         }
 
-        if ($targetUserId !== getCurrentUserId() && !isAdminRole($callerRole)) {
+        if ($targetUserId !== getCurrentUserId() && !isStaffRole($callerRole)) {
             authJsonError(403, 'غير مصرح');
         }
 
@@ -388,8 +382,8 @@ try {
         if ($targetRole === 'supervisor' && !isSupervisorRole($callerRole)) {
             authJsonError(403, 'غير مصرح');
         }
-        if ($targetRole === 'student' && !isAdminRole($callerRole)) {
-            authJsonError(403, 'يتطلب صلاحية مشرف');
+        if ($targetRole === 'student' && !isStaffRole($callerRole) && !$isSelf) {
+            authJsonError(403, 'غير مصرح');
         }
         if (array_key_exists('role', $data)) {
             authJsonError(403, 'لا يمكن تغيير الدور من هنا');
@@ -447,7 +441,7 @@ try {
     }
 
     elseif ($method === 'DELETE') {
-        $callerRole = requireAuthenticatedRole($pdo);
+        requireStaffRole($pdo);
         $data = json_decode(file_get_contents('php://input'), true);
         $targetId = $id ?? ($data['id'] ?? null);
 
@@ -455,7 +449,7 @@ try {
             http_response_code(400);
             echo json_encode([
                 'success' => false,
-                'error' => 'رقم المستخدم مفقود، لا يمكن الحذف',
+                'error' => 'رقم المشارك مفقود، لا يمكن الحذف',
             ], JSON_UNESCAPED_UNICODE);
             exit();
         }
@@ -463,10 +457,7 @@ try {
         $targetStmt = $pdo->prepare('SELECT role FROM users WHERE id = ?');
         $targetStmt->execute([$targetId]);
         $targetRole = (string)$targetStmt->fetchColumn();
-        if ($targetRole === 'student' && !isAdminRole($callerRole)) {
-            authJsonError(403, 'يتطلب صلاحية مشرف');
-        }
-        if ($targetRole === 'admin' && !isSupervisorRole($callerRole)) {
+        if ($targetRole === 'admin' && !isSupervisorRole(getCurrentUserRole($pdo))) {
             authJsonError(403, 'يتطلب صلاحية سوبرفايزر لحذف مشرف');
         }
         if ($targetRole === 'supervisor') {

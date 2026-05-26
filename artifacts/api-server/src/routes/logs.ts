@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { getCookie } from 'hono/cookie';
 import { eq, and } from "drizzle-orm";
 import { db, readingLogsTable, curriculumTable, systemSettingsTable, usersTable } from "@workspace/db";
-import { requireAuth, requireAdmin } from "../lib/auth";
+import { requireAuth, requireStaff } from "../lib/auth";
 
 const router = new Hono();
 
@@ -26,7 +26,7 @@ function getWeekLabel(): string {
 }
 
 // جلب السجلات (للمدمن)
-router.get("/", requireAdmin, async (c) => {
+router.get("/", requireStaff, async (c) => {
   const userId = c.req.query('userId');
   const week = c.req.query('week');
 

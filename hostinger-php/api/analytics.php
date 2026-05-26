@@ -420,7 +420,7 @@ function buildBookBottleneck(array $filteredUsers, array $booksMap): ?array
 try {
     $scopeMe = isset($_GET['scope']) && $_GET['scope'] === 'me';
     if (!$scopeMe) {
-        requireAdminRole($pdo);
+        requireStaffRole($pdo);
     }
 
     $settings = loadSettings($pdo);

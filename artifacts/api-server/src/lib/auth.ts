@@ -31,10 +31,7 @@ export async function requireStaff(c: Context, next: Next) {
   await next();
 }
 
-/**
- * مشرف تشغيلي فقط (مشاركين، إحصائيات، منهج، دفعات)
- * السوبرفايزر لا يرى المشاركين ولا لوحات التشغيل.
- */
+/** مشرف تشغيلي فقط (بدون صلاحيات السوبرفايزر الحصرية) */
 export async function requireAdmin(c: Context, next: Next) {
   const userId = getCookie(c, "userId");
   const userRole = getCookie(c, "userRole");
