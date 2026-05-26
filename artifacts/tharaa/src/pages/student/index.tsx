@@ -455,7 +455,7 @@ export default function StudentPortal() {
     reflectionText?: string
   ) => {
     if (mode === "primary" && trackCompleted) {
-      toast.info("أتممت مسارك — الرصد الأسبوعي غير مطلوب. يمكنك إنجازاً إضافياً للتحفيز.");
+      toast.info("أتممت مسارك — الرصد الأسبوعي غير مطلوب. يمكنك إرسال إنجاز إضافي .");
       return;
     }
     if (isSubmitting || rows.length === 0) return;
@@ -476,7 +476,7 @@ export default function StudentPortal() {
         toast.success("شكراً لك! تم تسجيل رصدك الأسبوعي بنجاح");
       } else {
         setIsExtraMode(false);
-        toast.success("تم تسجيل الإنجاز الإضافي (تحفيز فقط)");
+        toast.success("تم تسجيل الإنجاز الإضافي ");
       }
 
       setReflection("");
@@ -690,7 +690,7 @@ export default function StudentPortal() {
       const added = result.gamificationPagesAdded ?? 0;
       if (added > 0) {
         toast.success(
-          `تم اعتماد الكتب السابقة. أُضيف ${added} صفحة إلى حصيلة التحفيز.`
+          `تم اعتماد الكتب السابقة. أُضيف ${added} صفحة   .`
         );
       } else {
         toast.success("تم اعتماد الكتب السابقة بنجاح!");
@@ -742,7 +742,7 @@ export default function StudentPortal() {
             <Trophy className="w-5 h-5 text-[var(--success-600)] shrink-0" />
             <span className={successText}>
               أتممت المنهج <strong>الأساسي</strong> في المسار <strong>{trackLabelAr}</strong>.
-              الرصد الأسبوعي مغلق؛ يمكنك إرسال إنجاز إضافي (بما فيه كتب اختيارية) للتحفيز.
+              الرصد الأسبوعي مغلق؛    .
             </span>
           </div>
         )}
@@ -765,7 +765,7 @@ export default function StudentPortal() {
                 className="w-full max-w-xs mx-auto h-11 rounded-[var(--radius-lg)]"
                 onClick={openExtraLogMode}
               >
-                إرسال إنجاز إضافي (تحفيز)
+                إرسال إنجاز إضافي 
               </Button>
             </CardContent>
           ) : logCardMode === "submitted" ? (
@@ -776,7 +776,7 @@ export default function StudentPortal() {
                   شكراً لك! تم تسليم رصدك الأسبوعي بنجاح
                 </p>
                 <p className="text-sm text-[var(--text-secondary)] mt-2 max-w-md mx-auto leading-relaxed">
-                  الإنجاز الإضافي يزيد صفحاتك (تحفيز) فقط ولا يغيّر تقييمك الأسبوعي المغلق.
+                  الإنجاز الإضافي يزيد صفحاتك ولا يغيّر تقييمك الأسبوعي المغلق.
                 </p>
               </div>
               <Button
@@ -798,8 +798,7 @@ export default function StudentPortal() {
                 <p className="text-sm text-[var(--text-secondary)] mt-2 max-w-md mx-auto leading-relaxed">
                   موعد الرصد: <strong>{submissionWindow.primaryDayLabelAr}</strong>، ويوم التأخير:{" "}
                   <strong>{submissionWindow.lateDayLabelAr}</strong>. اليوم:{" "}
-                  <strong>{submissionWindow.todayLabelAr}</strong>. يمكنك إرسال إنجاز إضافي (تحفيز)
-                  دون أن يُحسب رصداً أسبوعياً.
+                  <strong>{submissionWindow.todayLabelAr}</strong>. يمكنك إرسال إنجاز إضافي 
                 </p>
               </div>
               <Button
@@ -817,7 +816,7 @@ export default function StudentPortal() {
                 <CardTitle className="text-[var(--font-lg)] flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <BookOpen className="w-5 h-5 text-[var(--primary-600)]" />
-                    {isExtraMode ? "إنجاز إضافي (تحفيز)" : "الرصد الأسبوعي"}
+                    {isExtraMode ? "إنجاز إضافي " : "الرصد الأسبوعي"}
                   </div>
                   {isExtraMode && (
                     <Button
@@ -840,8 +839,8 @@ export default function StudentPortal() {
                   <div className={`${bannerBase} bg-[var(--bg-tertiary)] mb-4`}>
                     <Info className="w-4 h-4 text-[var(--secondary-400)] shrink-0 mt-0.5" />
                     <span className="text-sm text-[var(--text-secondary)]">
-                      إنجاز إضافي (تحفيز) — لا يرتبط بالنصاب الأسبوعي ولا يعدّل تقييم الرصد
-                      الرسمي.
+                      إنجاز إضافي  
+                      .
                     </span>
                   </div>
                 )}
@@ -947,7 +946,7 @@ export default function StudentPortal() {
                           <>
                             {availableBooksCore.length > 0 && <SelectSeparator />}
                             <SelectGroup>
-                              <SelectLabel>اختياري — تحفيز فقط</SelectLabel>
+                              <SelectLabel>اختياري</SelectLabel>
                               {availableBooksOptional.map((book) => (
                                 <SelectItem key={book.id} value={book.id.toString()}>
                                   <span className="flex items-center gap-2">
@@ -969,8 +968,8 @@ export default function StudentPortal() {
                       >
                         <Info className="w-4 h-4 text-[var(--secondary-400)] shrink-0 mt-0.5" />
                         <span className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                          كتاب اختياري — يُسجَّل للتحفيز فقط ولا يُحسب ضمن النصاب الأسبوعي
-                          ولا الإنجاز الأساسي.
+                          كتاب اختياري
+                           .
                         </span>
                       </div>
                     )}
@@ -1081,7 +1080,7 @@ export default function StudentPortal() {
                       <Loader2 className="animate-spin" />
                     ) : isExtraMode || selectedBookIsOptional ? (
                       selectedBookIsOptional && !isExtraMode
-                        ? "تسجيل قراءة اختيارية (تحفيز)"
+                        ? "تسجيل قراءة اختيارية "
                         : "إرسال إنجاز إضافي"
                     ) : (
                       "اعتماد الرصد"
