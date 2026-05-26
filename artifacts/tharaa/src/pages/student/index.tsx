@@ -63,6 +63,8 @@ import {
   booksAvailableForRollover,
   consumedAllAvailableInBook,
   validatePageRangeAgainstBook,
+  clampPageRangeToBook,
+  bookTotalPages,
 } from "@/lib/weeklyLogEngine";
 
 const WEEKLY_QUOTA = 75;
@@ -556,8 +558,14 @@ export default function StudentPortal() {
       alreadyLogged,
       true
     );
-    setRolloverStartPage(range.startPage);
-    setRolloverEndPage(range.endPage);
+    const clamped = clampPageRangeToBook(
+      rolloverSelectedBook,
+      range.startPage,
+      range.endPage,
+      lastPageForBook(rolloverSelectedBook)
+    );
+    setRolloverStartPage(clamped.startPage);
+    setRolloverEndPage(clamped.endPage);
   }, [
     pendingSubmissionData,
     rolloverSelectedBook,
@@ -1045,11 +1053,34 @@ export default function StudentPortal() {
                       <Input
                         type="number"
                         min={startPage}
-                        max={selectedBook?.totalPages}
+                        max={selectedBook ? bookTotalPages(selectedBook) : undefined}
                         value={endPage}
                         onChange={(e) => {
                           setPagesManuallyEdited(true);
-                          setEndPage(parseInt(e.target.value, 10) || startPage);
+                          if (!selectedBook) {
+                            setEndPage(parseInt(e.target.value, 10) || startPage);
+                            return;
+                          }
+                          const raw = parseInt(e.target.value, 10) || startPage;
+                          const clamped = clampPageRangeToBook(
+                            selectedBook,
+                            startPage,
+                            raw,
+                            lastPageForBook(selectedBook)
+                          );
+                          setStartPage(clamped.startPage);
+                          setEndPage(clamped.endPage);
+                        }}
+                        onBlur={() => {
+                          if (!selectedBook) return;
+                          const clamped = clampPageRangeToBook(
+                            selectedBook,
+                            startPage,
+                            endPage,
+                            lastPageForBook(selectedBook)
+                          );
+                          setStartPage(clamped.startPage);
+                          setEndPage(clamped.endPage);
                         }}
                         className="h-11 text-center"
                         required
@@ -1436,25 +1467,40 @@ export default function StudentPortal() {
                     ))}
                   </SelectContent>
                 </Select>
-                {rolloverSelectedBook && (
+                {rolloverSelectedBook && (() => {
+                  const rolloverBookTotal = bookTotalPages(rolloverSelectedBook);
+                  const rolloverLast = lastPageForBook(rolloverSelectedBook);
+                  const applyRolloverRange = (nextStart: number, nextEnd: number) => {
+                    const clamped = clampPageRangeToBook(
+                      rolloverSelectedBook,
+                      nextStart,
+                      nextEnd,
+                      rolloverLast
+                    );
+                    setRolloverStartPage(clamped.startPage);
+                    setRolloverEndPage(clamped.endPage);
+                  };
+                  return (
                   <div className="rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3 space-y-3">
                     <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-                      أدخل الصفحة التي وصلت إليها في «{rolloverSelectedBook.title}». يمكنك تسجيل
-                      أكثر من المتبقي من النصاب ({pendingSubmissionData.remainingPages} ص) إن قرأت
-                      ahead.
+                      أدخل الصفحة التي وصلت إليها في «{rolloverSelectedBook.title}» (حد أقصى{" "}
+                      <strong>{rolloverBookTotal}</strong> صفحة). يمكنك تسجيل أكثر من المتبقي من
+                      النصاب ({pendingSubmissionData.remainingPages} ص) دون تجاوز حجم الكتاب.
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
                         <Label className="text-xs">من صفحة</Label>
                         <Input
                           type="number"
-                          min={1}
-                          max={rolloverSelectedBook.totalPages}
+                          min={Math.max(1, rolloverLast + 1)}
+                          max={rolloverBookTotal}
                           value={rolloverStartPage}
                           onChange={(e) => {
                             setRolloverPagesManuallyEdited(true);
-                            setRolloverStartPage(Math.max(1, parseInt(e.target.value, 10) || 1));
+                            const raw = parseInt(e.target.value, 10) || 1;
+                            applyRolloverRange(raw, rolloverEndPage);
                           }}
+                          onBlur={() => applyRolloverRange(rolloverStartPage, rolloverEndPage)}
                           className="h-10 text-center"
                         />
                       </div>
@@ -1463,14 +1509,14 @@ export default function StudentPortal() {
                         <Input
                           type="number"
                           min={rolloverStartPage}
-                          max={rolloverSelectedBook.totalPages}
+                          max={rolloverBookTotal}
                           value={rolloverEndPage}
                           onChange={(e) => {
                             setRolloverPagesManuallyEdited(true);
-                            setRolloverEndPage(
-                              parseInt(e.target.value, 10) || rolloverStartPage
-                            );
+                            const raw = parseInt(e.target.value, 10) || rolloverStartPage;
+                            applyRolloverRange(rolloverStartPage, raw);
                           }}
+                          onBlur={() => applyRolloverRange(rolloverStartPage, rolloverEndPage)}
                           className="h-10 text-center"
                         />
                       </div>
@@ -1481,7 +1527,8 @@ export default function StudentPortal() {
                       {weeklyQuota}
                     </p>
                   </div>
-                )}
+                  );
+                })()}
                 <div className="flex gap-3">
                   <Button
                     variant="outline"

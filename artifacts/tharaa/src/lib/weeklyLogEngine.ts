@@ -135,14 +135,54 @@ export type PageRangeValidation = {
 /**
  * تحقق من نطاق الصفحات وسقف الكتاب — O(1).
  */
+export function bookTotalPages(book: BookSlice): number {
+  return Math.max(0, Number(book.totalPages) || 0);
+}
+
+/** يقيّد من/إلى ضمن حدود الكتاب وموضع lastPage — O(1). */
+export function clampPageRangeToBook(
+  book: BookSlice,
+  startPage: number,
+  endPage: number,
+  lastPage: number
+): { startPage: number; endPage: number } {
+  const total = bookTotalPages(book);
+  if (total <= 0) {
+    return { startPage: 1, endPage: 1 };
+  }
+  const minStart = Math.max(1, lastPage + 1);
+  const start = Math.min(total, Math.max(minStart, startPage));
+  const end = Math.min(total, Math.max(start, endPage));
+  return { startPage: start, endPage: end };
+}
+
 export function validatePageRangeAgainstBook(
   book: BookSlice,
   startPage: number,
   endPage: number,
   lastPage: number
 ): PageRangeValidation {
+  const total = bookTotalPages(book);
+  if (total <= 0) {
+    return { ok: false, message: "بيانات الكتاب غير صالحة", normalizedEnd: 1 };
+  }
+
   if (startPage < 1) {
-    return { ok: false, message: "صفحة البداية غير صالحة", normalizedEnd: endPage };
+    return { ok: false, message: "صفحة البداية غير صالحة", normalizedEnd: Math.min(endPage, total) };
+  }
+  if (startPage > total) {
+    return {
+      ok: false,
+      message: `الكتاب ${total} صفحة فقط — صحّح صفحة البداية`,
+      normalizedEnd: total,
+    };
+  }
+  if (endPage > total) {
+    return {
+      ok: false,
+      message: `لا يمكن تجاوز صفحة ${total} (إجمالي صفحات الكتاب)`,
+      normalizedEnd: total,
+    };
   }
   if (startPage > endPage) {
     return {
@@ -151,14 +191,24 @@ export function validatePageRangeAgainstBook(
       normalizedEnd: endPage,
     };
   }
-  const normalizedEnd = Math.min(endPage, book.totalPages);
+
+  const minStart = Math.max(1, lastPage + 1);
+  if (startPage < minStart) {
+    return {
+      ok: false,
+      message: `ابدأ من صفحة ${minStart} فأعلى (آخر موضع مسجّل في الكتاب)`,
+      normalizedEnd: Math.min(total, Math.max(minStart, endPage)),
+    };
+  }
+
+  const normalizedEnd = endPage;
   const maxReadable = readablePagesInBook(book, lastPage);
   const requested = normalizedEnd - startPage + 1;
   if (requested > maxReadable) {
     return {
       ok: false,
-      message: `متبقي ${maxReadable} صفحة فقط في هذا الكتاب (حتى صفحة ${book.totalPages})`,
-      normalizedEnd: Math.min(book.totalPages, startPage + maxReadable - 1),
+      message: `متبقي ${maxReadable} صفحة فقط في هذا الكتاب (حتى صفحة ${total})`,
+      normalizedEnd: Math.min(total, startPage + maxReadable - 1),
     };
   }
   return { ok: true, normalizedEnd };
