@@ -19,6 +19,7 @@ export const systemSettingsTable = pgTable("system_settings", {
   curriculumPdfUrlFull: text("curriculum_pdf_url_full"),
   curriculumPdfUrlSimplified: text("curriculum_pdf_url_simplified"),
   priorAchievementEnabled: boolean("prior_achievement_enabled").notNull().default(true),
+  atRiskInactiveDays: integer("at_risk_inactive_days").notNull().default(14),
 });
 
 export const insertSettingsSchema = createInsertSchema(systemSettingsTable).omit({ id: true });

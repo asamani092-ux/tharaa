@@ -19,7 +19,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Settings, Loader2, Calendar, BookOpen, ShieldCheck, UserCog } from "lucide-react";
+import { Settings, Loader2, Calendar, BookOpen, ShieldCheck, UserCog, Shield } from "lucide-react";
+import { isSupervisorRole } from "@/lib/roles";
 
 const settingsSwitchClass =
   "data-[state=unchecked]:bg-[var(--primary-600)] data-[state=checked]:bg-[hsl(var(--primary))]";
@@ -42,6 +43,9 @@ export default function AdminSettings() {
   const [curriculumPdfUrlFull, setCurriculumPdfUrlFull] = useState("");
   const [curriculumPdfUrlSimplified, setCurriculumPdfUrlSimplified] = useState("");
   const [priorAchievementEnabled, setPriorAchievementEnabled] = useState(true);
+  const [atRiskInactiveDays, setAtRiskInactiveDays] = useState("14");
+
+  const isSupervisor = isSupervisorRole(me?.user?.role);
 
   useEffect(() => {
     if (settings) {
@@ -50,6 +54,7 @@ export default function AdminSettings() {
         curriculumPdfUrlFull?: string | null;
         curriculumPdfUrlSimplified?: string | null;
         priorAchievementEnabled?: boolean;
+        atRiskInactiveDays?: number;
       };
       setWeeklyQuota(settings.weeklyQuota?.toString() || "75");
       setAllDaysActive(!!settings.allDaysActive);
@@ -62,6 +67,7 @@ export default function AdminSettings() {
         ext.curriculumPdfUrlSimplified ?? ext.curriculumPdfUrl ?? ""
       );
       setPriorAchievementEnabled(ext.priorAchievementEnabled !== false);
+      setAtRiskInactiveDays(String(ext.atRiskInactiveDays ?? 14));
     }
     if (me?.user) {
       setAdminProfile({ name: me.user.name, phone: me.user.phone, password: "" });
@@ -73,17 +79,21 @@ export default function AdminSettings() {
   }, [isMaintenanceMode]);
 
   const handleSaveSettings = () => {
+    const data: Record<string, unknown> = {
+      weeklyQuota: parseInt(weeklyQuota, 10),
+      allDaysActive: allDaysActive ? 1 : 0,
+      primaryDay,
+      curriculumPdfUrlFull: curriculumPdfUrlFull.trim() || null,
+      curriculumPdfUrlSimplified: curriculumPdfUrlSimplified.trim() || null,
+      atRiskInactiveDays: parseInt(atRiskInactiveDays, 10) || 14,
+    };
+    if (isSupervisor) {
+      data.maintenanceMode = isMaintenanceMode ? 1 : 0;
+      data.priorAchievementEnabled = priorAchievementEnabled ? 1 : 0;
+    }
     updateSettings.mutate(
       {
-        data: {
-          weeklyQuota: parseInt(weeklyQuota, 10),
-          allDaysActive: allDaysActive ? 1 : 0,
-          primaryDay,
-          maintenanceMode: isMaintenanceMode ? 1 : 0,
-          curriculumPdfUrlFull: curriculumPdfUrlFull.trim() || null,
-          curriculumPdfUrlSimplified: curriculumPdfUrlSimplified.trim() || null,
-          priorAchievementEnabled: priorAchievementEnabled ? 1 : 0,
-        },
+        data,
       },
       {
         onSuccess: () => {
@@ -204,22 +214,21 @@ export default function AdminSettings() {
                   يظهر زر «تنزيل المنهج» للمشارك حسب مساره (كامل أو ميسر).
                 </p>
               </div>
-              <div className={switchRowClass}>
-                <div className="space-y-1 flex-1 min-w-0">
-                  <Label className="text-sm font-medium block text-right text-[var(--text-primary)]">
-                    إظهار زر «إنجاز سابق» للمشارك
-                  </Label>
-                  <p className="text-[11px] text-[var(--text-secondary)] text-right">
-                    عند الإيقاف يُخفى الزر من صفحة المشارك ويُرفض تسجيل إنجاز سابق عبر الواجهة.
-                  </p>
-                </div>
-                <div dir="ltr" className="shrink-0">
-                  <Switch
-                    checked={priorAchievementEnabled}
-                    onCheckedChange={setPriorAchievementEnabled}
-                    className={settingsSwitchClass}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label className={labelClass}>
+                  أيام انقطاع الرصد (دائرة الخطر)
+                </Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={90}
+                  value={atRiskInactiveDays}
+                  onChange={(e) => setAtRiskInactiveDays(e.target.value)}
+                  className="text-center"
+                />
+                <p className="text-[11px] text-[var(--text-secondary)]">
+                  مشارك نشط بلا سجل في reading_logs.date خلال هذه المدة يُعرض في مؤشر الخطر.
+                </p>
               </div>
               <Button
                 variant="secondary"
@@ -328,53 +337,75 @@ export default function AdminSettings() {
             </CardContent>
           </Card>
 
-          {/* وضع الصيانة */}
-          <Card className={cardShellClass}>
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-3">
-                <ShieldCheck className={cardIcon} />
-                <CardTitle className="text-lg text-[var(--text-primary)]">وضع الصيانة</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="flex flex-col flex-1 gap-4">
-              <div className={switchRowClass}>
-                <div className="space-y-1 flex-1 min-w-0">
-                  <Label className="text-sm font-medium block text-right text-[var(--text-primary)]">
-                    تفعيل وضع الصيانة
-                  </Label>
-                  <p className="text-xs text-[var(--text-secondary)] text-right">
-                    عند التفعيل، سيتم إغلاق واجهة المشاركين للصيانة.
-                  </p>
+          {isSupervisor ? (
+            <Card className={cardShellClass}>
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-3">
+                  <Shield className={cardIcon} />
+                  <CardTitle className="text-lg text-[var(--text-primary)]">
+                    إعدادات السوبرفايزر
+                  </CardTitle>
                 </div>
-                <div dir="ltr" className="shrink-0">
-                  <Switch
-                    checked={isMaintenanceMode}
-                    onCheckedChange={(val) => {
-                      setIsMaintenanceMode(val);
-                      setMaintenanceSaveStep("idle");
-                    }}
-                    className={settingsSwitchClass}
-                  />
+              </CardHeader>
+              <CardContent className="flex flex-col flex-1 gap-4">
+                <div className={switchRowClass}>
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <Label className="text-sm font-medium block text-right text-[var(--text-primary)]">
+                      إظهار زر «إنجاز سابق» للمشارك
+                    </Label>
+                    <p className="text-[11px] text-[var(--text-secondary)] text-right">
+                      عند الإيقاف يُخفى الزر ويُرفض custom_progress.
+                    </p>
+                  </div>
+                  <div dir="ltr" className="shrink-0">
+                    <Switch
+                      checked={priorAchievementEnabled}
+                      onCheckedChange={setPriorAchievementEnabled}
+                      className={settingsSwitchClass}
+                    />
+                  </div>
                 </div>
-              </div>
-              <Button
-                variant={
-                  isMaintenanceMode && maintenanceSaveStep === "confirm" ? "destructive" : "secondary"
-                }
-                className="w-full mt-auto"
-                onClick={handleMaintenanceSaveClick}
-                disabled={updateSettings.isPending}
-              >
-                {updateSettings.isPending ? (
-                  <Loader2 className="animate-spin" />
-                ) : isMaintenanceMode && maintenanceSaveStep === "confirm" ? (
-                  "تأكيد تفعيل وضع الصيانة"
-                ) : (
-                  "تحديث حالة النظام"
-                )}
-              </Button>
-            </CardContent>
-          </Card>
+                <div className={switchRowClass}>
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <Label className="text-sm font-medium block text-right text-[var(--text-primary)]">
+                      تفعيل وضع الصيانة
+                    </Label>
+                    <p className="text-xs text-[var(--text-secondary)] text-right">
+                      إغلاق واجهة المشاركين للصيانة.
+                    </p>
+                  </div>
+                  <div dir="ltr" className="shrink-0">
+                    <Switch
+                      checked={isMaintenanceMode}
+                      onCheckedChange={(val) => {
+                        setIsMaintenanceMode(val);
+                        setMaintenanceSaveStep("idle");
+                      }}
+                      className={settingsSwitchClass}
+                    />
+                  </div>
+                </div>
+                <Button
+                  variant={
+                    isMaintenanceMode && maintenanceSaveStep === "confirm"
+                      ? "destructive"
+                      : "secondary"
+                  }
+                  className="w-full mt-auto"
+                  onClick={handleMaintenanceSaveClick}
+                  disabled={updateSettings.isPending}
+                >
+                  {updateSettings.isPending ? (
+                    <Loader2 className="animate-spin" />
+                  ) : isMaintenanceMode && maintenanceSaveStep === "confirm" ? (
+                    "تأكيد تفعيل وضع الصيانة"
+                  ) : (
+                    "حفظ إعدادات السوبرفايزر"
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
       </div>
     </AdminLayout>

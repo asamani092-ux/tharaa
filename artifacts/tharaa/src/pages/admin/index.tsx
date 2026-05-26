@@ -1,9 +1,14 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useListBatches } from "@workspace/api-client-react";
 import { AdminLayout } from "@/components/layout";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { TrendingUp, Star, Trophy, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TrendingUp, Star, Trophy, Loader2, AlertTriangle, BookOpen } from "lucide-react";
+import { buildAnalyticsUrl } from "@/lib/analyticsQuery";
+import { Link } from "wouter";
 
 function StatCard({
   label,
@@ -25,14 +30,31 @@ function StatCard({
 }
 
 export default function AdminOverview() {
+  const { data: batches } = useListBatches();
+  const [selectedBatch, setSelectedBatch] = useState("all");
+  const [selectedTrack, setSelectedTrack] = useState("all");
+
   const { data: analytics, isLoading } = useQuery({
-    queryKey: ["admin-analytics-overview"],
+    queryKey: ["admin-analytics-overview", selectedBatch, selectedTrack],
     queryFn: async () => {
-      const res = await fetch("/api/analytics.php");
+      const res = await fetch(buildAnalyticsUrl(selectedBatch, selectedTrack));
       if (!res.ok) throw new Error("فشل جلب البيانات");
       return res.json();
     },
   });
+
+  const discipline = analytics?.disciplineLeaderboard ?? [];
+  const elite = analytics?.eliteReadersLeaderboard ?? [];
+  const indicators = analytics?.supervisorIndicators;
+  const atRisk = indicators?.atRisk;
+  const bottleneck = indicators?.bookBottleneck;
+
+  const batchLabel =
+    selectedBatch === "all"
+      ? "كل الدفعات"
+      : batches?.find((b: { id: number }) => b.id.toString() === selectedBatch)?.name ?? selectedBatch;
+  const trackLabel =
+    selectedTrack === "all" ? "كل المسارات" : selectedTrack === "simplified" ? "ميسر" : "كامل";
 
   if (isLoading) {
     return (
@@ -45,28 +67,111 @@ export default function AdminOverview() {
     );
   }
 
-  const discipline = analytics?.disciplineLeaderboard ?? [];
-  const elite = analytics?.eliteReadersLeaderboard ?? [];
-
   return (
     <AdminLayout>
       <div className="space-y-8 text-right" dir="rtl">
-        <div>
-          <h2 className="text-3xl font-bold flex items-center gap-3 text-[var(--secondary-400)]">
-            <TrendingUp className="w-8 h-8" />
-            نظرة عامة
-          </h2>
-          <p className="text-[var(--text-secondary)] text-sm mt-1">
-            ملخص سريع — للتفاصيل انتقل إلى تبويب الإحصائيات.
-          </p>
+        <div className="flex flex-wrap justify-between items-start gap-4">
+          <div>
+            <h2 className="text-3xl font-bold flex items-center gap-3 text-[var(--secondary-400)]">
+              <TrendingUp className="w-8 h-8" />
+              نظرة عامة
+            </h2>
+            <p className="text-[var(--text-secondary)] text-sm mt-1">
+              ملخص مع فلترة الدفعة والمسار —{" "}
+              <Link href="/admin/analytics" className="text-[var(--primary-600)] underline">
+                التفاصيل والتصدير
+              </Link>
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Select value={selectedBatch} onValueChange={setSelectedBatch}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="الدفعة" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل الدفعات</SelectItem>
+                {batches?.map((b: { id: number; name: string }) => (
+                  <SelectItem key={b.id} value={b.id.toString()}>
+                    {b.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={selectedTrack} onValueChange={setSelectedTrack}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="المسار" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل المسارات</SelectItem>
+                <SelectItem value="full">كامل</SelectItem>
+                <SelectItem value="simplified">ميسر</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <p className="text-xs text-[var(--text-disabled)]">
+          عرض: {batchLabel} · {trackLabel}
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="border-[var(--error-600)]/40">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2 text-[var(--error-600)]">
+                <AlertTriangle className="w-5 h-5" />
+                دائرة الخطر
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold text-[var(--error-600)]">
+                {atRisk?.count ?? 0} مشارك
+              </p>
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
+                بدون رصد خلال {atRisk?.windowDays ?? 14} يوماً (حقل date)
+              </p>
+              {(atRisk?.students?.length ?? 0) > 0 && (
+                <ul className="mt-3 text-sm space-y-1 max-h-32 overflow-y-auto">
+                  {atRisk.students.slice(0, 8).map((s) => (
+                    <li key={s.id}>
+                      {s.name} — {s.batchName}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-[var(--secondary-400)]" />
+                عنق الزجاجة
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {bottleneck ? (
+                <>
+                  <p className="font-bold text-[var(--text-primary)]">{bottleneck.title}</p>
+                  <p className="text-sm text-[var(--text-secondary)] mt-2">
+                    {bottleneck.stuckCount} مشارك عالق على الكتاب الحالي
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-[var(--text-secondary)]">لا توجد بيانات كافية</p>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard label="إجمالي المشاركين" value={analytics?.overview?.totalStudents ?? 0} />
-          <StatCard label="عدد الكتب المنجزة" value={analytics?.overview?.totalBooksCompleted ?? 0} />
+          <StatCard label="المشاركون (ضمن الفلتر)" value={analytics?.overview?.totalStudents ?? 0} />
+          <StatCard
+            label="أتمموا المسار الأساسي"
+            value={analytics?.overview?.totalBooksCompleted ?? 0}
+          />
           <StatCard
             label="متوسط الإنجاز المرحلي"
-            value={`${analytics?.overview?.avgStageCompletionRate ?? analytics?.overview?.avgCompletionRate ?? 0}%`}
+            value={`${analytics?.overview?.avgStageCompletionRate ?? 0}%`}
             valueClassName="text-[var(--secondary-400)]"
           />
         </div>
@@ -84,7 +189,7 @@ export default function AdminOverview() {
                 {discipline.length === 0 ? (
                   <p className="p-4 text-sm text-center text-[var(--text-secondary)]">لا توجد بيانات</p>
                 ) : (
-                  discipline.map((user: any, i: number) => (
+                  discipline.map((user: { id: number; name: string; commitmentIndex: number }, i: number) => (
                     <div key={user.id} className="flex justify-between items-center py-4 px-6">
                       <span className="font-medium">
                         {i + 1}. {user.name}
@@ -102,19 +207,21 @@ export default function AdminOverview() {
               <div className="px-6 py-4 border-b border-[var(--border-subtle)]">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
                   <Star className="w-5 h-5 text-[var(--secondary-400)]" />
-                  نخبة القراء
+                  نخبة القراء (أساسي)
                 </h3>
               </div>
               <div className="divide-y divide-[var(--border-subtle)]">
                 {elite.length === 0 ? (
                   <p className="p-4 text-sm text-center text-[var(--text-secondary)]">لا توجد بيانات</p>
                 ) : (
-                  elite.map((user: any, i: number) => (
+                  elite.map((user: { id: number; name: string; gamificationPages: number }, i: number) => (
                     <div key={user.id} className="flex justify-between items-center py-4 px-6">
                       <span className="font-medium">
                         {i + 1}. {user.name}
                       </span>
-                      <span className="text-[var(--secondary-400)] font-bold">{user.gamificationPages} صفحة</span>
+                      <span className="text-[var(--secondary-400)] font-bold">
+                        {user.gamificationPages} ص
+                      </span>
                     </div>
                   ))
                 )}
@@ -125,7 +232,7 @@ export default function AdminOverview() {
 
         <Card>
           <div className="px-6 py-4 border-b border-[var(--border-subtle)]">
-            <h3 className="text-lg font-semibold">تفاصيل الدفعات</h3>
+            <h3 className="text-lg font-semibold">تفاصيل الدفعات (ضمن الفلتر)</h3>
           </div>
           <Table>
             <TableHeader className="bg-[var(--bg-secondary)]">
@@ -133,15 +240,23 @@ export default function AdminOverview() {
                 <TableHead className="text-right">الدفعة</TableHead>
                 <TableHead className="text-center">المشاركون</TableHead>
                 <TableHead className="text-center">صفحات التحفيز</TableHead>
-                <TableHead className="text-right w-[240px]">متوسط الإنجاز</TableHead>
+                <TableHead className="text-right w-[240px]">متوسط الإنجاز المرحلي</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {analytics?.batchStats?.map((batch: any) => (
+              {analytics?.batchStats?.map((batch: {
+                batchId: number;
+                batchName: string;
+                studentCount: number;
+                totalPages: number;
+                avgCompletionRate: number;
+              }) => (
                 <TableRow key={batch.batchId}>
                   <TableCell className="font-semibold">{batch.batchName}</TableCell>
                   <TableCell className="text-center">{batch.studentCount}</TableCell>
-                  <TableCell className="text-center">{batch.totalPages?.toLocaleString() ?? 0}</TableCell>
+                  <TableCell className="text-center">
+                    {batch.totalPages?.toLocaleString() ?? 0}
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Progress value={batch.avgCompletionRate} className="h-2 flex-1" />

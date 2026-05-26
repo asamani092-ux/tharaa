@@ -3,9 +3,16 @@ ob_start();
 error_reporting(0);
 require_once 'cors.php';
 require_once 'db.php';
+require_once 'auth_helpers.php';
 header('Content-Type: application/json; charset=utf-8');
 
 $method = $_SERVER['REQUEST_METHOD'];
+
+/** إعدادات يعدّلها السوبرفايزر فقط */
+$SUPERVISOR_ONLY_KEYS = [
+    'maintenanceMode' => 'maintenance_mode',
+    'priorAchievementEnabled' => 'prior_achievement_enabled',
+];
 
 function resolveCurriculumPdfUrl(?array $row, string $trackColumn): ?string
 {
@@ -48,6 +55,7 @@ function formatSettingsRow(?array $row): array
             'curriculumPdfUrlFull' => null,
             'curriculumPdfUrlSimplified' => null,
             'priorAchievementEnabled' => true,
+            'atRiskInactiveDays' => 14,
         ];
     }
 
@@ -74,38 +82,34 @@ function formatSettingsRow(?array $row): array
         'curriculumPdfUrlSimplified' => $pdfSimplified,
         'priorAchievementEnabled' => !array_key_exists('prior_achievement_enabled', $row)
             || !empty($row['prior_achievement_enabled']),
+        'atRiskInactiveDays' => (int)($row['at_risk_inactive_days'] ?? 14),
     ];
 }
 
 try {
     if ($method === 'GET') {
+        if (!getCurrentUserId()) {
+            authJsonError(401, 'غير مصرح');
+        }
         $row = $pdo->query('SELECT * FROM settings LIMIT 1')->fetch(PDO::FETCH_ASSOC);
         echo json_encode(formatSettingsRow($row ?: null), JSON_UNESCAPED_UNICODE);
         exit();
     }
 
     if ($method === 'PATCH' || $method === 'PUT') {
-        $userId = $_COOKIE['userId'] ?? null;
-        if ($userId) {
-            $roleStmt = $pdo->prepare('SELECT role FROM users WHERE id = ?');
-            $roleStmt->execute([$userId]);
-            $role = $roleStmt->fetchColumn();
-            if ($role !== 'admin') {
-                http_response_code(403);
-                echo json_encode(['error' => 'غير مصرح'], JSON_UNESCAPED_UNICODE);
-                exit();
-            }
-        } else {
-            http_response_code(401);
-            echo json_encode(['error' => 'غير مصرح'], JSON_UNESCAPED_UNICODE);
-            exit();
-        }
+        $role = requireStaffRole($pdo);
 
         $data = json_decode(file_get_contents('php://input'), true);
         if (!is_array($data)) {
             http_response_code(400);
             echo json_encode(['error' => 'بيانات غير صالحة'], JSON_UNESCAPED_UNICODE);
             exit();
+        }
+
+        foreach (array_keys($SUPERVISOR_ONLY_KEYS) as $superKey) {
+            if (array_key_exists($superKey, $data) && !isSupervisorRole($role)) {
+                authJsonError(403, 'يتطلب صلاحية سوبرفايزر لتعديل هذا الإعداد');
+            }
         }
 
         $map = [
@@ -126,6 +130,7 @@ try {
             'curriculumPdfUrlFull' => 'curriculum_pdf_url_full',
             'curriculumPdfUrlSimplified' => 'curriculum_pdf_url_simplified',
             'priorAchievementEnabled' => 'prior_achievement_enabled',
+            'atRiskInactiveDays' => 'at_risk_inactive_days',
         ];
 
         $fields = [];
@@ -137,6 +142,9 @@ try {
             $val = $data[$key];
             if ($key === 'allDaysActive' || $key === 'maintenanceMode' || $key === 'priorAchievementEnabled') {
                 $val = $val ? 1 : 0;
+            }
+            if ($key === 'atRiskInactiveDays') {
+                $val = max(1, min(90, (int)$val));
             }
             if ($key === 'curriculumPdfUrl' || $key === 'curriculumPdfUrlFull' || $key === 'curriculumPdfUrlSimplified') {
                 $val = normalizePdfUrlInput($val);

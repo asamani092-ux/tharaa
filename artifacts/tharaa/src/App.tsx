@@ -5,6 +5,7 @@ import { useGetMe } from "@workspace/api-client-react";
 import { Loader2 } from "lucide-react";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { homePathForRole, isStaffRole } from "@/lib/roles";
 
 import Login from "@/pages/login";
 import StudentPortal from "@/pages/student/index";
@@ -15,6 +16,7 @@ import AdminAnalytics from "@/pages/admin/analytics";
 import AdminCurriculum from "@/pages/admin/curriculum";
 import AdminSettings from "@/pages/admin/settings";
 import AdminBatches from "@/pages/admin/batches";
+import AdminSupervisors from "@/pages/admin/supervisors";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -39,7 +41,7 @@ function AuthGuard({
   requireRole,
 }: {
   children: React.ReactNode;
-  requireRole?: "admin" | "student";
+  requireRole?: "staff" | "student";
 }) {
   const { data: session, isLoading } = useGetMe();
   const [location, setLocation] = useLocation();
@@ -59,17 +61,22 @@ function AuthGuard({
     }
 
     if (location === "/login") {
-      go(role === "admin" ? "/admin" : "/student");
+      go(homePathForRole(role));
       return;
     }
 
-    if (requireRole && role !== requireRole) {
-      go(role === "admin" ? "/admin" : "/student");
+    if (requireRole === "staff" && !isStaffRole(role)) {
+      go(homePathForRole(role));
+      return;
+    }
+
+    if (requireRole === "student" && role !== "student") {
+      go(homePathForRole(role));
       return;
     }
 
     if (location === "/") {
-      go(role === "admin" ? "/admin" : "/student");
+      go(homePathForRole(role));
     }
   }, [isLoading, isAuthenticated, role, location, requireRole, setLocation]);
 
@@ -101,33 +108,38 @@ function Router() {
       </Route>
 
       <Route path="/admin">
-        <AuthGuard requireRole="admin">
+        <AuthGuard requireRole="staff">
           <AdminDashboard />
         </AuthGuard>
       </Route>
       <Route path="/admin/users">
-        <AuthGuard requireRole="admin">
+        <AuthGuard requireRole="staff">
           <AdminUsers />
         </AuthGuard>
       </Route>
       <Route path="/admin/analytics">
-        <AuthGuard requireRole="admin">
+        <AuthGuard requireRole="staff">
           <AdminAnalytics />
         </AuthGuard>
       </Route>
       <Route path="/admin/curriculum">
-        <AuthGuard requireRole="admin">
+        <AuthGuard requireRole="staff">
           <AdminCurriculum />
         </AuthGuard>
       </Route>
       <Route path="/admin/settings">
-        <AuthGuard requireRole="admin">
+        <AuthGuard requireRole="staff">
           <AdminSettings />
         </AuthGuard>
       </Route>
       <Route path="/admin/batches">
-        <AuthGuard requireRole="admin">
+        <AuthGuard requireRole="staff">
           <AdminBatches />
+        </AuthGuard>
+      </Route>
+      <Route path="/admin/supervisors">
+        <AuthGuard requireRole="staff">
+          <AdminSupervisors />
         </AuthGuard>
       </Route>
 

@@ -10,7 +10,9 @@ import {
   Home,
   Settings,
   ShieldAlert,
+  Shield,
 } from "lucide-react";
+import { isSupervisorRole } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { useGetSettings } from "@workspace/api-client-react";
 import { isDarkTheme } from "@/lib/theme";
@@ -52,6 +54,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { href: "/admin/batches", label: "الدفعات", icon: Layers, id: "batches" },
     { href: "/admin/analytics", label: "الإحصائيات", icon: BarChart3, id: "analytics" },
     { href: "/admin/settings", label: "الإعدادات", icon: Settings, id: "settings" },
+    ...(isSupervisorRole(session?.user?.role)
+      ? [{ href: "/admin/supervisors", label: "إدارة المشرفين", icon: Shield, id: "supervisors" }]
+      : []),
   ];
 
   return (

@@ -28,6 +28,9 @@ router.patch("/", requireAdmin, async (c) => {
   if (Object.prototype.hasOwnProperty.call(body, "priorAchievementEnabled")) {
     updates.priorAchievementEnabled = !!body.priorAchievementEnabled;
   }
+  if (Object.prototype.hasOwnProperty.call(body, "atRiskInactiveDays")) {
+    updates.atRiskInactiveDays = Math.max(1, Math.min(90, Number(body.atRiskInactiveDays) || 14));
+  }
 
   if (!settings) {
     [settings] = await db.insert(systemSettingsTable).values(updates).returning();
