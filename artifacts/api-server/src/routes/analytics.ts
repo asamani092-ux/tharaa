@@ -1,12 +1,12 @@
 import { Hono } from 'hono';
 import { eq, sql } from "drizzle-orm";
 import { db, usersTable, readingLogsTable, batchesTable } from "@workspace/db";
-import { requireAdmin } from "../lib/auth";
+import { requireStaff } from "../lib/auth";
 
 const router = new Hono();
 
 // نظرة عامة على التحليلات
-router.get("/overview", requireAdmin, async (c) => {
+router.get("/overview", requireStaff, async (c) => {
   const users = await db.select().from(usersTable).where(eq(usersTable.role, "student"));
   const totalUsers = users.length;
   const activeUsers = users.filter((u) => u.status === "active").length;
@@ -50,7 +50,7 @@ router.get("/overview", requireAdmin, async (c) => {
 });
 
 // تحليلات مستخدم محدد
-router.get("/user/:id", requireAdmin, async (c) => {
+router.get("/user/:id", requireStaff, async (c) => {
   const id = parseInt(c.req.param('id'), 10);
   if (isNaN(id)) {
     return c.json({ error: "Invalid id" }, 400);
@@ -104,7 +104,7 @@ router.get("/user/:id", requireAdmin, async (c) => {
 });
 
 // تحليلات دفعة (Batch) محددة
-router.get("/batch/:batchId", requireAdmin, async (c) => {
+router.get("/batch/:batchId", requireStaff, async (c) => {
   const batchId = parseInt(c.req.param('batchId'), 10);
   if (isNaN(batchId)) {
     return c.json({ error: "Invalid batchId" }, 400);

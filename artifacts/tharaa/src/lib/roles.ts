@@ -12,17 +12,12 @@ export function isSupervisorRole(role?: string | null): boolean {
   return role === "supervisor";
 }
 
-/** مسارات يراها السوبرفايزر فقط (بدون مشاركين أو إحصائيات تشغيلية) */
-export const SUPERVISOR_NAV_PATHS = ["/admin/settings", "/admin/supervisors"] as const;
-
-export function isSupervisorOnlyPath(path: string): boolean {
-  return SUPERVISOR_NAV_PATHS.some(
-    (p) => path === p || path.startsWith(`${p}/`)
-  );
+/** مشرف تشغيلي أو سوبرفايزر (نفس أدوات اللوحة؛ السوبرفايزر يضيف إدارة المشرفين وإعدادات حصرية) */
+export function canAccessAdminTools(role?: string | null): boolean {
+  return isStaffRole(role);
 }
 
 export function homePathForRole(role?: string | null): string {
-  if (role === "supervisor") return "/admin/supervisors";
-  if (isAdminRole(role)) return "/admin";
+  if (isStaffRole(role)) return "/admin";
   return "/student";
 }

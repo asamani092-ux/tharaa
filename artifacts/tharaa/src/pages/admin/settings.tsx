@@ -1,10 +1,6 @@
 import { useState, useEffect } from "react";
-import {
-  useGetSettings,
-  useUpdateSettings,
-  useGetMe,
-  useUpdateUser,
-} from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { AdminLayout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,8 +15,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Settings, Loader2, Calendar, BookOpen, ShieldCheck, UserCog, Shield } from "lucide-react";
+import { Settings, Loader2, Calendar, BookOpen, Shield, UserCog } from "lucide-react";
 import { isSupervisorRole } from "@/lib/roles";
+import {
+  usePlatformSettings,
+  usePatchPlatformSettings,
+  type PlatformSettings,
+} from "@/lib/settingsPhpApi";
 
 const settingsSwitchClass =
   "data-[state=unchecked]:bg-[var(--primary-600)] data-[state=checked]:bg-[hsl(var(--primary))]";
@@ -28,11 +29,38 @@ const settingsSwitchClass =
 const cardShellClass =
   "flex flex-col h-full rounded-[var(--radius-xl)] border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-[var(--shadow-md)]";
 
+function applySettingsToForm(
+  settings: PlatformSettings,
+  setters: {
+    setWeeklyQuota: (v: string) => void;
+    setAllDaysActive: (v: boolean) => void;
+    setPrimaryDay: (v: string) => void;
+    setIsMaintenanceMode: (v: boolean) => void;
+    setCurriculumPdfUrlFull: (v: string) => void;
+    setCurriculumPdfUrlSimplified: (v: string) => void;
+    setPriorAchievementEnabled: (v: boolean) => void;
+    setAtRiskInactiveDays: (v: string) => void;
+  }
+) {
+  setters.setWeeklyQuota(settings.weeklyQuota?.toString() || "75");
+  setters.setAllDaysActive(!!settings.allDaysActive);
+  setters.setPrimaryDay(settings.primaryDay || "Friday");
+  setters.setIsMaintenanceMode(!!settings.maintenanceMode);
+  setters.setCurriculumPdfUrlFull(
+    settings.curriculumPdfUrlFull ?? settings.curriculumPdfUrl ?? ""
+  );
+  setters.setCurriculumPdfUrlSimplified(
+    settings.curriculumPdfUrlSimplified ?? settings.curriculumPdfUrl ?? ""
+  );
+  setters.setPriorAchievementEnabled(settings.priorAchievementEnabled !== false);
+  setters.setAtRiskInactiveDays(String(settings.atRiskInactiveDays ?? 14));
+}
+
 export default function AdminSettings() {
-  const { data: settings, isLoading: settingsLoading } = useGetSettings();
+  const queryClient = useQueryClient();
+  const { data: settings, isLoading: settingsLoading } = usePlatformSettings();
   const { data: me } = useGetMe();
-  const updateSettings = useUpdateSettings();
-  const updateUser = useUpdateUser();
+  const patchSettings = usePatchPlatformSettings();
 
   const [weeklyQuota, setWeeklyQuota] = useState<string>("75");
   const [allDaysActive, setAllDaysActive] = useState<boolean>(false);
@@ -49,25 +77,16 @@ export default function AdminSettings() {
 
   useEffect(() => {
     if (settings) {
-      const ext = settings as {
-        curriculumPdfUrl?: string | null;
-        curriculumPdfUrlFull?: string | null;
-        curriculumPdfUrlSimplified?: string | null;
-        priorAchievementEnabled?: boolean;
-        atRiskInactiveDays?: number;
-      };
-      setWeeklyQuota(settings.weeklyQuota?.toString() || "75");
-      setAllDaysActive(!!settings.allDaysActive);
-      setPrimaryDay(settings.primaryDay || "Friday");
-      setIsMaintenanceMode(!!settings.maintenanceMode);
-      setCurriculumPdfUrlFull(
-        ext.curriculumPdfUrlFull ?? ext.curriculumPdfUrl ?? ""
-      );
-      setCurriculumPdfUrlSimplified(
-        ext.curriculumPdfUrlSimplified ?? ext.curriculumPdfUrl ?? ""
-      );
-      setPriorAchievementEnabled(ext.priorAchievementEnabled !== false);
-      setAtRiskInactiveDays(String(ext.atRiskInactiveDays ?? 14));
+      applySettingsToForm(settings, {
+        setWeeklyQuota,
+        setAllDaysActive,
+        setPrimaryDay,
+        setIsMaintenanceMode,
+        setCurriculumPdfUrlFull,
+        setCurriculumPdfUrlSimplified,
+        setPriorAchievementEnabled,
+        setAtRiskInactiveDays,
+      });
     }
     if (me?.user) {
       setAdminProfile({ name: me.user.name, phone: me.user.phone, password: "" });
@@ -78,9 +97,9 @@ export default function AdminSettings() {
     if (!isMaintenanceMode) setMaintenanceSaveStep("idle");
   }, [isMaintenanceMode]);
 
-  const handleSaveSettings = () => {
+  const buildSettingsPayload = (): Record<string, unknown> => {
     const data: Record<string, unknown> = {
-      weeklyQuota: parseInt(weeklyQuota, 10),
+      weeklyQuota: parseInt(weeklyQuota, 10) || 75,
       allDaysActive: allDaysActive ? 1 : 0,
       primaryDay,
       curriculumPdfUrlFull: curriculumPdfUrlFull.trim() || null,
@@ -91,18 +110,29 @@ export default function AdminSettings() {
       data.maintenanceMode = isMaintenanceMode ? 1 : 0;
       data.priorAchievementEnabled = priorAchievementEnabled ? 1 : 0;
     }
-    updateSettings.mutate(
-      {
-        data,
+    return data;
+  };
+
+  const handleSaveSettings = () => {
+    patchSettings.mutate(buildSettingsPayload(), {
+      onSuccess: (saved) => {
+        applySettingsToForm(saved, {
+          setWeeklyQuota,
+          setAllDaysActive,
+          setPrimaryDay,
+          setIsMaintenanceMode,
+          setCurriculumPdfUrlFull,
+          setCurriculumPdfUrlSimplified,
+          setPriorAchievementEnabled,
+          setAtRiskInactiveDays,
+        });
+        toast.success("تم تحديث إعدادات المنصة ✅");
+        setMaintenanceSaveStep("idle");
       },
-      {
-        onSuccess: () => {
-          toast.success("تم تحديث إعدادات المنصة ✅");
-          setMaintenanceSaveStep("idle");
-        },
-        onError: () => toast.error("تعذر حفظ الإعدادات"),
-      }
-    );
+      onError: (err: Error) => {
+        toast.error(err.message || "تعذر حفظ الإعدادات");
+      },
+    });
   };
 
   const handleMaintenanceSaveClick = () => {
@@ -113,28 +143,45 @@ export default function AdminSettings() {
     handleSaveSettings();
   };
 
-  const handleUpdateProfile = () => {
+  const handleUpdateProfile = async () => {
     if (!adminProfile.name || !adminProfile.phone) {
       toast.error("الاسم ورقم الجوال مطلوبان");
       return;
     }
-    updateUser.mutate(
-      {
-        id: me?.user?.id as number,
-        data: {
-          name: adminProfile.name,
-          phone: adminProfile.phone,
-          ...(adminProfile.password ? { password: adminProfile.password } : {}),
-        },
-      },
-      {
-        onSuccess: () => {
-          toast.success("تم تحديث بياناتك الشخصية بنجاح");
-          setAdminProfile({ ...adminProfile, password: "" });
-        },
-        onError: () => toast.error("حدث خطأ أثناء تحديث بياناتك"),
+    const userId = me?.user?.id;
+    if (!userId) {
+      toast.error("جلسة غير صالحة");
+      return;
+    }
+    try {
+      const body: Record<string, string> = {
+        name: adminProfile.name,
+        phone: adminProfile.phone,
+      };
+      if (adminProfile.password) body.password = adminProfile.password;
+
+      const res = await fetch(`/api/users.php?id=${userId}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const text = await res.text();
+      let json: { error?: string; success?: boolean } = {};
+      try {
+        json = text ? JSON.parse(text) : {};
+      } catch {
+        /* ignore */
       }
-    );
+      if (!res.ok) {
+        throw new Error(json.error || "تعذر تحديث بياناتك");
+      }
+      toast.success("تم تحديث بياناتك الشخصية بنجاح");
+      setAdminProfile((p) => ({ ...p, password: "" }));
+      await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "حدث خطأ أثناء تحديث بياناتك");
+    }
   };
 
   const days = [
@@ -161,6 +208,7 @@ export default function AdminSettings() {
   const labelClass = "text-sm text-[var(--text-secondary)]";
   const switchRowClass =
     "flex items-center justify-between gap-4 p-4 rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-secondary)]";
+  const saving = patchSettings.isPending;
 
   return (
     <AdminLayout>
@@ -171,7 +219,6 @@ export default function AdminSettings() {
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-          {/* معايير القراءة */}
           <Card className={cardShellClass}>
             <CardHeader className="pb-2">
               <div className="flex items-center gap-3">
@@ -215,9 +262,7 @@ export default function AdminSettings() {
                 </p>
               </div>
               <div className="space-y-2">
-                <Label className={labelClass}>
-                  أيام انقطاع الرصد (دائرة الخطر)
-                </Label>
+                <Label className={labelClass}>أيام انقطاع الرصد (دائرة الخطر)</Label>
                 <Input
                   type="number"
                   min={1}
@@ -226,22 +271,18 @@ export default function AdminSettings() {
                   onChange={(e) => setAtRiskInactiveDays(e.target.value)}
                   className="text-center"
                 />
-                <p className="text-[11px] text-[var(--text-secondary)]">
-                  مشارك نشط بلا سجل في reading_logs.date خلال هذه المدة يُعرض في مؤشر الخطر.
-                </p>
               </div>
               <Button
                 variant="secondary"
                 className="w-full mt-auto"
                 onClick={handleSaveSettings}
-                disabled={updateSettings.isPending}
+                disabled={saving}
               >
-                {updateSettings.isPending ? <Loader2 className="animate-spin" /> : "حفظ المعايير"}
+                {saving ? <Loader2 className="animate-spin" /> : "حفظ المعايير"}
               </Button>
             </CardContent>
           </Card>
 
-          {/* مواعيد الرصد */}
           <Card className={cardShellClass}>
             <CardHeader className="pb-2">
               <div className="flex items-center gap-3">
@@ -255,9 +296,6 @@ export default function AdminSettings() {
                   <Label className="text-sm font-medium block text-right text-[var(--text-primary)]">
                     تفعيل الرصد طوال الأسبوع
                   </Label>
-                  <p className="text-[11px] text-[var(--text-secondary)] text-right">
-                    فتح التسجيل في أي يوم بدلاً من يوم محدد.
-                  </p>
                 </div>
                 <div dir="ltr" className="shrink-0">
                   <Switch
@@ -268,7 +306,7 @@ export default function AdminSettings() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className={`${labelClass} block text-right`}>اليوم الأساسي للرصد (التسليم)</Label>
+                <Label className={`${labelClass} block text-right`}>اليوم الأساسي للرصد</Label>
                 <Select value={primaryDay} onValueChange={setPrimaryDay}>
                   <SelectTrigger>
                     <SelectValue />
@@ -286,19 +324,18 @@ export default function AdminSettings() {
                 variant="secondary"
                 className="w-full mt-auto"
                 onClick={handleSaveSettings}
-                disabled={updateSettings.isPending}
+                disabled={saving}
               >
-                {updateSettings.isPending ? <Loader2 className="animate-spin" /> : "تحديث المواعيد"}
+                {saving ? <Loader2 className="animate-spin" /> : "تحديث المواعيد"}
               </Button>
             </CardContent>
           </Card>
 
-          {/* تعديل المشرف الحالي */}
           <Card className={cardShellClass}>
             <CardHeader className="pb-2">
               <div className="flex items-center gap-3">
                 <UserCog className={cardIcon} />
-                <CardTitle className="text-lg text-[var(--text-primary)]">تعديل بياناتي (المشرف)</CardTitle>
+                <CardTitle className="text-lg text-[var(--text-primary)]">تعديل بياناتي</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="flex flex-col flex-1 gap-4">
@@ -326,13 +363,8 @@ export default function AdminSettings() {
                   placeholder="اتركها فارغة لعدم التغيير"
                 />
               </div>
-              <Button
-                variant="secondary"
-                className="w-full mt-auto"
-                onClick={handleUpdateProfile}
-                disabled={updateUser.isPending}
-              >
-                {updateUser.isPending ? <Loader2 className="animate-spin" /> : "حفظ بياناتي"}
+              <Button variant="secondary" className="w-full mt-auto" onClick={handleUpdateProfile}>
+                حفظ بياناتي
               </Button>
             </CardContent>
           </Card>
@@ -353,9 +385,6 @@ export default function AdminSettings() {
                     <Label className="text-sm font-medium block text-right text-[var(--text-primary)]">
                       إظهار زر «إنجاز سابق» للمشارك
                     </Label>
-                    <p className="text-[11px] text-[var(--text-secondary)] text-right">
-                      عند الإيقاف يُخفى الزر ويُرفض custom_progress.
-                    </p>
                   </div>
                   <div dir="ltr" className="shrink-0">
                     <Switch
@@ -370,9 +399,6 @@ export default function AdminSettings() {
                     <Label className="text-sm font-medium block text-right text-[var(--text-primary)]">
                       تفعيل وضع الصيانة
                     </Label>
-                    <p className="text-xs text-[var(--text-secondary)] text-right">
-                      إغلاق واجهة المشاركين للصيانة.
-                    </p>
                   </div>
                   <div dir="ltr" className="shrink-0">
                     <Switch
@@ -393,9 +419,9 @@ export default function AdminSettings() {
                   }
                   className="w-full mt-auto"
                   onClick={handleMaintenanceSaveClick}
-                  disabled={updateSettings.isPending}
+                  disabled={saving}
                 >
-                  {updateSettings.isPending ? (
+                  {saving ? (
                     <Loader2 className="animate-spin" />
                   ) : isMaintenanceMode && maintenanceSaveStep === "confirm" ? (
                     "تأكيد تفعيل وضع الصيانة"

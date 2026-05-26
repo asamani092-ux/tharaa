@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { isSupervisorRole } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
-import { useGetSettings } from "@workspace/api-client-react";
+import { usePlatformSettings } from "@/lib/settingsPhpApi";
 import { isDarkTheme } from "@/lib/theme";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -47,24 +47,19 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const role = session?.user?.role;
-  const supervisor = isSupervisorRole(role);
+  const supervisor = isSupervisorRole(session?.user?.role);
 
-  const adminNavItems = [
+  const navItems = [
     { href: "/admin", label: "نظرة عامة", icon: Home, id: "overview" },
     { href: "/admin/users", label: "إدارة المشاركين", icon: Users, id: "users" },
     { href: "/admin/curriculum", label: "المنهج الدراسي", icon: BookOpen, id: "curriculum" },
     { href: "/admin/batches", label: "الدفعات", icon: Layers, id: "batches" },
     { href: "/admin/analytics", label: "الإحصائيات", icon: BarChart3, id: "analytics" },
     { href: "/admin/settings", label: "الإعدادات", icon: Settings, id: "settings" },
+    ...(supervisor
+      ? [{ href: "/admin/supervisors", label: "إدارة المشرفين", icon: Shield, id: "supervisors" }]
+      : []),
   ];
-
-  const supervisorNavItems = [
-    { href: "/admin/supervisors", label: "إدارة المشرفين", icon: Shield, id: "supervisors" },
-    { href: "/admin/settings", label: "الإعدادات", icon: Settings, id: "settings" },
-  ];
-
-  const navItems = supervisor ? supervisorNavItems : adminNavItems;
 
   return (
     <div className="flex min-h-screen bg-background text-foreground flex-col md:flex-row font-sans" dir="rtl">
@@ -150,7 +145,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 export function StudentLayout({ children }: { children: React.ReactNode }) {
   const logout = useLogout();
   const { data: session } = useGetMe();
-  const { data: settings, isLoading: isSettingsLoading } = useGetSettings();
+  const { data: settings, isLoading: isSettingsLoading } = usePlatformSettings();
   const isDark = useIsDarkTheme();
 
   const iconColored = "/brand/thraa_icon_colored.png";

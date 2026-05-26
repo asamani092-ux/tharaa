@@ -98,7 +98,7 @@ try {
         exit();
     }
 
-    if ($method === 'PATCH' || $method === 'PUT') {
+    if ($method === 'PATCH' || $method === 'PUT' || $method === 'POST') {
         $role = requireStaffRole($pdo);
 
         $data = json_decode(file_get_contents('php://input'), true);
