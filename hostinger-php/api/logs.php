@@ -27,8 +27,47 @@ function getSubmissionStatus(PDO $pdo): string
         }
 
         $currentDay = (int)date('w');
-        $startDay = (int)($settings['submission_start_day'] ?? 0);
-        $lateDay = (int)($settings['late_deadline_day'] ?? (($startDay + 1) % 7));
+        // الواجهة (Admin) تحفظ day الرسمي في primary_day (مثل: Friday)
+        // بينما submission_start_day / late_deadline_day قد لا تكون محدثة على السيرفر،
+        // لذا نستخدم primary_day كأولوية مع fallback للأعمدة الرقمية.
+        $DAY_NAME_TO_NUM = [
+            "Sunday" => 0,
+            "Monday" => 1,
+            "Tuesday" => 2,
+            "Wednesday" => 3,
+            "Thursday" => 4,
+            "Friday" => 5,
+            "Saturday" => 6,
+        ];
+
+        $startDayRaw = $settings['submission_start_day'] ?? null;
+        $startDay = null;
+        if (is_numeric($startDayRaw)) {
+            $n = (int)$startDayRaw;
+            if ($n >= 0 && $n <= 6) $startDay = $n;
+        }
+
+        if ($startDay === null && !empty($settings['primary_day']) && is_string($settings['primary_day'])) {
+            $name = trim($settings['primary_day']);
+            if (isset($DAY_NAME_TO_NUM[$name])) {
+                $startDay = $DAY_NAME_TO_NUM[$name];
+            }
+        }
+
+        if ($startDay === null) {
+            // نفس fallback في submissionWindow.ts
+            $startDay = 5; // Friday
+        }
+
+        $lateDayRaw = $settings['late_deadline_day'] ?? null;
+        $lateDay = null;
+        if (is_numeric($lateDayRaw)) {
+            $n = (int)$lateDayRaw;
+            if ($n >= 0 && $n <= 6) $lateDay = $n;
+        }
+        if ($lateDay === null) {
+            $lateDay = ($startDay + 1) % 7;
+        }
 
         if ($currentDay === $startDay) {
             return 'on_time';
