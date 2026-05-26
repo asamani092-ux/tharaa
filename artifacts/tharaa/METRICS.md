@@ -21,7 +21,7 @@
 | تقدم تراكمي للدفعة % | `batchCumulativeRate` | سجلات أساسية ÷ هدف دفعة أساسي |
 | هدف الدفعة | `batchPaceTarget` | مقام التراكمي |
 | تحفيز أساسي / اختياري | `gamificationPages` / `gamificationPagesOptional` | صفحات |
-| التزام | `commitmentIndex` | `(أسابيع في الموعد + 0.5×متأخر) ÷ أسبوع_الدفعة` |
+| التزام | `commitmentIndex` | `(أسابيع في الموعد + 0.5×متأخر) ÷ أسبوع_الدفعة` — **بلا** `submission_status = extra`؛ بطاقة الإحصائيات تعرض `min(100, متوسط×100)%` |
 | تقدم رسمي | `totalReadPages` | تقدم كل كتب المسار (أساسي+اختياري) |
 | تقدم أساسي | `progressPagesCore` | أساسي فقط |
 

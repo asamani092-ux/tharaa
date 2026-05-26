@@ -18,15 +18,35 @@ import { Progress } from "@/components/ui/progress";
 import { buildAnalyticsUrl } from "@/lib/analyticsQuery";
 import { downloadAnalyticsExcel } from "@/lib/exportAnalyticsExcel";
 
-function StatCard({ label, value }: { label: string; value: React.ReactNode }) {
+function StatCard({
+  label,
+  value,
+  caption,
+}: {
+  label: string;
+  value: React.ReactNode;
+  caption?: string;
+}) {
   return (
     <Card>
       <CardContent className="pt-6 pb-6 px-6 text-right">
         <p className="text-sm text-[var(--text-secondary)] mb-2">{label}</p>
         <p className="text-3xl font-bold">{value}</p>
+        {caption ? (
+          <p className="text-[11px] text-[var(--text-secondary)] mt-2 leading-relaxed">{caption}</p>
+        ) : null}
       </CardContent>
     </Card>
   );
+}
+
+function averageCommitmentPercent(
+  rows: { commitmentIndex?: number }[]
+): number {
+  if (rows.length === 0) return 0;
+  const avg =
+    rows.reduce((s, r) => s + (r.commitmentIndex ?? 0), 0) / rows.length;
+  return Math.min(100, Math.round(avg * 100));
 }
 
 export default function AdminAnalytics() {
@@ -161,14 +181,8 @@ export default function AdminAnalytics() {
           />
           <StatCard
             label="متوسط التزام"
-            value={
-              rows.length
-                ? (
-                    rows.reduce((s: number, r: { commitmentIndex: number }) => s + r.commitmentIndex, 0) /
-                    rows.length
-                  ).toFixed(2)
-                : "0"
-            }
+            value={isLoading ? "..." : `${averageCommitmentPercent(rows)}%`}
+            caption="متوسط نسبة التزام المشاركين بمواعيد الرصد الأسبوعي (في الموعد + نصف المتأخر ÷ أسابيع الدفعة)، دون سجلات إنجاز سابق."
           />
         </div>
 
