@@ -120,7 +120,7 @@ export default function AdminAnalytics() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2 text-[var(--error-600)]">
                 <AlertTriangle className="w-4 h-4" />
-                دائرة الخطر ({atRisk?.windowDays ?? 14} يوم)
+                المنقطعون  ({atRisk?.windowDays ?? 14} يوم)
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -136,7 +136,7 @@ export default function AdminAnalytics() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
                 <BookOpen className="w-4 h-4" />
-                عنق الزجاجة
+                كتب تأخذ وقتاً 
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -177,7 +177,7 @@ export default function AdminAnalytics() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Shield className="w-4 h-4" />
-                الأكثر التزاماً
+                الأكثر التزاماً بالإرسال
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
@@ -221,10 +221,10 @@ export default function AdminAnalytics() {
                   <TableHead className="text-center whitespace-nowrap">المسار</TableHead>
                   <TableHead className="text-center whitespace-nowrap">إنجاز مرحلي</TableHead>
                   <TableHead className="text-center whitespace-nowrap">تقدم دفعة</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">تحفيز أساسي</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">تحفيز اختياري</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">التزام</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">ختم مسار</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">قراءة أساسية</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">قراءة اختيارية</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">التزام بلإرسال</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">اكمال مسار</TableHead>
                   <TableHead className="text-right min-w-[120px]">شريط</TableHead>
                 </TableRow>
               </TableHeader>
