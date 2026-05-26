@@ -6,12 +6,38 @@ import { requireAuth, requireStaff } from "../lib/auth";
 
 const router = new Hono();
 
-// دالة مساعدة لحالة التسليم
-function getSubmissionStatus(settings: any): string {
+const DAY_NAME_TO_NUM: Record<string, number> = {
+  Sunday: 0,
+  Monday: 1,
+  Tuesday: 2,
+  Wednesday: 3,
+  Thursday: 4,
+  Friday: 5,
+  Saturday: 6,
+};
+
+function resolveSubmissionStartDay(settings: {
+  allDaysActive?: boolean | null;
+  primaryDay?: string | null;
+  submissionStartDay?: number | null;
+}): number {
+  if (settings.primaryDay && DAY_NAME_TO_NUM[settings.primaryDay] !== undefined) {
+    return DAY_NAME_TO_NUM[settings.primaryDay];
+  }
+  const n = settings.submissionStartDay;
+  if (typeof n === "number" && n >= 0 && n <= 6) return n;
+  return 5;
+}
+
+// دالة مساعدة لحالة التسليم — O(1)
+function getSubmissionStatus(settings: {
+  allDaysActive?: boolean | null;
+  primaryDay?: string | null;
+  submissionStartDay?: number | null;
+}): string {
   if (settings.allDaysActive) return "on_time";
-  const now = new Date();
-  const day = now.getDay();
-  const startDay = settings.submissionStartDay;
+  const day = new Date().getDay();
+  const startDay = resolveSubmissionStartDay(settings);
   const lateDay = (startDay + 1) % 7;
   if (day === startDay) return "on_time";
   if (day === lateDay) return "late";

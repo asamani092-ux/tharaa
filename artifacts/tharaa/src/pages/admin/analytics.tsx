@@ -239,7 +239,12 @@ export default function AdminAnalytics() {
                   <TableHead className="text-center whitespace-nowrap">تحفيز اختياري</TableHead>
                   <TableHead className="text-center whitespace-nowrap">التزام</TableHead>
                   <TableHead className="text-center whitespace-nowrap">ختم مسار</TableHead>
-                  <TableHead className="text-right min-w-[120px]">شريط</TableHead>
+                  <TableHead
+                    className="text-right min-w-[120px]"
+                    title="تقدم تراكمي: كتب أساسية مكتملة ÷ كتب المنهج الأساسية في المسار (%)"
+                  >
+                    شريط
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -271,8 +276,11 @@ export default function AdminAnalytics() {
                       <TableCell className="text-center">
                         {s.trackCompleted ? "نعم" : "لا"}
                       </TableCell>
-                      <TableCell>
-                        <Progress value={Number(s.batchCumulativeRate)} className="h-2 min-w-[80px]" />
+                      <TableCell title={`${Number(s.completedCoreBooksInTrack ?? 0)} / ${Number(s.totalCoreBooksInTrack ?? 0)} كتاب أساسي`}>
+                        <Progress
+                          value={Number(s.curriculumBooksProgressRate ?? 0)}
+                          className="h-2 min-w-[80px]"
+                        />
                       </TableCell>
                     </TableRow>
                   ))

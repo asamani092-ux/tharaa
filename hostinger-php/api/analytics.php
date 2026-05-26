@@ -305,6 +305,45 @@ function isCoreTrackCurriculumComplete(array $completedIds, array $booksMap, str
     return $hasAnyBook;
 }
 
+/** عدد الكتب الأساسية في منهج المسار — O(B) */
+function countCoreBooksInTrack(array $booksMap, string $track): int
+{
+    $n = 0;
+    foreach ($booksMap as $book) {
+        if (bookMatchesCoreTrack($book, $track)) {
+            $n++;
+        }
+    }
+    return $n;
+}
+
+/** كتب أساسية مكتملة في المسار — O(B + C) */
+function countCompletedCoreBooksInTrack(array $completedIds, array $booksMap, string $track): int
+{
+    $completedSet = array_flip(array_map('intval', $completedIds));
+    $n = 0;
+    foreach ($booksMap as $book) {
+        if (!bookMatchesCoreTrack($book, $track)) {
+            continue;
+        }
+        if (isset($completedSet[(int)$book['id']])) {
+            $n++;
+        }
+    }
+    return $n;
+}
+
+/** تقدم تراكمي للمنهج بالكتب الأساسية (0–100%) — لا يعتمد على التاريخ */
+function evalCurriculumBooksProgressRate(array $completedIds, array $booksMap, string $track): float
+{
+    $total = countCoreBooksInTrack($booksMap, $track);
+    if ($total <= 0) {
+        return 0.0;
+    }
+    $done = countCompletedCoreBooksInTrack($completedIds, $booksMap, $track);
+    return round(min(100, ($done / $total) * 100), 1);
+}
+
 function buildFinishHint(
     int $totalTrackPages,
     int $batchWeekNow,
@@ -333,7 +372,8 @@ function buildFinishHint(
     $pace = max($trackGamificationPages / $batchWeekNow, 1.0);
     $weeksLeft = (int)ceil($remaining / max($pace, $weeklyQuota * 0.25));
     $monthsLeft = (int)ceil($weeksLeft / 4.33);
-    $monthsLeft = min(36, max(1, $monthsLeft));
+    $maxMonths = $effectiveTrack === 'simplified' ? 20 : 27;
+    $monthsLeft = min($maxMonths, max(1, $monthsLeft));
 
     if ($pace >= $weeklyQuota) {
         return "أداء استثنائي! متبقي {$monthsLeft} شهراً لختم المسار {$trackAr} 🚀";
@@ -551,6 +591,9 @@ try {
             ? round(min(100, ($gamificationPagesCore / $batchPaceTargetCore) * 100), 1)
             : 0;
         $trackCompleted = isCoreTrackCurriculumComplete($completedIds, $booksMap, $effectiveTrack);
+        $totalCoreBooksInTrack = countCoreBooksInTrack($booksMap, $effectiveTrack);
+        $completedCoreBooksInTrack = countCompletedCoreBooksInTrack($completedIds, $booksMap, $effectiveTrack);
+        $curriculumBooksProgressRate = evalCurriculumBooksProgressRate($completedIds, $booksMap, $effectiveTrack);
 
         $onTimeWeeks = isset($onTimeWeeksByUser[$userId]) ? count($onTimeWeeksByUser[$userId]) : 0;
         $lateWeeks = isset($lateWeeksByUser[$userId]) ? count($lateWeeksByUser[$userId]) : 0;
@@ -569,6 +612,9 @@ try {
             'effectiveTrack' => $effectiveTrack,
             'stageCompletionRate' => $stageCompletionRate,
             'batchCumulativeRate' => $batchCumulativeRate,
+            'curriculumBooksProgressRate' => $curriculumBooksProgressRate,
+            'completedCoreBooksInTrack' => $completedCoreBooksInTrack,
+            'totalCoreBooksInTrack' => $totalCoreBooksInTrack,
             'batchPaceTarget' => $batchPaceTargetCore,
             'gamificationPages' => $gamificationPages,
             'gamificationPagesOptional' => $gamificationPagesOptional,
