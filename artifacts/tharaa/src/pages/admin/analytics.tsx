@@ -235,24 +235,16 @@ export default function AdminAnalytics() {
                   <TableHead className="text-center whitespace-nowrap">المسار</TableHead>
                   <TableHead className="text-center whitespace-nowrap">إنجاز مرحلي</TableHead>
                   <TableHead className="text-center whitespace-nowrap">تقدم دفعة</TableHead>
-<<<<<<< HEAD
                   <TableHead className="text-center whitespace-nowrap">قراءة أساسية</TableHead>
                   <TableHead className="text-center whitespace-nowrap">قراءة اختيارية</TableHead>
                   <TableHead className="text-center whitespace-nowrap">التزام بالإرسال</TableHead>
                   <TableHead className="text-center whitespace-nowrap">اكمال مسار</TableHead>
-                  <TableHead className="text-right min-w-[120px]">شريط</TableHead>
-=======
-                  <TableHead className="text-center whitespace-nowrap">تحفيز أساسي</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">تحفيز اختياري</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">التزام</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">ختم مسار</TableHead>
                   <TableHead
                     className="text-right w-[240px]"
                     title="كتب أساسية مكتملة ÷ إجمالي كتب المنهج الأساسية في المسار"
                   >
                     الإنجاز التراكمي
                   </TableHead>
->>>>>>> c74ba5d (ui: الإنجاز التراكمي بإطار في الإحصائيات، نصاب واحد في رصد الطالب)
                 </TableRow>
               </TableHeader>
               <TableBody>
