@@ -3,7 +3,9 @@ ob_start();
 error_reporting(0);
 require_once 'cors.php';
 require_once 'db.php';
-require_once 'auth_helpers.php';
+if (!function_exists('requireStaffRole')) {
+    require_once 'auth_helpers.php';
+}
 header('Content-Type: application/json; charset=utf-8');
 
 $method = $_SERVER['REQUEST_METHOD'];
