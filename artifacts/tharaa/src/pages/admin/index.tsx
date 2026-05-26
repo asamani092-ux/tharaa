@@ -119,7 +119,7 @@ export default function AdminOverview() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2 text-[var(--error-600)]">
                 <AlertTriangle className="w-4 h-4" />
-                دائرة الخطر ({atRisk?.windowDays ?? 14} يوم)
+                المنقطعون  ({atRisk?.windowDays ?? 14} يوم)
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -141,7 +141,7 @@ export default function AdminOverview() {
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-[var(--secondary-400)]" />
-                عنق الزجاجة
+                كتب تأخذ وقتاً 
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -179,7 +179,7 @@ export default function AdminOverview() {
               <div className="px-6 py-4 border-b border-[var(--border-subtle)]">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
                   <Trophy className="w-5 h-5 text-[var(--secondary-400)]" />
-                  الأكثر التزاماً
+                  الأكثر التزاماً بالإرسال
                 </h3>
               </div>
               <div className="divide-y divide-[var(--border-subtle)]">
@@ -236,7 +236,7 @@ export default function AdminOverview() {
               <TableRow>
                 <TableHead className="text-right">الدفعة</TableHead>
                 <TableHead className="text-center">المشاركون</TableHead>
-                <TableHead className="text-center">صفحات التحفيز</TableHead>
+                <TableHead className="text-center">عدد الصفحات </TableHead>
                 <TableHead className="text-right w-[240px]">متوسط الإنجاز المرحلي</TableHead>
               </TableRow>
             </TableHeader>
