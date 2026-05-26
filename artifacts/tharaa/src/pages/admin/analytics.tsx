@@ -145,6 +145,9 @@ export default function AdminAnalytics() {
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold">{atRisk?.count ?? 0}</p>
+              <p className="text-[11px] text-[var(--text-secondary)] mt-1 leading-relaxed">
+                بلا رصد منذ المدة المحددة (المشارك الجديد يُستثنى حتى انتهاء نفس المدة)
+              </p>
               <ul className="mt-2 text-xs space-y-0.5 max-h-24 overflow-y-auto text-[var(--text-secondary)]">
                 {(atRisk?.students ?? []).map((s: { id: number; name: string }) => (
                   <li key={s.id}>{s.name}</li>
