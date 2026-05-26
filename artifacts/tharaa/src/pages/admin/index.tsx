@@ -124,7 +124,9 @@ export default function AdminOverview() {
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold text-[var(--error-600)]">{atRisk?.count ?? 0}</p>
-              <p className="text-xs text-[var(--text-secondary)] mt-1">مشارك بلا رصد خلال المدة</p>
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
+                بلا رصد منذ المدة المحددة (بعد فترة سماح للمشارك الجديد)
+              </p>
               {(atRisk?.students?.length ?? 0) > 0 && (
                 <ul className="mt-2 text-xs space-y-0.5 max-h-24 overflow-y-auto text-[var(--text-secondary)]">
                   {atRisk.students.slice(0, 8).map((s) => (

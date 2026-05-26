@@ -399,22 +399,75 @@ function loadLastLogDateByUser(PDO $pdo): array
     return $map;
 }
 
-function buildAtRiskStudents(array $usersDetail, array $lastLogByUser, int $inactiveDays): array
+/** مرجع بدء المتابعة: تاريخ إنشاء المشارك أو الدفعة (الأحدث) — O(1) */
+function resolveMemberSinceDate(?string $userCreatedAt, ?string $batchCreatedAt): ?DateTime
 {
+    $latest = null;
+    foreach ([$userCreatedAt, $batchCreatedAt] as $raw) {
+        if ($raw === null || trim((string)$raw) === '') {
+            continue;
+        }
+        try {
+            $dt = new DateTime((string)$raw);
+            if ($latest === null || $dt > $latest) {
+                $latest = $dt;
+            }
+        } catch (Exception $e) {
+            // ignore invalid date
+        }
+    }
+    return $latest;
+}
+
+/**
+ * منقطع: آخر رصد أقدم من (اليوم − N)، أو بلا أي رصد بعد مرور N يوماً من تاريخ الانضمام.
+ * مشارك جديد بلا سجلات لا يُحسب منقطعاً قبل انتهاء فترة N — O(U) زمنياً.
+ */
+function isStudentAtRisk(
+    ?string $lastLogDate,
+    ?string $userCreatedAt,
+    ?string $batchCreatedAt,
+    DateTime $cutoff,
+    int $inactiveDays
+): bool {
+    if ($lastLogDate !== null && trim($lastLogDate) !== '') {
+        try {
+            $lastDt = new DateTime($lastLogDate);
+            return $lastDt < $cutoff;
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    $memberSince = resolveMemberSinceDate($userCreatedAt, $batchCreatedAt);
+    if ($memberSince === null) {
+        return false;
+    }
+
+    $today = new DateTime('today');
+    $graceEnd = (clone $memberSince)->setTime(0, 0, 0)->modify('+' . max(1, $inactiveDays) . ' days');
+    return $today >= $graceEnd;
+}
+
+function buildAtRiskStudents(
+    array $usersDetail,
+    array $lastLogByUser,
+    int $inactiveDays,
+    array $memberContextByUser
+): array {
     $cutoff = (new DateTime('today'))->modify('-' . max(1, $inactiveDays) . ' days');
     $students = [];
     foreach ($usersDetail as $u) {
         $uid = (int)$u['id'];
         $last = $lastLogByUser[$uid] ?? null;
-        $isAtRisk = true;
-        if ($last !== null) {
-            try {
-                $lastDt = new DateTime($last);
-                $isAtRisk = $lastDt < $cutoff;
-            } catch (Exception $e) {
-                $isAtRisk = true;
-            }
-        }
+        $ctx = $memberContextByUser[$uid] ?? [];
+        $isAtRisk = isStudentAtRisk(
+            $last,
+            $ctx['userCreatedAt'] ?? null,
+            $ctx['batchCreatedAt'] ?? null,
+            $cutoff,
+            $inactiveDays
+        );
         if ($isAtRisk) {
             $students[] = [
                 'id' => $uid,
@@ -490,7 +543,8 @@ try {
 
     $stmtUsers = $pdo->query("
         SELECT u.id, u.name, u.batch_id, u.completed_books, u.last_page, u.current_book_id,
-               u.track_override, b.default_track, b.created_at
+               u.track_override, u.created_at AS user_created_at,
+               b.default_track, b.created_at AS batch_created_at
         FROM users u
         LEFT JOIN batches b ON b.id = u.batch_id
         WHERE u.role = 'student'
@@ -535,6 +589,7 @@ try {
     $usersDetail = [];
     $totalBooksCompleted = 0;
     $filteredUsersRaw = [];
+    $memberContextByUser = [];
 
     foreach ($users as $user) {
         $userId = (int)$user['id'];
@@ -551,6 +606,11 @@ try {
         if ($filterTrack && $effectiveTrack !== $filterTrack) {
             continue;
         }
+
+        $memberContextByUser[$userId] = [
+            'userCreatedAt' => $user['user_created_at'] ?? null,
+            'batchCreatedAt' => $user['batch_created_at'] ?? null,
+        ];
 
         $totalTrackPages = sumTrackPages($booksMap, $effectiveTrack);
         $totalCoreTrackPages = sumCoreTrackPages($booksMap, $effectiveTrack);
@@ -694,7 +754,7 @@ try {
     ];
 
     if (!$scopeMe) {
-        $atRiskList = buildAtRiskStudents($usersDetail, $lastLogByUser, $atRiskInactiveDays);
+        $atRiskList = buildAtRiskStudents($usersDetail, $lastLogByUser, $atRiskInactiveDays, $memberContextByUser);
         $response['supervisorIndicators'] = [
             'atRisk' => [
                 'count' => count($atRiskList),
