@@ -223,7 +223,7 @@ export default function AdminAnalytics() {
                   <TableHead className="text-center whitespace-nowrap">تقدم دفعة</TableHead>
                   <TableHead className="text-center whitespace-nowrap">قراءة أساسية</TableHead>
                   <TableHead className="text-center whitespace-nowrap">قراءة اختيارية</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">التزام بلإرسال</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">التزام بالإرسال</TableHead>
                   <TableHead className="text-center whitespace-nowrap">اكمال مسار</TableHead>
                   <TableHead className="text-right min-w-[120px]">شريط</TableHead>
                 </TableRow>
