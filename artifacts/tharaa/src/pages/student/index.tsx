@@ -219,7 +219,6 @@ export default function StudentPortal() {
   const [showReflection, setShowReflection] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [nextBookIdForRollover, setNextBookIdForRollover] = useState<string>("");
-  const [rolloverStartPage, setRolloverStartPage] = useState(1);
   const [rolloverEndPage, setRolloverEndPage] = useState(1);
   const [rolloverPagesManuallyEdited, setRolloverPagesManuallyEdited] = useState(false);
   const [pendingSubmissionData, setPendingSubmissionData] = useState<{
@@ -535,7 +534,6 @@ export default function StudentPortal() {
     setShowCompletionModal(true);
     setNextBookIdForRollover("");
     setRolloverPagesManuallyEdited(false);
-    setRolloverStartPage(1);
     setRolloverEndPage(Math.max(1, remainingQuota));
   };
 
@@ -564,7 +562,6 @@ export default function StudentPortal() {
       range.endPage,
       lastPageForBook(rolloverSelectedBook)
     );
-    setRolloverStartPage(clamped.startPage);
     setRolloverEndPage(clamped.endPage);
   }, [
     pendingSubmissionData,
@@ -639,6 +636,7 @@ export default function StudentPortal() {
     }
 
     const lastPageOnNext = lastPageForBook(nextBook);
+    const rolloverStartPage = Math.max(1, lastPageOnNext + 1);
     const rangeCheck = validatePageRangeAgainstBook(
       nextBook,
       rolloverStartPage,
@@ -693,7 +691,12 @@ export default function StudentPortal() {
     return booksAvailableForRollover(availableCoreBooks, used);
   }, [pendingSubmissionData, availableCoreBooks]);
 
-  const rolloverPagesCount = Math.max(0, rolloverEndPage - rolloverStartPage + 1);
+  const rolloverPagesCount = Math.max(
+    0,
+    rolloverEndPage -
+      Math.max(1, (rolloverSelectedBook ? lastPageForBook(rolloverSelectedBook) : 0) + 1) +
+      1
+  );
 
   const submitCustomProgress = async () => {
     if (!priorAchievementEnabled) {
@@ -1470,14 +1473,14 @@ export default function StudentPortal() {
                 {rolloverSelectedBook && (() => {
                   const rolloverBookTotal = bookTotalPages(rolloverSelectedBook);
                   const rolloverLast = lastPageForBook(rolloverSelectedBook);
-                  const applyRolloverRange = (nextStart: number, nextEnd: number) => {
+                  const rolloverStartPage = Math.max(1, rolloverLast + 1);
+                  const applyRolloverRange = (nextEnd: number) => {
                     const clamped = clampPageRangeToBook(
                       rolloverSelectedBook,
-                      nextStart,
+                      rolloverStartPage,
                       nextEnd,
                       rolloverLast
                     );
-                    setRolloverStartPage(clamped.startPage);
                     setRolloverEndPage(clamped.endPage);
                   };
                   return (
@@ -1492,16 +1495,12 @@ export default function StudentPortal() {
                         <Label className="text-xs">من صفحة</Label>
                         <Input
                           type="number"
-                          min={Math.max(1, rolloverLast + 1)}
-                          max={rolloverBookTotal}
+                          min={rolloverStartPage}
+                          max={rolloverStartPage}
                           value={rolloverStartPage}
-                          onChange={(e) => {
-                            setRolloverPagesManuallyEdited(true);
-                            const raw = parseInt(e.target.value, 10) || 1;
-                            applyRolloverRange(raw, rolloverEndPage);
-                          }}
-                          onBlur={() => applyRolloverRange(rolloverStartPage, rolloverEndPage)}
-                          className="h-10 text-center"
+                          readOnly
+                          disabled
+                          className="h-10 text-center opacity-70"
                         />
                       </div>
                       <div className="space-y-1">
@@ -1514,9 +1513,9 @@ export default function StudentPortal() {
                           onChange={(e) => {
                             setRolloverPagesManuallyEdited(true);
                             const raw = parseInt(e.target.value, 10) || rolloverStartPage;
-                            applyRolloverRange(rolloverStartPage, raw);
+                            applyRolloverRange(raw);
                           }}
-                          onBlur={() => applyRolloverRange(rolloverStartPage, rolloverEndPage)}
+                          onBlur={() => applyRolloverRange(rolloverEndPage)}
                           className="h-10 text-center"
                         />
                       </div>
