@@ -448,7 +448,7 @@ export default function StudentPortal() {
       toast.error("أكتب فائدة لكي تتمكن من المشاركة");
       return;
     }
-    const message = `📚 *فائدة من كتاب: ${selectedBook.title}*\n\n"${reflection.trim()}"\n\n✨ تمت المشاركة عبر منصة ثراء المعرفة`;
+    const message = ` *فائدة من كتاب: ${selectedBook.title}*\n\n"${reflection.trim()}"\n\n تمت المشاركة عبر منصة ثراء المعرفة`;
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
   };
 
@@ -897,7 +897,7 @@ export default function StudentPortal() {
                   <div className={`${bannerBase} bg-[var(--bg-primary)] border-[var(--primary-600)] mb-4`}>
                     <Calendar className="w-4 h-4 text-[var(--primary-600)] shrink-0" />
                     <span className="text-sm text-[var(--text-primary)]">
-                      اليوم هو <strong>يوم الرصد الرسمي</strong> — النموذج مفتوح لإتمام نصابك (
+                      اليوم هو <strong>يوم الرصد الرسمي</strong> — النموذج جاهز لإتمام نصابك (
                       {weeklyQuota} صفحة).
                     </span>
                   </div>
