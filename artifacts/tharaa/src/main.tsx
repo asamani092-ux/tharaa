@@ -8,12 +8,15 @@ import "@fontsource/ibm-plex-sans-arabic/600.css";
 import "@fontsource/ibm-plex-sans-arabic/700.css";
 import { Toaster } from "sonner";
 import { applyTheme, getStoredTheme } from "@/lib/theme";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 applyTheme(getStoredTheme());
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
     <Toaster
       richColors
       dir="rtl"

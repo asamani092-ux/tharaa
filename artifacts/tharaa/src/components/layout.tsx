@@ -10,10 +10,13 @@ import {
   Home,
   Settings,
   ShieldAlert,
+  Shield,
 } from "lucide-react";
+import { isSupervisorRole } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
-import { useGetSettings } from "@workspace/api-client-react";
+import { usePlatformSettings } from "@/lib/settingsPhpApi";
 import { isDarkTheme } from "@/lib/theme";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 function useIsDarkTheme() {
   const [isDark, setIsDark] = useState(() =>
@@ -44,6 +47,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const supervisor = isSupervisorRole(session?.user?.role);
+
   const navItems = [
     { href: "/admin", label: "نظرة عامة", icon: Home, id: "overview" },
     { href: "/admin/users", label: "إدارة المشاركين", icon: Users, id: "users" },
@@ -51,6 +56,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { href: "/admin/batches", label: "الدفعات", icon: Layers, id: "batches" },
     { href: "/admin/analytics", label: "الإحصائيات", icon: BarChart3, id: "analytics" },
     { href: "/admin/settings", label: "الإعدادات", icon: Settings, id: "settings" },
+    ...(supervisor
+      ? [{ href: "/admin/supervisors", label: "إدارة المشرفين", icon: Shield, id: "supervisors" }]
+      : []),
   ];
 
   return (
@@ -64,7 +72,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               className="h-12 sm:h-14 w-auto max-w-[220px] object-contain"
             />
             <p className="text-[11px] sm:text-xs text-[var(--text-secondary)] leading-none">
-              لوحة المشرف
+              {supervisor ? "لوحة السوبرفايزر" : "لوحة المشرف"}
             </p>
           </div>
         </div>
@@ -137,7 +145,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 export function StudentLayout({ children }: { children: React.ReactNode }) {
   const logout = useLogout();
   const { data: session } = useGetMe();
-  const { data: settings, isLoading: isSettingsLoading } = useGetSettings();
+  const { data: settings, isLoading: isSettingsLoading } = usePlatformSettings();
   const isDark = useIsDarkTheme();
 
   const iconColored = "/brand/thraa_icon_colored.png";
@@ -223,7 +231,8 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
         بوابة المشارك
       </p>
     </div>
-    <div className="flex items-center gap-3 shrink-0">
+    <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+      <ThemeToggle />
       <span
         className="text-sm font-medium text-[var(--text-primary)]/80 hidden sm:block"
         data-testid="text-username"

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { eq } from "drizzle-orm";
 import { db, batchesTable, usersTable, readingLogsTable } from "@workspace/db";
-import { requireAdmin, requireAuth } from "../lib/auth";
+import { requireStaff, requireAuth } from "../lib/auth";
 
 const router = new Hono();
 
@@ -10,7 +10,7 @@ router.get("/", requireAuth, async (c) => {
   return c.json(batches);
 });
 
-router.post("/", requireAdmin, async (c) => {
+router.post("/", requireStaff, async (c) => {
   try {
     const body = await c.req.json();
     if (!body.name) return c.json({ error: "اسم الدفعة مطلوب" }, 400);
@@ -23,7 +23,7 @@ router.post("/", requireAdmin, async (c) => {
 });
 
 // تم التغيير من PATCH إلى PUT بناءً على طلب الواجهة
-router.put("/:id", requireAdmin, async (c) => {
+router.put("/:id", requireStaff, async (c) => {
   const id = parseInt(c.req.param('id'));
   const body = await c.req.json();
   
@@ -36,7 +36,7 @@ router.put("/:id", requireAdmin, async (c) => {
   return c.json(batch);
 });
 
-router.delete("/:id", requireAdmin, async (c) => {
+router.delete("/:id", requireStaff, async (c) => {
   const id = parseInt(c.req.param('id'));
   
   // يفضل حذف السجلات والمستخدمين التابعين للدفعة قبل حذفها
