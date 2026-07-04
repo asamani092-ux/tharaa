@@ -631,7 +631,7 @@ export default function StudentPortal() {
               ) : (
                 <>
                   <Calendar className="w-4 h-4 mx-auto mb-1 text-[var(--secondary-400)] shrink-0" />
-                  <p className="text-xs font-medium leading-snug text-[var(--text-primary)] line-clamp-3">
+                  <p className="text-xs font-medium leading-snug text-[var(--text-primary)] line-clamp-3 whitespace-pre-line">
                     {expectedFinishHint}
                   </p>
                 </>
