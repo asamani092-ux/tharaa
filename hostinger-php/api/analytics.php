@@ -344,6 +344,72 @@ function evalCurriculumBooksProgressRate(array $completedIds, array $booksMap, s
     return round(min(100, ($done / $total) * 100), 1);
 }
 
+/** يحدد مرحلة التقدم 1–10 من نسبة الصفحات — O(1). */
+function resolveFinishHintTier(int $progressPercent): int
+{
+    if ($progressPercent <= 0) {
+        return 1;
+    }
+    if ($progressPercent <= 10) {
+        return 2;
+    }
+    if ($progressPercent <= 20) {
+        return 3;
+    }
+    if ($progressPercent <= 30) {
+        return 4;
+    }
+    if ($progressPercent <= 40) {
+        return 5;
+    }
+    if ($progressPercent <= 50) {
+        return 6;
+    }
+    if ($progressPercent <= 60) {
+        return 7;
+    }
+    if ($progressPercent <= 70) {
+        return 8;
+    }
+    if ($progressPercent <= 85) {
+        return 9;
+    }
+    return 10;
+}
+
+/** جملة السطر الثاني لبطاقة موعد الختم — O(1). */
+function resolveProgressSentence(int $tier, int $monthsLeft): string
+{
+    switch ($tier) {
+        case 1:
+            return 'بداية رحلتك — كل أسبوع قراءة يقربك من ختم المنهج.';
+        case 2:
+            return 'أنجزت بداية المسار — استمر على وتيرتك.';
+        case 3:
+            return 'تقدم مبكر جيد — أحسنت البداية.';
+        case 4:
+            return 'أكملت نحو ربع المسار — ثابر.';
+        case 5:
+            return 'تجاوزت 30% من المسار — أنت في المسار الصحيح.';
+        case 6:
+            return 'في منتصف رحلتك — استمر بنفس الوتيرة.';
+        case 7:
+            return 'تجاوزت نصف المسار — أداء ممتاز.';
+        case 8:
+            return 'تقدم قوي — أنجزت أكثر من 60% من المسار.';
+        case 9:
+            return "اقتربت من الختم — متبقي نحو {$monthsLeft} شهراً.";
+        case 10:
+        default:
+            return "أوشكت على الإتمام — متبقي نحو {$monthsLeft} شهراً.";
+    }
+}
+
+function formatPlanHint(string $trackAr, string $progressSentence): string
+{
+    return "خطتك هي : {$trackAr}\n{$progressSentence}";
+}
+
 function buildFinishHint(
     int $totalTrackPages,
     int $batchWeekNow,
@@ -359,27 +425,37 @@ function buildFinishHint(
     }
 
     if ($totalTrackPages <= 0 || $batchWeekNow <= 0) {
-        return "تسير على الخطة — مسار {$trackAr}";
+        return formatPlanHint($trackAr, 'استمر في القراءة الأسبوعية.');
     }
 
     $pacePages = min(max(0, $trackGamificationPages), $totalTrackPages);
     $remaining = max(0, $totalTrackPages - $pacePages);
-
-    if ($remaining <= 0) {
-        return "أداء استثنائي! اقتربت من ختم المسار {$trackAr} 🚀";
-    }
+    $progressPercent = $totalTrackPages > 0
+        ? (int)min(100, round(($pacePages / $totalTrackPages) * 100))
+        : 0;
 
     $pace = max($trackGamificationPages / $batchWeekNow, 1.0);
-    $weeksLeft = (int)ceil($remaining / max($pace, $weeklyQuota * 0.25));
+    $weeksLeft = $remaining > 0
+        ? (int)ceil($remaining / max($pace, $weeklyQuota * 0.25))
+        : 1;
     $monthsLeft = (int)ceil($weeksLeft / 4.33);
     $maxMonths = $effectiveTrack === 'simplified' ? 20 : 27;
     $monthsLeft = min($maxMonths, max(1, $monthsLeft));
 
     if ($pace >= $weeklyQuota) {
-        return "أداء استثنائي! متبقي {$monthsLeft} شهراً لختم المسار {$trackAr} 🚀";
+        return formatPlanHint(
+            $trackAr,
+            "وتيرتك ممتازة — متبقي نحو {$monthsLeft} شهراً لختم المسار."
+        );
     }
 
-    return "تسير على الخطة ({$trackAr})، متبقي نحو {$monthsLeft} شهراً";
+    if ($remaining <= 0) {
+        $tier = 10;
+    } else {
+        $tier = resolveFinishHintTier($progressPercent);
+    }
+
+    return formatPlanHint($trackAr, resolveProgressSentence($tier, $monthsLeft));
 }
 
 function loadLastLogDateByUser(PDO $pdo): array
