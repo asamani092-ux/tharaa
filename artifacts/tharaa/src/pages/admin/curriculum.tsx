@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useListCurriculum } from "@workspace/api-client-react";
 import { useMutation } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/layout";
@@ -25,8 +25,20 @@ function trackTypeLabel(value?: string): string {
   return TRACK_OPTIONS.find((o) => o.value === value)?.label ?? "كلاهما";
 }
 
+function compareBookCodes(a: string | undefined, b: string | undefined): number {
+  return String(a ?? "").localeCompare(String(b ?? ""), "ar", {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
 export default function AdminCurriculum() {
   const { data: curriculum, isLoading, refetch } = useListCurriculum();
+
+  const sortedCurriculum = useMemo(() => {
+    if (!curriculum?.length) return [];
+    return [...curriculum].sort((a, b) => compareBookCodes(a.bookCode, b.bookCode));
+  }, [curriculum]);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editBook, setEditBook] = useState<any>(null);
@@ -216,7 +228,7 @@ export default function AdminCurriculum() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  curriculum?.map((book) => (
+                  sortedCurriculum.map((book) => (
                     <TableRow
                       key={book.id}
                       className="border-[var(--border-subtle)] hover:bg-[var(--bg-tertiary)] transition-colors"

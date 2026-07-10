@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
 import { eq, and } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
-import { requireAdmin, normalizePhone } from "../lib/auth";
+import { requireStaff, normalizePhone } from "../lib/auth";
 
 const router = new Hono();
 
-router.get("/", requireAdmin, async (c) => {
+router.get("/", requireStaff, async (c) => {
   const batchId = c.req.query('batchId');
   const status = c.req.query('status');
 
@@ -19,7 +19,7 @@ router.get("/", requireAdmin, async (c) => {
   return c.json(users.map(({passwordHash, ...u}) => u));
 });
 
-router.post("/", requireAdmin, async (c) => {
+router.post("/", requireStaff, async (c) => {
   try {
     const body = await c.req.json();
     const normalizedPhone = normalizePhone(body.phone);
@@ -40,7 +40,7 @@ router.post("/", requireAdmin, async (c) => {
 });
 
 // المسار السري الذي كانت الواجهة تبحث عنه! (Bulk Insert)
-router.post("/bulk", requireAdmin, async (c) => {
+router.post("/bulk", requireStaff, async (c) => {
   try {
     const body = await c.req.json();
     const { batchId, phaseNumber, levelType, rawText } = body;
@@ -77,20 +77,20 @@ router.post("/bulk", requireAdmin, async (c) => {
 });
 
 // تعديل بيانات مستخدم (دعم PUT و PATCH)
-router.put("/:id", requireAdmin, async (c) => {
+router.put("/:id", requireStaff, async (c) => {
    const id = parseInt(c.req.param('id'));
    const body = await c.req.json();
    const [user] = await db.update(usersTable).set(body).where(eq(usersTable.id, id)).returning();
    return c.json(user);
 });
-router.patch("/:id", requireAdmin, async (c) => {
+router.patch("/:id", requireStaff, async (c) => {
    const id = parseInt(c.req.param('id'));
    const body = await c.req.json();
    const [user] = await db.update(usersTable).set(body).where(eq(usersTable.id, id)).returning();
    return c.json(user);
 });
 
-router.delete("/:id", requireAdmin, async (c) => {
+router.delete("/:id", requireStaff, async (c) => {
   const id = parseInt(c.req.param('id'));
   await db.delete(usersTable).where(eq(usersTable.id, id));
   return c.body(null, 204);

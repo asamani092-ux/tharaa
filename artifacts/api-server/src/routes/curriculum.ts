@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { eq, and } from "drizzle-orm";
 import { db, curriculumTable } from "@workspace/db";
-import { requireAuth, requireAdmin } from "../lib/auth";
+import { requireAuth, requireStaff } from "../lib/auth";
 
 const router = new Hono();
 
@@ -28,7 +28,7 @@ router.get("/", requireAuth, async (c) => {
 });
 
 // إضافة كتاب جديد (للمدير فقط)
-router.post("/", requireAdmin, async (c) => {
+router.post("/", requireStaff, async (c) => {
   const body = await c.req.json();
   const { phaseNumber, phaseName, levelType, bookCode, title, totalPages } = body;
 
@@ -51,7 +51,7 @@ router.post("/", requireAdmin, async (c) => {
 });
 
 // تحديث كامل لبيانات كتاب
-router.put("/:id", requireAdmin, async (c) => {
+router.put("/:id", requireStaff, async (c) => {
   const id = parseInt(c.req.param('id'), 10);
   if (isNaN(id)) return c.json({ error: "Invalid id" }, 400);
 
@@ -67,7 +67,7 @@ router.put("/:id", requireAdmin, async (c) => {
 });
 
 // تحديث جزئي لبيانات كتاب
-router.patch("/:id", requireAdmin, async (c) => {
+router.patch("/:id", requireStaff, async (c) => {
   const id = parseInt(c.req.param('id'), 10);
   if (isNaN(id)) return c.json({ error: "Invalid id" }, 400);
 
@@ -83,7 +83,7 @@ router.patch("/:id", requireAdmin, async (c) => {
 });
 
 // حذف كتاب
-router.delete("/:id", requireAdmin, async (c) => {
+router.delete("/:id", requireStaff, async (c) => {
   const id = parseInt(c.req.param('id'), 10);
   if (isNaN(id)) return c.json({ error: "Invalid id" }, 400);
 

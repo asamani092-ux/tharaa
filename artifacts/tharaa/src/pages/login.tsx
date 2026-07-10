@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { useEffect, useState } from "react";
 import { isDarkTheme } from "@/lib/theme";
 
 function useIsDarkTheme() {
@@ -74,7 +73,7 @@ export default function Login() {
           toast.success("تم تسجيل الدخول بنجاح");
           await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
 
-          if (res.role === "admin") {
+          if (res.role === "admin" || res.role === "supervisor") {
             window.location.href = "/admin";
           } else {
             window.location.href = "/student";

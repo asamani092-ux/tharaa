@@ -1,10 +1,11 @@
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
+import { useGetMe } from "@workspace/api-client-react";
 import { Loader2 } from "lucide-react";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { homePathForRole, isStaffRole, isSupervisorRole } from "@/lib/roles";
 
 import Login from "@/pages/login";
 import StudentPortal from "@/pages/student/index";
@@ -15,39 +16,78 @@ import AdminAnalytics from "@/pages/admin/analytics";
 import AdminCurriculum from "@/pages/admin/curriculum";
 import AdminSettings from "@/pages/admin/settings";
 import AdminBatches from "@/pages/admin/batches";
+import AdminSupervisors from "@/pages/admin/supervisors";
 import NotFound from "@/pages/not-found";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
-function AuthGuard({ children, requireRole }: { children: React.ReactNode, requireRole?: 'admin' | 'student' }) {
+function AuthLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <Loader2 className="w-12 h-12 animate-spin text-primary" />
+    </div>
+  );
+}
+
+function AuthGuard({
+  children,
+  requireRole,
+}: {
+  children: React.ReactNode;
+  requireRole?: "staff" | "student" | "supervisor";
+}) {
   const { data: session, isLoading } = useGetMe();
   const [location, setLocation] = useLocation();
+  const isAuthenticated = !!session?.authenticated;
+  const role = session?.user?.role;
 
   useEffect(() => {
-    if (!isLoading) {
-      if (!session?.authenticated) {
-        if (location !== "/login") setLocation("/login");
-      } else if (location === "/login") {
-        setLocation(session.user?.role === "admin" ? "/admin" : "/student");
-      } else if (requireRole && session.user?.role !== requireRole) {
-        setLocation(session.user?.role === "admin" ? "/admin" : "/student");
-      } else if (location === "/") {
-        setLocation(session.user?.role === "admin" ? "/admin" : "/student");
-      }
+    if (isLoading) return;
+
+    const go = (to: string) => {
+      if (location !== to) setLocation(to);
+    };
+
+    if (!isAuthenticated) {
+      go("/login");
+      return;
     }
-  }, [session, isLoading, location, requireRole, setLocation]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-12 h-12 animate-spin text-primary" />
-      </div>
-    );
-  }
+    if (location === "/login") {
+      go(homePathForRole(role));
+      return;
+    }
 
-  if (!session?.authenticated && location !== "/login") {
-    return null; // Will redirect
-  }
+    if (requireRole === "staff" && !isStaffRole(role)) {
+      go(homePathForRole(role));
+      return;
+    }
+
+    if (requireRole === "supervisor" && !isSupervisorRole(role)) {
+      go(homePathForRole(role));
+      return;
+    }
+
+    if (requireRole === "student" && role !== "student") {
+      go(homePathForRole(role));
+      return;
+    }
+
+    if (location === "/") {
+      go(homePathForRole(role));
+    }
+  }, [isLoading, isAuthenticated, role, location, requireRole, setLocation]);
+
+  if (isLoading) return <AuthLoading />;
+
+  if (!isAuthenticated && location !== "/login") return <AuthLoading />;
 
   return <>{children}</>;
 }
@@ -56,40 +96,62 @@ function Router() {
   return (
     <Switch>
       <Route path="/login">
-        <AuthGuard><Login /></AuthGuard>
+        <AuthGuard>
+          <Login />
+        </AuthGuard>
       </Route>
-      
-      {/* Student Routes */}
+
       <Route path="/student">
-        <AuthGuard requireRole="student"><StudentPortal /></AuthGuard>
+        <AuthGuard requireRole="student">
+          <StudentPortal />
+        </AuthGuard>
       </Route>
       <Route path="/student/submit">
-        <AuthGuard requireRole="student"><SubmitLog /></AuthGuard>
+        <AuthGuard requireRole="student">
+          <SubmitLog />
+        </AuthGuard>
       </Route>
 
-      {/* Admin Routes */}
       <Route path="/admin">
-        <AuthGuard requireRole="admin"><AdminDashboard /></AuthGuard>
+        <AuthGuard requireRole="staff">
+          <AdminDashboard />
+        </AuthGuard>
       </Route>
       <Route path="/admin/users">
-        <AuthGuard requireRole="admin"><AdminUsers /></AuthGuard>
+        <AuthGuard requireRole="staff">
+          <AdminUsers />
+        </AuthGuard>
       </Route>
       <Route path="/admin/analytics">
-        <AuthGuard requireRole="admin"><AdminAnalytics /></AuthGuard>
+        <AuthGuard requireRole="staff">
+          <AdminAnalytics />
+        </AuthGuard>
       </Route>
       <Route path="/admin/curriculum">
-        <AuthGuard requireRole="admin"><AdminCurriculum /></AuthGuard>
+        <AuthGuard requireRole="staff">
+          <AdminCurriculum />
+        </AuthGuard>
       </Route>
       <Route path="/admin/settings">
-        <AuthGuard requireRole="admin"><AdminSettings /></AuthGuard>
+        <AuthGuard requireRole="staff">
+          <AdminSettings />
+        </AuthGuard>
       </Route>
       <Route path="/admin/batches">
-        <AuthGuard requireRole="admin"><AdminBatches /></AuthGuard>
+        <AuthGuard requireRole="staff">
+          <AdminBatches />
+        </AuthGuard>
+      </Route>
+      <Route path="/admin/supervisors">
+        <AuthGuard requireRole="supervisor">
+          <AdminSupervisors />
+        </AuthGuard>
       </Route>
 
-      {/* Root */}
       <Route path="/">
-        <AuthGuard><div /></AuthGuard>
+        <AuthGuard>
+          <div />
+        </AuthGuard>
       </Route>
 
       <Route component={NotFound} />

@@ -15,12 +15,26 @@ export async function requireAuth(c: Context, next: Next) {
   await next();
 }
 
-/**
- * التحقق من صلاحيات المدير (Admin)
- */
+/** مشرف أو سوبرفايزر (إعدادات، إلخ) */
+export async function requireStaff(c: Context, next: Next) {
+  const userId = getCookie(c, "userId");
+  const userRole = getCookie(c, "userRole");
+
+  if (!userId) {
+    return c.json({ error: "Not authenticated" }, 401);
+  }
+
+  if (userRole !== "admin" && userRole !== "supervisor") {
+    return c.json({ error: "Staff access required" }, 403);
+  }
+
+  await next();
+}
+
+/** مشرف تشغيلي فقط (بدون صلاحيات السوبرفايزر الحصرية) */
 export async function requireAdmin(c: Context, next: Next) {
-  const userId = getCookie(c, 'userId');
-  const userRole = getCookie(c, 'userRole'); // سنقوم بحفظ الدور في الكوكي عند تسجيل الدخول
+  const userId = getCookie(c, "userId");
+  const userRole = getCookie(c, "userRole");
 
   if (!userId) {
     return c.json({ error: "Not authenticated" }, 401);
@@ -28,6 +42,22 @@ export async function requireAdmin(c: Context, next: Next) {
 
   if (userRole !== "admin") {
     return c.json({ error: "Admin access required" }, 403);
+  }
+
+  await next();
+}
+
+/** صلاحية سوبرفايزر فقط */
+export async function requireSupervisor(c: Context, next: Next) {
+  const userId = getCookie(c, "userId");
+  const userRole = getCookie(c, "userRole");
+
+  if (!userId) {
+    return c.json({ error: "Not authenticated" }, 401);
+  }
+
+  if (userRole !== "supervisor") {
+    return c.json({ error: "Supervisor access required" }, 403);
   }
 
   await next();
