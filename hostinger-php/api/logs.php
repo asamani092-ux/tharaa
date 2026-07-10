@@ -5,20 +5,12 @@ header('Content-Type: application/json; charset=utf-8');
 
 require_once 'cors.php';
 require_once 'db.php';
-
-function getWeekLabel(): string
-{
-    $date = new DateTime();
-    $dayOfWeek = (int)$date->format('w');
-    $date->modify("-{$dayOfWeek} days");
-    return $date->format('Y-m-d');
-}
+require_once 'week_label_helpers.php';
 
 function getSubmissionStatus(PDO $pdo): string
 {
     try {
-        $stmt = $pdo->query('SELECT * FROM settings LIMIT 1');
-        $settings = $stmt->fetch(PDO::FETCH_ASSOC);
+        $settings = fetchSettingsRow($pdo);
         if (!$settings) {
             return 'on_time';
         }
@@ -26,40 +18,8 @@ function getSubmissionStatus(PDO $pdo): string
             return 'on_time';
         }
 
-        $currentDay = (int)date('w');
-        // يوم الرسمي من primary_day (إعدادات الواجهة)؛ التأخير دائماً اليوم التالي — O(1).
-        $DAY_NAME_TO_NUM = [
-            'Sunday' => 0,
-            'Monday' => 1,
-            'Tuesday' => 2,
-            'Wednesday' => 3,
-            'Thursday' => 4,
-            'Friday' => 5,
-            'Saturday' => 6,
-        ];
-
-        $startDay = null;
-        if (!empty($settings['primary_day']) && is_string($settings['primary_day'])) {
-            $name = trim($settings['primary_day']);
-            if (isset($DAY_NAME_TO_NUM[$name])) {
-                $startDay = $DAY_NAME_TO_NUM[$name];
-            }
-        }
-
-        if ($startDay === null) {
-            $startDayRaw = $settings['submission_start_day'] ?? null;
-            if (is_numeric($startDayRaw)) {
-                $n = (int)$startDayRaw;
-                if ($n >= 0 && $n <= 6) {
-                    $startDay = $n;
-                }
-            }
-        }
-
-        if ($startDay === null) {
-            $startDay = 5;
-        }
-
+        $currentDay = getRiyadhWeekday();
+        $startDay = resolvePrimaryStartDay($settings);
         $lateDay = ($startDay + 1) % 7;
 
         if ($currentDay === $startDay) {
@@ -114,21 +74,6 @@ function hasPrimarySubmissionThisWeek(PDO $pdo, int $userId, string $weekLabel):
     return (int)$stmt->fetchColumn() > 0;
 }
 
-/**
- * هل يوجد أي نشاط في هذا الأسبوع؟
- * (يستخدم فقط لحالة الواجهة: hasPrimaryThisWeek)
- */
-function hasAnySubmissionThisWeek(PDO $pdo, int $userId, string $weekLabel): bool
-{
-    $stmt = $pdo->prepare("
-        SELECT COUNT(*) FROM reading_logs
-        WHERE user_id = ? AND week_label = ?
-          AND submission_status IN ('on_time', 'late', 'missed', 'extra')
-    ");
-    $stmt->execute([$userId, $weekLabel]);
-    return (int)$stmt->fetchColumn() > 0;
-}
-
 function mapLogRow(array $l): array
 {
     return [
@@ -166,10 +111,10 @@ try {
                 echo json_encode(['error' => 'غير مصرح'], JSON_UNESCAPED_UNICODE);
                 exit();
             }
-            $weekLabel = getWeekLabel();
+            $weekLabel = getWeekLabel($pdo);
             echo json_encode([
                 'weekLabel' => $weekLabel,
-                'hasPrimaryThisWeek' => hasAnySubmissionThisWeek($pdo, $userId, $weekLabel),
+                'hasPrimaryThisWeek' => hasPrimarySubmissionThisWeek($pdo, $userId, $weekLabel),
                 'submissionStatus' => getSubmissionStatus($pdo),
             ], JSON_UNESCAPED_UNICODE);
             exit();
@@ -238,7 +183,7 @@ try {
 
         $mode = ($body['mode'] ?? 'primary') === 'extra' ? 'extra' : 'primary';
         $reflection = $body['reflection'] ?? null;
-        $weekLabel = getWeekLabel();
+        $weekLabel = getWeekLabel($pdo);
         $effectiveTrack = getEffectiveTrack($pdo, $userId);
 
         if ($mode === 'extra' && !hasPrimarySubmissionThisWeek($pdo, $userId, $weekLabel)) {
@@ -377,4 +322,3 @@ try {
 }
 
 ob_end_flush();
-
