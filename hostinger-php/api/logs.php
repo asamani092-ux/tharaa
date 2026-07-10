@@ -114,7 +114,7 @@ try {
             $weekLabel = getWeekLabel($pdo);
             echo json_encode([
                 'weekLabel' => $weekLabel,
-                'hasPrimaryThisWeek' => hasPrimarySubmissionThisWeek($pdo, $userId, $weekLabel),
+                'hasPrimaryThisWeek' => hasPrimaryInCurrentCycle($pdo, $userId),
                 'submissionStatus' => getSubmissionStatus($pdo),
             ], JSON_UNESCAPED_UNICODE);
             exit();
@@ -186,13 +186,13 @@ try {
         $weekLabel = getWeekLabel($pdo);
         $effectiveTrack = getEffectiveTrack($pdo, $userId);
 
-        if ($mode === 'extra' && !hasPrimarySubmissionThisWeek($pdo, $userId, $weekLabel)) {
+        if ($mode === 'extra' && !hasPrimaryInCurrentCycle($pdo, $userId)) {
             http_response_code(400);
             echo json_encode(['error' => 'يجب تسليم الرصد الأسبوعي أولاً'], JSON_UNESCAPED_UNICODE);
             exit();
         }
 
-        if ($mode === 'primary' && hasPrimarySubmissionThisWeek($pdo, $userId, $weekLabel)) {
+        if ($mode === 'primary' && hasPrimaryInCurrentCycle($pdo, $userId)) {
             http_response_code(400);
             echo json_encode(['error' => 'تم تسليم الرصد الأسبوعي مسبقاً. استخدم إنجازاً إضافياً'], JSON_UNESCAPED_UNICODE);
             exit();

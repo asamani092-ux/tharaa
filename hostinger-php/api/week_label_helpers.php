@@ -84,3 +84,28 @@ function getRiyadhWeekday(): int
 {
     return (int)riyadhDateTime()->format('w');
 }
+
+/** تاريخ بداية دورة الرصد الحالية (Y-m-d) — O(1). */
+function getCurrentCycleStartDate(PDO $pdo): string
+{
+    $settings = fetchSettingsRow($pdo);
+    $startDay = resolvePrimaryStartDay($settings);
+    return weekLabelForDate(riyadhDateTime(), $startDay);
+}
+
+/**
+ * هل يوجد رصد أسبوعي (primary) في دورة الرصد الحالية؟
+ * يعتمد على date وweek_label معاً ليشمل السجلات القديمة قبل ترحيل week_label — O(1).
+ */
+function hasPrimaryInCurrentCycle(PDO $pdo, int $userId): bool
+{
+    $cycleStart = getCurrentCycleStartDate($pdo);
+    $stmt = $pdo->prepare("
+        SELECT COUNT(*) FROM reading_logs
+        WHERE user_id = ?
+          AND submission_status IN ('on_time', 'late', 'missed')
+          AND (week_label = ? OR date >= ?)
+    ");
+    $stmt->execute([$userId, $cycleStart, $cycleStart]);
+    return (int)$stmt->fetchColumn() > 0;
+}
