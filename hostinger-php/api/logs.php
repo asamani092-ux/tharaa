@@ -224,10 +224,20 @@ try {
 
         $pdo->beginTransaction();
 
-        $stmtUser = $pdo->prepare('SELECT completed_books, phase_number FROM users WHERE id = ?');
+        $stmtUser = $pdo->prepare('
+            SELECT completed_books, phase_number, current_book_id, last_page
+            FROM users WHERE id = ?
+        ');
         $stmtUser->execute([$userId]);
         $userRow = $stmtUser->fetch(PDO::FETCH_ASSOC);
         $completedBooks = json_decode($userRow['completed_books'] ?: '[]', true);
+        if (!is_array($completedBooks)) {
+            $completedBooks = [];
+        }
+        $completedBooks = array_map('intval', $completedBooks);
+        $prevCurrentId = (int)($userRow['current_book_id'] ?? 0);
+        $prevLastPage = (int)($userRow['last_page'] ?? 0);
+        $prevPhase = (int)($userRow['phase_number'] ?? 1);
 
         $stmtBook = $pdo->prepare('SELECT id, phase_number, track_type, total_pages FROM curriculum WHERE id = ?');
         $stmtInsert = $pdo->prepare("
@@ -239,7 +249,7 @@ try {
         $lastBookId = null;
         $lastEndPage = 0;
         $lastCompleted = false;
-        $lastPhase = (int)($userRow['phase_number'] ?? 1);
+        $lastPhase = $prevPhase;
         $reflectionUsed = false;
 
         foreach ($rows as $row) {
@@ -287,15 +297,42 @@ try {
             $lastPhase = (int)$book['phase_number'];
         }
 
-        $newLastPage = $lastCompleted ? 0 : $lastEndPage;
-        $encodedCompleted = json_encode($completedBooks);
+        $encodedCompleted = json_encode(array_values($completedBooks), JSON_UNESCAPED_UNICODE);
 
-        $stmtUpdate = $pdo->prepare("
-            UPDATE users
-            SET last_page = ?, current_book_id = ?, phase_number = ?, completed_books = ?
-            WHERE id = ?
-        ");
-        $stmtUpdate->execute([$newLastPage, $lastBookId, $lastPhase, $encodedCompleted, $userId]);
+        // primary: يحدّث المؤشر الرسمي. extra: لا يستبدل كتاباً آخر جارياً — O(1).
+        if ($mode === 'primary') {
+            $newLastPage = $lastCompleted ? 0 : $lastEndPage;
+            $stmtUpdate = $pdo->prepare("
+                UPDATE users
+                SET last_page = ?, current_book_id = ?, phase_number = ?, completed_books = ?
+                WHERE id = ?
+            ");
+            $stmtUpdate->execute([$newLastPage, $lastBookId, $lastPhase, $encodedCompleted, $userId]);
+        } else {
+            $prevCurrentCompleted = $prevCurrentId > 0
+                && in_array($prevCurrentId, $completedBooks, true);
+
+            if ($prevCurrentCompleted) {
+                $newLastPage = $lastCompleted ? 0 : $lastEndPage;
+                $stmtUpdate = $pdo->prepare("
+                    UPDATE users
+                    SET last_page = ?, current_book_id = ?, phase_number = ?, completed_books = ?
+                    WHERE id = ?
+                ");
+                $stmtUpdate->execute([$newLastPage, $lastBookId, $lastPhase, $encodedCompleted, $userId]);
+            } elseif ($lastBookId === $prevCurrentId && $prevCurrentId > 0) {
+                $healedLast = $lastCompleted ? 0 : max($prevLastPage, $lastEndPage);
+                $stmtUpdate = $pdo->prepare("
+                    UPDATE users
+                    SET last_page = ?, completed_books = ?
+                    WHERE id = ?
+                ");
+                $stmtUpdate->execute([$healedLast, $encodedCompleted, $userId]);
+            } else {
+                $stmtUpdate = $pdo->prepare('UPDATE users SET completed_books = ? WHERE id = ?');
+                $stmtUpdate->execute([$encodedCompleted, $userId]);
+            }
+        }
 
         $pdo->commit();
 
