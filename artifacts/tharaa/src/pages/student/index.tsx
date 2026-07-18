@@ -96,7 +96,9 @@ const EMPTY_COMPLETED_BOOKS: number[] = [];
 
 type StudentReadingLog = {
   bookId?: number;
+  book_id?: number;
   endPage?: number;
+  end_page?: number;
 };
 
 const TRACK_COMPLETE_MESSAGES = [
@@ -210,19 +212,30 @@ export default function StudentPortal() {
     refetchOnWindowFocus: false,
   });
 
-  /** آخر صفحة مسجّلة لكل كتاب من reading_logs — O(n). */
+  /** آخر صفحة لكل كتاب: bookProgress من /me + reading_logs — O(n). */
   const maxEndPageByBookId = useMemo(() => {
     const map = new Map<number, number>();
+    const fromMe = (user as { bookProgress?: Record<string, number> } | undefined)
+      ?.bookProgress;
+    if (fromMe && typeof fromMe === "object") {
+      for (const [key, value] of Object.entries(fromMe)) {
+        const bookId = Number(key);
+        const endPage = Number(value);
+        if (!Number.isFinite(bookId) || bookId <= 0) continue;
+        if (!Number.isFinite(endPage) || endPage <= 0) continue;
+        map.set(bookId, endPage);
+      }
+    }
     for (const log of myReadingLogs ?? []) {
-      const bookId = Number(log.bookId);
-      const endPage = Number(log.endPage);
+      const bookId = Number(log.bookId ?? log.book_id);
+      const endPage = Number(log.endPage ?? log.end_page);
       if (!Number.isFinite(bookId) || bookId <= 0) continue;
       if (!Number.isFinite(endPage) || endPage <= 0) continue;
       const prev = map.get(bookId) ?? 0;
       if (endPage > prev) map.set(bookId, endPage);
     }
     return map;
-  }, [myReadingLogs]);
+  }, [myReadingLogs, user]);
 
   const completedBookIds: number[] = user?.completedBooks ?? EMPTY_COMPLETED_BOOKS;
   const completedBookIdSet = useMemo(() => new Set<number>(completedBookIds), [completedBookIds]);
@@ -385,7 +398,7 @@ export default function StudentPortal() {
   const currentBook = isCurrentBookValid
     ? userCurrentBook
     : availableCoreBooks[0] ?? availableBooks[0];
-  const effectiveLastPage = isCurrentBookValid ? user?.lastPage || 0 : 0;
+  const effectiveLastPage = currentBook ? lastPageForBook(currentBook) : 0;
   const remainingInCurrentBook = currentBook
     ? Math.max(0, currentBook.totalPages - effectiveLastPage)
     : 0;

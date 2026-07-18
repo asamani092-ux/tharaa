@@ -39,6 +39,31 @@ function isPriorAchievementEnabled(PDO $pdo): bool
     }
 }
 
+/** آخر صفحة لكل كتاب من reading_logs — O(n) كتب المستخدم. */
+function loadBookProgressMap(PDO $pdo, int $userId): array
+{
+    $map = [];
+    try {
+        $stmt = $pdo->prepare("
+            SELECT book_id, MAX(end_page) AS max_end
+            FROM reading_logs
+            WHERE user_id = ?
+            GROUP BY book_id
+        ");
+        $stmt->execute([$userId]);
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $bookId = (int)$row['book_id'];
+            $maxEnd = (int)$row['max_end'];
+            if ($bookId > 0 && $maxEnd > 0) {
+                $map[(string)$bookId] = $maxEnd;
+            }
+        }
+    } catch (Exception $e) {
+        return [];
+    }
+    return $map;
+}
+
 function formatUser($u)
 {
     global $pdo;
@@ -74,6 +99,11 @@ function formatUser($u)
         }
     }
 
+    $bookProgress = loadBookProgressMap($pdo, $userId);
+    $storedLastPage = (int)$u['last_page'];
+    $fromLogs = $currentBook ? (int)($bookProgress[(string)$currentBook] ?? 0) : 0;
+    $effectiveLastPage = max($storedLastPage, $fromLogs);
+
     return [
         'id' => $userId,
         'name' => $u['name'],
@@ -84,7 +114,8 @@ function formatUser($u)
         'phaseNumber' => $phase,
         'levelType' => !empty($u['level_type']) ? $u['level_type'] : 'basic',
         'currentBookId' => $currentBook,
-        'lastPage' => (int)$u['last_page'],
+        'lastPage' => $effectiveLastPage,
+        'bookProgress' => $bookProgress,
         'completedBooks' => json_decode($u['completed_books'] ?: '[]', true),
         'trackOverride' => $trackOverride,
         'effectiveTrack' => $effectiveTrack,
@@ -325,10 +356,17 @@ try {
 
         $encodedCompletedBooks = json_encode($merged, JSON_UNESCAPED_UNICODE);
 
-        // إن بقي الكتاب الحالي غير مكتمل: لا تلمس المؤشر ولا last_page — O(1).
+        // إن بقي الكتاب الحالي غير مكتمل: لا تلمس المؤشر؛ أصلح last_page من السجلات — O(1).
         if ($currentStillInProgress) {
-            $updateStmt = $pdo->prepare('UPDATE users SET completed_books = ? WHERE id = ?');
-            $updateStmt->execute([$encodedCompletedBooks, $targetUserId]);
+            $maxStmt = $pdo->prepare("
+                SELECT COALESCE(MAX(end_page), 0) FROM reading_logs
+                WHERE user_id = ? AND book_id = ?
+            ");
+            $maxStmt->execute([$targetUserId, $currentBookId]);
+            $maxEnd = (int)$maxStmt->fetchColumn();
+            $healedLast = max((int)($row['last_page'] ?? 0), $maxEnd);
+            $updateStmt = $pdo->prepare('UPDATE users SET completed_books = ?, last_page = ? WHERE id = ?');
+            $updateStmt->execute([$encodedCompletedBooks, $healedLast, $targetUserId]);
         } elseif ($newCurrentBookId > 0) {
             $stmt = $pdo->prepare('SELECT phase_number FROM curriculum WHERE id = ?');
             $stmt->execute([$newCurrentBookId]);

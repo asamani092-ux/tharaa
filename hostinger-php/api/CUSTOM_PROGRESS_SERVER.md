@@ -27,7 +27,11 @@ $merged = array_values(array_unique(array_merge(
 
 | الحالة | التحديث |
 |--------|---------|
-| الكتاب الحالي موجود وليس ضمن `merged` | حدّث `completed_books` فقط — **لا تغيّر** `current_book_id` / `last_page` / `phase_number` |
+| الكتاب الحالي موجود وليس ضمن `merged` | حدّث `completed_books` + أصلح `last_page = max(المخزّن, MAX(end_page) من السجلات)` — **لا تغيّر** `current_book_id` / `phase_number` |
 | الكتاب الحالي ضمن المكتملين أو غير موجود | اضبط المؤشر إلى `newCurrentBookId` مع `last_page = 0` |
+
+`GET users` يعيد أيضاً `bookProgress` = `{ bookId: maxEndPage }` من `reading_logs` لاستئناف أي كتاب.
+
+رصد `mode=extra` لكتاب غير الحالي: يحدّث `completed_books` فقط ولا يستبدل المؤشر.
 
 لا تستخدم `$incoming` وحده كاستبدال كامل لـ `completed_books`.
