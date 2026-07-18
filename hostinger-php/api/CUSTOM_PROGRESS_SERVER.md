@@ -9,6 +9,9 @@
 }
 ```
 
+- `newCurrentBookId` يُرسل **فقط** عندما يكون الكتاب الحالي ضمن الكتب المعتمدة (أو لا يوجد كتاب حالي).
+- إن بقي الكتاب الجاري غير مكتمل، لا تُرسل الواجهة `newCurrentBookId`.
+
 يجب على PHP **دمج** القائمة مع الموجود في قاعدة البيانات:
 
 ```php
@@ -18,7 +21,13 @@ $merged = array_values(array_unique(array_merge(
     array_map('intval', $existing),
     array_map('intval', $incoming)
 )));
-// UPDATE users SET completed_books = json_encode($merged), current_book_id = ...
 ```
 
-لا تستخدم `$incoming` وحده كاستبدال كامل.
+## حفظ المؤشر (current / last_page)
+
+| الحالة | التحديث |
+|--------|---------|
+| الكتاب الحالي موجود وليس ضمن `merged` | حدّث `completed_books` فقط — **لا تغيّر** `current_book_id` / `last_page` / `phase_number` |
+| الكتاب الحالي ضمن المكتملين أو غير موجود | اضبط المؤشر إلى `newCurrentBookId` مع `last_page = 0` |
+
+لا تستخدم `$incoming` وحده كاستبدال كامل لـ `completed_books`.

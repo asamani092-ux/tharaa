@@ -91,7 +91,13 @@ type StudentAnalyticsMe = {
 
 const STUDENT_ANALYTICS_ME_KEY = ["student-analytics-me"] as const;
 const WEEKLY_LOG_STATUS_KEY = ["logs-weekly-status"] as const;
+const MY_READING_LOGS_KEY = ["student-my-reading-logs"] as const;
 const EMPTY_COMPLETED_BOOKS: number[] = [];
+
+type StudentReadingLog = {
+  bookId?: number;
+  endPage?: number;
+};
 
 const TRACK_COMPLETE_MESSAGES = [
   "بارك الله فيك! أتممت رحلة المعرفة في مسارك — استمر في الإفادة والدعوة.",
@@ -190,6 +196,33 @@ export default function StudentPortal() {
     retry: 1,
     refetchOnWindowFocus: false,
   });
+
+  const { data: myReadingLogs } = useQuery({
+    queryKey: MY_READING_LOGS_KEY,
+    queryFn: async () => {
+      const res = await fetch("/api/logs.php?id=my", { credentials: "include" });
+      if (!res.ok) return [] as StudentReadingLog[];
+      const data = await res.json();
+      return Array.isArray(data) ? (data as StudentReadingLog[]) : [];
+    },
+    enabled: !!session?.authenticated,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
+
+  /** آخر صفحة مسجّلة لكل كتاب من reading_logs — O(n). */
+  const maxEndPageByBookId = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const log of myReadingLogs ?? []) {
+      const bookId = Number(log.bookId);
+      const endPage = Number(log.endPage);
+      if (!Number.isFinite(bookId) || bookId <= 0) continue;
+      if (!Number.isFinite(endPage) || endPage <= 0) continue;
+      const prev = map.get(bookId) ?? 0;
+      if (endPage > prev) map.set(bookId, endPage);
+    }
+    return map;
+  }, [myReadingLogs]);
 
   const completedBookIds: number[] = user?.completedBooks ?? EMPTY_COMPLETED_BOOKS;
   const completedBookIdSet = useMemo(() => new Set<number>(completedBookIds), [completedBookIds]);
@@ -325,8 +358,13 @@ export default function StudentPortal() {
     );
   }, [priorBooksNotCompleted, priorBookSearch]);
 
-  const lastPageForBook = (book: { id: number }) =>
-    user?.currentBookId === book.id ? user?.lastPage ?? 0 : 0;
+  const lastPageForBook = (book: { id: number }) => {
+    const fromLogs = maxEndPageByBookId.get(book.id) ?? 0;
+    if (user?.currentBookId === book.id) {
+      return Math.max(user?.lastPage ?? 0, fromLogs);
+    }
+    return fromLogs;
+  };
 
   const userCurrentBook = user?.currentBookId
     ? trackBooks.find((b) => b.id === user.currentBookId)
@@ -399,6 +437,7 @@ export default function StudentPortal() {
     availableBooks,
     user?.currentBookId,
     user?.lastPage,
+    maxEndPageByBookId,
   ]);
 
   const pickCurrentBookForLog = () => {
@@ -488,6 +527,7 @@ export default function StudentPortal() {
       setNextBookIdForRollover("");
       await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
       await queryClient.invalidateQueries({ queryKey: WEEKLY_LOG_STATUS_KEY });
+      await queryClient.invalidateQueries({ queryKey: MY_READING_LOGS_KEY });
       await queryClient.invalidateQueries({ queryKey: STUDENT_ANALYTICS_ME_KEY });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "حدث خطأ أثناء الرصد";
@@ -570,6 +610,7 @@ export default function StudentPortal() {
     weeklyQuota,
     user?.currentBookId,
     user?.lastPage,
+    maxEndPageByBookId,
   ]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -716,17 +757,25 @@ export default function StudentPortal() {
       const mergedCompleted = [
         ...new Set([...completedBookIds, ...selectedCustomBooks]),
       ];
+      const currentStillInProgress =
+        !!user?.currentBookId && !mergedCompleted.includes(user.currentBookId);
       const nextCurrent =
         coreTrackBooks.find((b) => !mergedCompleted.includes(b.id))?.id ?? null;
+
+      const payload: {
+        completedBooks: number[];
+        newCurrentBookId?: number | null;
+      } = { completedBooks: mergedCompleted };
+      // لا تستبدل المؤشر إن بقي الكتاب الجاري غير مكتمل.
+      if (!currentStillInProgress) {
+        payload.newCurrentBookId = nextCurrent;
+      }
 
       const response = await fetch("/api/users.php?id=custom_progress", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          completedBooks: mergedCompleted,
-          newCurrentBookId: nextCurrent,
-        }),
+        body: JSON.stringify(payload),
       });
       if (!response.ok) {
         const errData = await response.json().catch(() => null);
@@ -747,6 +796,7 @@ export default function StudentPortal() {
       setSelectedCustomBooks([]);
       setPriorBookSearch("");
       await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      await queryClient.invalidateQueries({ queryKey: MY_READING_LOGS_KEY });
       await queryClient.invalidateQueries({ queryKey: STUDENT_ANALYTICS_ME_KEY });
       await queryClient.refetchQueries({ queryKey: STUDENT_ANALYTICS_ME_KEY });
     } catch (error: unknown) {
