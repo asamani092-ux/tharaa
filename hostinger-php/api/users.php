@@ -258,7 +258,10 @@ try {
 
         $pdo->beginTransaction();
 
-        $fetchStmt = $pdo->prepare('SELECT completed_books FROM users WHERE id = ?');
+        $fetchStmt = $pdo->prepare('
+            SELECT completed_books, current_book_id, last_page, phase_number
+            FROM users WHERE id = ?
+        ');
         $fetchStmt->execute([$targetUserId]);
         $row = $fetchStmt->fetch(PDO::FETCH_ASSOC);
 
@@ -279,6 +282,9 @@ try {
             $existingIds,
             array_map('intval', $incoming)
         )));
+
+        $currentBookId = (int)($row['current_book_id'] ?? 0);
+        $currentStillInProgress = $currentBookId > 0 && !in_array($currentBookId, $merged, true);
 
         $newlyAddedIds = array_values(array_diff($merged, $existingIds));
         $weekLabel = getWeekLabel();
@@ -319,7 +325,11 @@ try {
 
         $encodedCompletedBooks = json_encode($merged, JSON_UNESCAPED_UNICODE);
 
-        if ($newCurrentBookId > 0) {
+        // إن بقي الكتاب الحالي غير مكتمل: لا تلمس المؤشر ولا last_page — O(1).
+        if ($currentStillInProgress) {
+            $updateStmt = $pdo->prepare('UPDATE users SET completed_books = ? WHERE id = ?');
+            $updateStmt->execute([$encodedCompletedBooks, $targetUserId]);
+        } elseif ($newCurrentBookId > 0) {
             $stmt = $pdo->prepare('SELECT phase_number FROM curriculum WHERE id = ?');
             $stmt->execute([$newCurrentBookId]);
             $newPhase = $stmt->fetchColumn();
